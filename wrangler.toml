@@ -1,0 +1,20 @@
+name = "xinblog"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-09-23"
+
+# 部署方式（任选其一）：
+#   1) CLI：  wrangler pages deploy dist
+#   2) Git：  推送到 GitHub 后在 Cloudflare Pages 绑定本仓库，构建命令 `npm run build`，输出目录 `dist`
+#
+# 绑定与变量（在 Cloudflare Pages 控制台「设置」中配置，或下方声明）：
+#   - 变量 AI：绑定 Workers AI
+#   - D1 数据库：DB_USERS / DB_POSTS / DB_CONFIG / DB_MEDIA
+#   - 环境变量 JWT_SECRET、AI_API_KEY
+#
+# 注意：JWT_SECRET 与 AI_API_KEY 属于敏感凭证，建议使用加密变量而非明文：
+#   wrangler pages secret put JWT_SECRET
+#   wrangler pages secret put AI_API_KEY
+#
+# [vars]
+# JWT_SECRET = "请改为强随机字符串（生产请用 wrangler pages secret put）"
+# AI_API_KEY = "请改为强随机字符串（生产请用 wrangler pages secret put）"
