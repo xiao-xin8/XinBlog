@@ -1,0 +1,1 @@
+import{$ as e}from"./Fade-DLb3qQ0D.js";import{r as t}from"./ButtonBase-gRZ5tq_h.js";var n=t((0,e().jsx)(`path`,{d:`M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z`}),`ExpandMore`);export{n as t};

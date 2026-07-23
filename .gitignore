@@ -1,5 +1,21 @@
-# Logs
-logs
+# 依赖（体积大、可重建，不纳入仓库）
+node_modules
+
+# 环境变量（仅保留 .env.example 作为模板；真实 .env 含密钥，不入库）
+.env
+.env.*
+!.env.example
+
+# 运行时数据库文件（db/ 下的 .sql 是建表脚本，纳入；运行时生成的库文件忽略）
+*.db
+*.sqlite
+*.sqlite3
+
+# 构建 / 编译日志（自定义编译脚本产生）
+build.err
+build.log
+compile.done
+compile.log
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,35 +23,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# 构建产物（自定义编译脚本产生）
-build.err
-build.log
-compile.done
-compile.log
-
-# 发布资源包压缩包（已在仓库外单独维护，不纳入源码仓库）
-XinBlog0.1.0网页端部署资源包.zip
-
-# 运行时数据库（db/ 下为表结构 .sql，运行时生成的库文件应忽略）
-*.db
-*.sqlite
-*.sqlite3
-
-# 环境变量（保留 .env.example 作为模板）
-.env
-.env.*
-!.env.example
-
 # 依赖缓存 / 测试覆盖率
 .cache
 coverage
 
-# Editor directories and files
+# 编辑器与系统文件
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -45,3 +37,6 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# 说明：dist/（构建产物）与 XinBlog0.1.0网页端部署资源包.zip（部署包）
+#       已纳入仓库，方便用户直接部署，无需自行构建。

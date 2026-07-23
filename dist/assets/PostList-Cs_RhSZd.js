@@ -1,0 +1,1 @@
+import{$ as e}from"./Fade-DLb3qQ0D.js";import{i as t}from"./index-tLr0y_-8.js";import{n,r,t as i}from"./PostListMagazine-suTBc3Fa.js";var a=e();function o({posts:e}){let{postLayout:o}=t();switch(o){case`list`:return(0,a.jsx)(n,{posts:e});case`magazine`:return(0,a.jsx)(i,{posts:e});default:return(0,a.jsx)(r,{posts:e})}}export{o as t};

@@ -18,10 +18,15 @@
 云端上传这个文件夹/
 ├── _worker.js          ← 后端 API，必须上传
 ├── _routes.json        ← 路由规则，必须上传
+├── _headers            ← 缓存与安全响应头，必须上传
 ├── index.html          ← 网站首页
 ├── assets/             ← JS、CSS 等资源
+├── prompts/            ← AI 提示词（article-generation.txt / format-optimization.txt）
 └── logo.png
 ```
+
+> 上传时务必选择**整个文件夹**，上面的文件（包括 `prompts/`）都要一起上传；Cloudflare 会以文件夹内内容作为网站根目录。
+> 发布包根目录另附 `wrangler.toml`，供需要使用命令行（`wrangler pages deploy`）部署的用户参考绑定与构建配置。
 
 > 上传时，选择**整个文件夹**，Cloudflare 会以文件夹内的内容作为网站根目录。
 
