@@ -1,0 +1,111 @@
+
+import type { ThemePackage } from '@/types';
+
+export const BUILTIN_THEMES: ThemePackage[] = [
+  {
+    id: 'border-image-card',
+    name: '边框画报',
+    version: '1.0.0',
+    author: 'XinBlog',
+    description: '以站点主色勾勒边框，使用文章封面作为背景，文字置于左下角的画报风格卡片。',
+    previewImage: '',
+    minAppVersion: '1.0.0',
+    components: {
+      postCard: {
+        variant: 'border-image',
+        layout: 'overlay',
+        showExcerpt: true,
+        showTags: true,
+        showMeta: true,
+        params: {
+          borderWidth: 4,
+          borderRadius: 24,
+          borderColor: '#5b7cfa',
+          backgroundColor: '#f0f4ff',
+          textPosition: 'bottom-left',
+          titleSize: 'large',
+        },
+        schema: [
+          { key: 'borderWidth', label: '边框宽度', type: 'number', min: 0, max: 12, step: 1 },
+          { key: 'borderRadius', label: '卡片圆角', type: 'number', min: 0, max: 32, step: 2 },
+          { key: 'borderColor', label: '边框颜色', type: 'color' },
+          { key: 'backgroundColor', label: '背景颜色', type: 'color' },
+          {
+            key: 'titleSize',
+            label: '标题大小',
+            type: 'select',
+            options: [
+              { value: 'small', label: '小' },
+              { value: 'medium', label: '中' },
+              { value: 'large', label: '大' },
+            ],
+          },
+          { key: 'showExcerpt', label: '显示摘要', type: 'boolean' },
+          { key: 'showTags', label: '显示标签', type: 'boolean' },
+          { key: 'showMeta', label: '显示阅读时间等元信息', type: 'boolean' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'glass-magazine',
+    name: '玻璃画报',
+    version: '1.0.0',
+    author: 'XinBlog',
+    description: '半透明毛玻璃质感，封面作为背景，文字悬浮于磨砂渐变之上，适合展示高质量封面图。',
+    previewImage: '',
+    minAppVersion: '1.0.0',
+    components: {
+      postCard: {
+        variant: 'glass',
+        layout: 'overlay',
+        showExcerpt: true,
+        showTags: true,
+        showMeta: true,
+        params: {
+          borderWidth: 1,
+          borderRadius: 24,
+          borderColor: '',
+          backgroundColor: '',
+          overlayOpacity: 0.6,
+          glassOpacity: 0.15,
+          textPosition: 'bottom-left',
+          titleSize: 'large',
+          textColor: '#ffffff',
+        },
+        schema: [
+          { key: 'borderWidth', label: '边框宽度', type: 'number', min: 0, max: 8, step: 1 },
+          { key: 'borderRadius', label: '卡片圆角', type: 'number', min: 0, max: 32, step: 2 },
+          { key: 'borderColor', label: '边框颜色', type: 'color' },
+          { key: 'backgroundColor', label: '无封面背景色', type: 'color' },
+          { key: 'overlayOpacity', label: '底部渐变不透明度', type: 'number', min: 0.1, max: 1, step: 0.05 },
+          { key: 'glassOpacity', label: '玻璃面板不透明度', type: 'number', min: 0, max: 0.6, step: 0.05 },
+          {
+            key: 'titleSize',
+            label: '标题大小',
+            type: 'select',
+            options: [
+              { value: 'small', label: '小' },
+              { value: 'medium', label: '中' },
+              { value: 'large', label: '大' },
+            ],
+          },
+          {
+            key: 'textPosition',
+            label: '文字位置',
+            type: 'select',
+            options: [
+              { value: 'bottom-left', label: '左下' },
+              { value: 'bottom-center', label: '居中' },
+              { value: 'bottom-right', label: '右下' },
+            ],
+          },
+          { key: 'textColor', label: '文字颜色', type: 'color' },
+          { key: 'showExcerpt', label: '显示摘要', type: 'boolean' },
+          { key: 'showTags', label: '显示标签', type: 'boolean' },
+          { key: 'showMeta', label: '显示阅读时间等元信息', type: 'boolean' },
+        ],
+      },
+    },
+  },
+];
