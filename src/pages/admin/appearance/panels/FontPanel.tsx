@@ -1,0 +1,482 @@
+import {
+  Box,
+  Typography,
+  Paper,
+  Stack,
+  Button,
+  ButtonBase,
+  IconButton,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  CircularProgress,
+  Grow,
+  TextField,
+  alpha,
+} from '@mui/material';
+import { Check, Close, Add, DeleteOutlined, Storefront, Refresh } from '@mui/icons-material';
+import type { UserFont } from '@/types';
+import type { AppearanceEditor } from '../useAppearanceEditor';
+function FontCard({
+  font,
+  selected,
+  disabled,
+  onActivate,
+  onRemove,
+}: {
+  font: UserFont;
+  selected: boolean;
+  disabled: boolean;
+  onActivate: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <ButtonBase
+      onClick={onActivate}
+      sx={{
+        width: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
+        display: 'block',
+        textAlign: 'left',
+        borderRadius: 1,
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 1,
+          width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+          border: '2px solid',
+          borderColor: selected ? 'primary.main' : 'transparent',
+          bgcolor: (theme) =>
+            selected
+              ? alpha(theme.palette.primary.main, 0.08)
+              : alpha(theme.palette.primary.main, 0.02),
+          position: 'relative',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: (theme) => `0 4px 16px ${alpha(theme.palette.primary.main, 0.15)}`,
+          },
+        }}
+      >
+        {selected && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              bgcolor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+            }}
+          >
+            <Check sx={{ fontSize: 14 }} />
+          </Box>
+        )}
+        <IconButton
+          size="small"
+          disabled={disabled}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            bgcolor: 'background.paper',
+            boxShadow: 1,
+            width: 24,
+            height: 24,
+          }}
+        >
+          <DeleteOutlined sx={{ fontSize: 16, color: 'error.main' }} />
+        </IconButton>
+        <Box
+          sx={{
+            width: '100%',
+            aspectRatio: '15 / 4',
+            borderRadius: 1,
+            mb: 1.5,
+            bgcolor: 'action.hover',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            component="img"
+            src={font.preview}
+            alt={font.name}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </Box>
+        <Typography variant="subtitle2" fontWeight={700}>
+          {font.name}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {selected ? '当前使用' : '点击启用'}
+        </Typography>
+      </Paper>
+    </ButtonBase>
+  );
+}
+function FontStoreDialog({ editor }: { editor: AppearanceEditor }) {
+  const { fontStoreOpen, setFontStoreOpen, storeLoading, storeFonts, userFonts, fontActionLoading, handleAddFont, handleOpenFontStore } = editor;
+  return (
+    <Dialog
+      open={fontStoreOpen}
+      onClose={() => setFontStoreOpen(false)}
+      fullWidth
+      maxWidth={false}
+      PaperProps={{
+        sx: {
+          width: { xs: '100vw', sm: '90vw' },
+          height: { xs: '100vh', sm: '90vh' },
+          maxWidth: { xs: '100vw', sm: '90vw' },
+          maxHeight: { xs: '100vh', sm: '90vh' },
+          borderRadius: { xs: 0, sm: 2 },
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          pr: 2,
+        }}
+      >
+        字体商店
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <IconButton onClick={() => handleOpenFontStore(true)} disabled={storeLoading}>
+            <Refresh />
+          </IconButton>
+          <IconButton onClick={() => setFontStoreOpen(false)}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers sx={{ flex: 1, overflowY: 'auto' }}>
+        {storeLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : storeFonts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+            <Typography>暂无可用字体</Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr', lg: '1fr 1fr 1fr 1fr' },
+              gap: 2,
+              width: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
+            }}
+          >
+            {storeFonts.map((font) => {
+              const added = userFonts.some((f) => f.id === font.id);
+              return (
+                <Paper
+                  key={font.id}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: 1,
+                    height: '100%',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: '2px solid',
+                    borderColor: added ? 'primary.main' : 'transparent',
+                    bgcolor: (theme) =>
+                      added
+                        ? alpha(theme.palette.primary.main, 0.06)
+                        : alpha(theme.palette.primary.main, 0.02),
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: '100%',
+                      aspectRatio: '15 / 4',
+                      borderRadius: 1,
+                      mb: 1.5,
+                      bgcolor: 'action.hover',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={font.preview}
+                      alt={font.name}
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                    {font.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5 }}>
+                    {font.family}
+                  </Typography>
+                  <Box sx={{ flex: 1 }} />
+                  <Button
+                    variant={added ? 'outlined' : 'contained'}
+                    size="small"
+                    fullWidth
+                    startIcon={added ? <Check /> : <Add />}
+                    disabled={added || fontActionLoading}
+                    onClick={() => handleAddFont(font)}
+                    sx={{ borderRadius: 1 }}
+                  >
+                    {added ? '已添加' : '添加'}
+                  </Button>
+                </Paper>
+              );
+            })}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={() => setFontStoreOpen(false)} sx={{ borderRadius: 1 }}>
+          关闭
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+function FontConfirmDialog({ editor }: { editor: AppearanceEditor }) {
+  const { confirmDialog, setConfirmDialog, handleConfirmFontAction, fontActionLoading, isMobileAdmin } = editor;
+  const { open, type, font } = confirmDialog;
+  const isAdd = type === 'add';
+  const title = isAdd ? '确认添加字体？' : '确认移除字体？';
+  const content = isAdd
+    ? `确定要将“${font?.name}”添加到你的字体库吗？`
+    : `确定要移除“${font?.name}”吗？移除后该字体将从你的字体库中消失。`;
+  const confirmText = isAdd
+    ? fontActionLoading
+      ? '添加中...'
+      : '确认添加'
+    : fontActionLoading
+      ? '删除中...'
+      : '确认删除';
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !fontActionLoading && setConfirmDialog((prev) => ({ ...prev, open: false }))}
+      fullWidth
+      maxWidth="xs"
+      TransitionComponent={Grow}
+      PaperProps={{
+        sx: { borderRadius: { xs: 2, sm: '12px' } },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+      <DialogContent>
+        <DialogContentText color="text.secondary">{content}</DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.5,
+            width: '100%',
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Button
+            onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+            color="inherit"
+            disabled={fontActionLoading}
+            fullWidth={isMobileAdmin}
+            sx={{ textTransform: 'none', borderRadius: 2 }}
+          >
+            取消
+          </Button>
+          <Button
+            onClick={handleConfirmFontAction}
+            variant="contained"
+            color={isAdd ? 'primary' : 'error'}
+            disabled={fontActionLoading}
+            fullWidth={isMobileAdmin}
+            sx={{ textTransform: 'none', borderRadius: 2 }}
+          >
+            {confirmText}
+          </Button>
+        </Box>
+      </DialogActions>
+    </Dialog>
+  );
+}
+export function FontPanel({ editor }: { editor: AppearanceEditor }) {
+  const {
+    userFonts,
+    activeFontId,
+    activeFont,
+    fontActionLoading,
+    handleResetSystemFont,
+    handleOpenFontStore,
+    fontPreviewText,
+    setFontPreviewText,
+    DEFAULT_FONT_FALLBACK,
+  } = editor;
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        borderRadius: 1,
+        overflow: 'hidden',
+        width: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
+        boxShadow: (theme) =>
+          theme.palette.mode === 'light'
+            ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.08)}`
+            : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
+      }}
+    >
+      <Stack spacing={3}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            我的字体
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {activeFontId && (
+              <Button
+                variant="outlined"
+                size="small"
+                color="inherit"
+                disabled={fontActionLoading}
+                onClick={handleResetSystemFont}
+                sx={{ borderRadius: 1 }}
+              >
+                恢复系统默认
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Storefront />}
+              onClick={() => {
+                handleOpenFontStore();
+              }}
+              sx={{ borderRadius: 1 }}
+            >
+              进入字体商店
+            </Button>
+          </Box>
+        </Box>
+        <Alert severity="info" sx={{ borderRadius: 1 }}>
+          字体资源下载需要一定时间，若更新有延时请稍等片刻。
+        </Alert>
+        {userFonts.length === 0 ? (
+          <Box
+            sx={{
+              p: 4,
+              borderRadius: 1,
+              textAlign: 'center',
+              bgcolor: 'action.hover',
+              color: 'text.secondary',
+            }}
+          >
+            <Typography variant="body1" sx={{ mb: 1 }}>
+              还没有添加字体
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              去字体商店挑选一款喜欢的字体吧
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Storefront />}
+              onClick={() => {
+                handleOpenFontStore();
+              }}
+              sx={{ borderRadius: 1 }}
+            >
+              进入字体商店
+            </Button>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+              gap: 2,
+              width: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
+            }}
+          >
+            {userFonts.map((font) => {
+              const selected = activeFontId === font.id;
+              return (
+                <FontCard
+                  key={font.id}
+                  onActivate={() => editor.handleActivateFont(font.id)}
+                  onRemove={() => editor.handleRemoveFont(font.id)}
+                  font={font}
+                  selected={selected}
+                  disabled={fontActionLoading}
+                />
+              );
+            })}
+          </Box>
+        )}
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 1,
+            bgcolor: 'action.hover',
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            实时预览
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="输入你想预览的文字"
+            value={fontPreviewText}
+            onChange={(e) => setFontPreviewText(e.target.value)}
+            sx={{ mb: 1.5 }}
+          />
+          <Box
+            component="span"
+            sx={{
+              fontFamily: activeFont ? `"${activeFont.family}", ${DEFAULT_FONT_FALLBACK}` : DEFAULT_FONT_FALLBACK,
+              fontSize: '1.5rem',
+              wordBreak: 'break-all',
+            }}
+          >
+            {fontPreviewText}
+          </Box>
+        </Box>
+      </Stack>
+      <FontStoreDialog editor={editor} />
+      <FontConfirmDialog editor={editor} />
+    </Paper>
+  );
+}

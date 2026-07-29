@@ -1,0 +1,41 @@
+export interface ApiResult<T = unknown> {
+  code: number;
+  data: T;
+  msg: string;
+}
+export interface InteractionSettings {
+  commentsEnabled: boolean;
+  likesEnabled: boolean;
+  commentAudit: boolean;
+}
+export interface Comment {
+  id: number;
+  postId: number;
+  userId: number;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  username?: string;
+  avatar?: string;
+}
+export interface CommentListResponse {
+  list: Comment[];
+  total: number;
+  page: number;
+  limit: number;
+}
+export interface AdminComment extends Comment {
+  postTitle: string;
+  postSlug: string;
+}
+export interface AdminCommentListResponse {
+  list: AdminComment[];
+  total: number;
+  page: number;
+  limit: number;
+}
+export interface LikeStatus {
+  count: number;
+  liked: boolean;
+}
