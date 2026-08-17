@@ -6,6 +6,7 @@ import { fetchDashboard } from '@/api/admin';
 import { peekCache } from '@/api/client';
 import { Loading } from '@/components/Common/Loading';
 import type { DashboardCounts, DashboardResponse } from '@/api/admin';
+
 export function AdminDashboard() {
   const navigate = useNavigate();
   const dashboardCache = peekCache<DashboardResponse>('/api/v1/admin/dashboard');
@@ -13,29 +14,35 @@ export function AdminDashboard() {
     dashboardCache.data?.counts || { posts: 0, tags: 0, media: 0, users: 0 }
   );
   const [loading, setLoading] = useState(!dashboardCache.hit);
+
   useEffect(() => {
     if (!dashboardCache.hit) setLoading(true);
     fetchDashboard().then((data) => {
       if (data) setCounts(data.counts);
       setLoading(false);
     });
+    // dashboardCache 在每次 render 都会重新创建，此处只需要在组件挂载时获取一次数据
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   if (loading) {
     return <Loading text="加载站点数据中..." />;
   }
+
   const stats = [
     { title: '文章总数', value: counts.posts, icon: <Article />, color: 'primary.main', path: '/admin/posts' },
     { title: '标签总数', value: counts.tags, icon: <Palette />, color: 'secondary.main', path: '/admin/tags' },
     { title: '媒体总数', value: counts.media, icon: <PermMedia />, color: 'success.main', path: '/admin/media' },
     { title: '用户总数', value: counts.users, icon: <People />, color: 'warning.main', path: '/admin/users' },
   ];
+
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
           站点概览
         </Typography>
+
         <Grid container spacing={3}>
           {stats.map((stat) => (
             <Grid item xs={12} sm={6} lg={3} key={stat.title}>
@@ -102,6 +109,7 @@ export function AdminDashboard() {
             </Grid>
           ))}
         </Grid>
+
         <Paper
           elevation={0}
           sx={{

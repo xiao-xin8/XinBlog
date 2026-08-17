@@ -11,6 +11,7 @@ import {
 import { useUIStore } from '@/stores/uiStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
+
 export function AdminLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -23,16 +24,20 @@ export function AdminLayout() {
     touchMultiplier: 1,
     disableOnTouch: true,
   });
+
   useEffect(() => {
     scrollToTop(true);
   }, [location.pathname, scrollToTop]);
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-  const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('lg'), true);
+
+  const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('md'), true);
   const currentDrawerWidth = isDesktop
     ? (collapsed ? adminMiniDrawerWidth : adminDrawerWidth)
     : adminMobileDrawerWidth;
+
   return (
     <Box
       sx={{
@@ -75,10 +80,10 @@ export function AdminLayout() {
             minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
-            p: { xs: 2, sm: 3, lg: 4 },
+            p: { xs: 2, sm: 3, md: 4 },
           }}
         >
-          <Toolbar sx={{ display: adminNavHidden ? 'none' : { lg: 'none' } }} />
+          <Toolbar sx={{ display: adminNavHidden ? 'none' : { md: 'none' } }} />
           <Box sx={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <Fade in timeout={400} key={location.pathname}>
               <Box sx={{ minWidth: 0, height: '100%' }}>

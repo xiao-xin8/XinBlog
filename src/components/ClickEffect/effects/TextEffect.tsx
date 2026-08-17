@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColor } from '../utils/colors';
+
 interface FloatingText {
   id: number;
   x: number;
@@ -11,15 +12,20 @@ interface FloatingText {
   scale: number;
   vy: number;
 }
+
 let textId = 0;
+
 export function TextEffect({ config, themeColor }: { config: ClickEffectConfig; themeColor: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textsRef = useRef<FloatingText[]>([]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
     const list = config.textList?.length ? config.textList : ['❤'];
     let index = 0;
+
     const handleClick = (e: MouseEvent) => {
       const text = list[index % list.length];
       index++;
@@ -35,6 +41,7 @@ export function TextEffect({ config, themeColor }: { config: ClickEffectConfig; 
         vy: 1 + Math.random(),
       };
       textsRef.current.push(item);
+
       const el = document.createElement('div');
       el.textContent = text;
       el.style.position = 'fixed';
@@ -52,6 +59,7 @@ export function TextEffect({ config, themeColor }: { config: ClickEffectConfig; 
       el.setAttribute('data-id', String(item.id));
       container.appendChild(el);
     };
+
     let raf = 0;
     const animate = () => {
       for (let i = textsRef.current.length - 1; i >= 0; i--) {
@@ -73,6 +81,7 @@ export function TextEffect({ config, themeColor }: { config: ClickEffectConfig; 
       raf = requestAnimationFrame(animate);
     };
     animate();
+
     window.addEventListener('click', handleClick);
     return () => {
       window.removeEventListener('click', handleClick);
@@ -81,6 +90,7 @@ export function TextEffect({ config, themeColor }: { config: ClickEffectConfig; 
       textsRef.current = [];
     };
   }, [config.colorMode, config.customColor, config.textList, themeColor]);
+
   return (
     <div
       ref={containerRef}

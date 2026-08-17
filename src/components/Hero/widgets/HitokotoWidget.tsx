@@ -2,20 +2,25 @@ import { useEffect, useState } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
 import { FormatQuote } from '@mui/icons-material';
 import type { HeroWidgetConfig } from '@/types';
+
 interface HitokotoData {
   hitokoto: string;
   from: string;
   from_who: string | null;
 }
+
 export function HitokotoWidget({ config }: { config: HeroWidgetConfig }) {
   const [data, setData] = useState<HitokotoData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isWide = h === 1 && w >= 2;
   const quoteVariant = isTiny ? 'body2' : isWide ? 'body1' : 'h6';
   const lineClamp = isTiny ? 2 : isWide ? 2 : h >= 3 ? 6 : 4;
   const showSource = !isTiny && !isWide;
+
   useEffect(() => {
     let cancelled = false;
     fetch('https://v1.hitokoto.cn?encode=json')
@@ -33,6 +38,7 @@ export function HitokotoWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, []);
+
   return (
     <Box
       sx={{

@@ -1,5 +1,6 @@
 import { FireflyEffect, type FireflyEffectParams } from '@/themes/scene/components/FireflyEffect';
 import type { SceneThemeRenderer } from './base';
+
 export const fireflySceneRenderer: SceneThemeRenderer<FireflyEffectParams> = {
   id: 'firefly',
   name: '萤火飞舞',

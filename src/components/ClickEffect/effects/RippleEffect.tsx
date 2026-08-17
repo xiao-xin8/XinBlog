@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColor } from '../utils/colors';
+
 interface Ripple {
   x: number;
   y: number;
@@ -8,15 +9,18 @@ interface Ripple {
   opacity: number;
   velocity: number;
 }
+
 export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig; themeColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ripplesRef = useRef<Ripple[]>([]);
   const rafRef = useRef<number>(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
     const resize = () => {
       canvas.width = window.innerWidth * dpr;
@@ -27,8 +31,10 @@ export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig
     };
     resize();
     window.addEventListener('resize', resize);
+
     const baseColor = resolveEffectColor(config.colorMode, config.customColor, themeColor);
     const rgb = hexToRgb(baseColor);
+
     const handleClick = (e: MouseEvent) => {
       ripplesRef.current.push({
         x: e.clientX,
@@ -38,24 +44,29 @@ export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig
         velocity: 2.5,
       });
     };
+
     const animate = () => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.shadowBlur = 15;
       ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
+
       for (let i = ripplesRef.current.length - 1; i >= 0; i--) {
         const r = ripplesRef.current[i];
         r.r += r.velocity;
         r.velocity *= 0.96;
         r.opacity -= 0.015;
+
         ctx.beginPath();
         ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${r.opacity})`;
         ctx.lineWidth = 2;
         ctx.stroke();
+
         ctx.beginPath();
         ctx.arc(r.x, r.y, r.r * 0.5, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${r.opacity * 0.3})`;
         ctx.fill();
+
         if (r.opacity <= 0) {
           ripplesRef.current.splice(i, 1);
         }
@@ -63,6 +74,7 @@ export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig
       rafRef.current = requestAnimationFrame(animate);
     };
     animate();
+
     window.addEventListener('click', handleClick);
     return () => {
       window.removeEventListener('resize', resize);
@@ -70,6 +82,7 @@ export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig
       cancelAnimationFrame(rafRef.current);
     };
   }, [config.colorMode, config.customColor, themeColor]);
+
   return (
     <canvas
       ref={canvasRef}
@@ -85,6 +98,7 @@ export function RippleEffect({ config, themeColor }: { config: ClickEffectConfig
     />
   );
 }
+
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = hex.replace('#', '');
   const bigint = parseInt(clean, 16);

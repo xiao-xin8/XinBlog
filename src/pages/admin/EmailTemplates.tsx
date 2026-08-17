@@ -22,11 +22,13 @@ import {
 } from '@/api/admin';
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
+
 interface MagicVariable {
   key: string;
   label: string;
   desc: string;
 }
+
 const MAGIC_VARIABLES: MagicVariable[] = [
   { key: 'username', label: '用户名', desc: '注册时填写的用户名' },
   { key: 'email', label: '邮箱', desc: '收件人邮箱地址' },
@@ -35,6 +37,7 @@ const MAGIC_VARIABLES: MagicVariable[] = [
   { key: 'siteName', label: '站点名称', desc: '基础设置中的站点名称，也用作站点标题' },
   { key: 'siteTitle', label: '站点标题', desc: '与站点名称一致' },
 ];
+
 const SAMPLE_VALUES: Record<string, string> = {
   username: '星语',
   email: 'user@example.com',
@@ -43,6 +46,8 @@ const SAMPLE_VALUES: Record<string, string> = {
   siteName: 'XinBlog',
   siteTitle: 'XinBlog',
 };
+
+
 const defaultTemplate: EmailTemplateSettings = {
   subject: '您的注册验证码',
   html: `<!DOCTYPE html>
@@ -92,6 +97,7 @@ const defaultTemplate: EmailTemplateSettings = {
 </html>`,
   text: '您好，{{username}}：感谢您注册 {{siteName}}，验证码是 {{code}}，{{expireMinutes}} 分钟内有效。如非本人操作请忽略。',
 };
+
 function applyVariables(template: string, values: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(values)) {
@@ -99,6 +105,7 @@ function applyVariables(template: string, values: Record<string, string>): strin
   }
   return result;
 }
+
 export function AdminEmailTemplates() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -110,6 +117,7 @@ export function AdminEmailTemplates() {
   const [saving, setSaving] = useState(false);
   const [activeField, setActiveField] = useState<'subject' | 'html' | 'text'>('html');
   const [cursor, setCursor] = useState<{ field: 'subject' | 'html' | 'text'; pos: number } | null>(null);
+
   useEffect(() => {
     fetchEmailTemplateSettings()
       .then((data) => {
@@ -126,10 +134,12 @@ export function AdminEmailTemplates() {
         setLoading(false);
       });
   }, []);
+
   const isDirty = useMemo(
     () => JSON.stringify(template) !== JSON.stringify(initialTemplate),
     [template, initialTemplate]
   );
+
   const preview = useMemo(() => {
     return {
       subject: applyVariables(template.subject, SAMPLE_VALUES),
@@ -137,9 +147,11 @@ export function AdminEmailTemplates() {
       text: applyVariables(template.text, SAMPLE_VALUES),
     };
   }, [template]);
+
   const handleChange = (field: keyof EmailTemplateSettings, value: string) => {
     setTemplate((prev) => ({ ...prev, [field]: value }));
   };
+
   const insertVariable = (key: string) => {
     const field = cursor?.field || activeField;
     const textarea = document.getElementById(`email-template-${field}`) as HTMLTextAreaElement | HTMLInputElement | null;
@@ -165,8 +177,10 @@ export function AdminEmailTemplates() {
       }
     });
   };
+
   const handleSave = async () => {
     setSaving(true);
+    
     const saved = await updateEmailTemplateSettings(template);
     if (saved) {
       setTemplate(saved);
@@ -177,12 +191,14 @@ export function AdminEmailTemplates() {
     }
     setSaving(false);
   };
+
   const paperShadow = {
     boxShadow: (t: typeof theme) =>
       t.palette.mode === 'light'
         ? `0 4px 20px ${alpha(t.palette.primary.main, 0.08)}`
         : `0 4px 20px ${alpha(t.palette.common.black, 0.25)}`,
   };
+
   const renderEditor = () => (
     <Paper
       elevation={0}
@@ -209,6 +225,7 @@ export function AdminEmailTemplates() {
           fullWidth
           placeholder="例如：{{siteName}} 注册验证码"
         />
+
         <TextField
           id="email-template-html"
           label="HTML 正文"
@@ -232,6 +249,7 @@ export function AdminEmailTemplates() {
             },
           }}
         />
+
         <TextField
           id="email-template-text"
           label="纯文本正文（部分邮箱客户端会作为备用显示）"
@@ -249,6 +267,7 @@ export function AdminEmailTemplates() {
           rows={4}
           placeholder="在此输入纯文本版本..."
         />
+
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
             魔法变量
@@ -299,10 +318,12 @@ export function AdminEmailTemplates() {
             </Stack>
           </Paper>
         </Box>
+
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存模板" />
       </Stack>
     </Paper>
   );
+
   const renderPreview = () => (
     <Paper
       elevation={0}
@@ -322,6 +343,7 @@ export function AdminEmailTemplates() {
           实时预览
         </Typography>
       </Box>
+
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
           主题
@@ -330,6 +352,7 @@ export function AdminEmailTemplates() {
           {preview.subject || '（未填写主题）'}
         </Typography>
       </Box>
+
       <Box sx={{ flex: 1, minHeight: 240, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
         <iframe
           title="邮件预览"
@@ -338,6 +361,7 @@ export function AdminEmailTemplates() {
           sandbox=""
         />
       </Box>
+
       <Box sx={{ mt: 2 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           纯文本版本
@@ -361,9 +385,11 @@ export function AdminEmailTemplates() {
       </Box>
     </Paper>
   );
+
   if (loading) {
     return <Loading text="加载邮件模板..." />;
   }
+
   return (
     <Fade in timeout={400}>
     <Box>
@@ -373,11 +399,13 @@ export function AdminEmailTemplates() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         自定义注册验证码邮件的主题、HTML 和纯文本内容。
       </Typography>
+
       {loadError && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: 1 }}>
           {loadError}
         </Alert>
       )}
+
       {isMobileAdmin ? (
         <Stack spacing={3}>
           {renderEditor()}

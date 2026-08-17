@@ -8,13 +8,17 @@ import { TextEffect } from './effects/TextEffect';
 import { FireworkEffect } from './effects/FireworkEffect';
 import { StarEffect } from './effects/StarEffect';
 import { ConfettiEffect } from './effects/ConfettiEffect';
+
 export const ClickEffect = memo(function ClickEffect() {
   const { config } = useSiteStore();
   const theme = useTheme();
   const clickEffect = config.clickEffect;
+
   if (!clickEffect?.enabled) return null;
+
   const themeColor = theme.palette.primary.main;
   const type = clickEffect.type || 'heart';
+
   switch (type) {
     case 'heart':
       return <HeartEffect config={clickEffect} themeColor={themeColor} />;

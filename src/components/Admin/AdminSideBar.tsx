@@ -18,13 +18,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Dashboard,
+  Description,
   Diversity3,
+  Forum,
   Group,
   Home,
   Label,
   Login,
   Logout,
   Menu as MenuIcon,
+  MusicNote,
   Palette,
   PermMedia,
   Settings,
@@ -36,29 +39,36 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Logo } from '@/components/Common/Logo';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
+
 export const adminDrawerWidth = 260;
 export const adminMiniDrawerWidth = 56;
 export const adminMobileDrawerWidth = 1;
+
 interface AdminSideBarProps {
   collapsed: boolean;
   onToggle: () => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
+
 const adminNavItems: NavItem[] = [
   { title: '概览', path: '/admin', icon: <Dashboard fontSize="small" /> },
   { title: '文章', path: '/admin/posts', icon: <Article fontSize="small" /> },
   { title: '标签', path: '/admin/tags', icon: <Label fontSize="small" /> },
   { title: '媒体管理', path: '/admin/media', icon: <PermMedia fontSize="small" /> },
   { title: '评论管理', path: '/admin/comments', icon: <Chat fontSize="small" /> },
+  { title: '留言墙管理', path: '/admin/message-wall', icon: <Forum fontSize="small" /> },
   { title: '友链管理', path: '/admin/friends', icon: <Diversity3 fontSize="small" /> },
   { title: 'AI', path: '/admin/ai', icon: <AutoAwesome fontSize="small" /> },
   { title: '外观设置', path: '/admin/appearance', icon: <Palette fontSize="small" /> },
   { title: '看板娘', path: '/admin/live2d', icon: <SmartToy fontSize="small" /> },
+  { title: '音乐播放器', path: '/admin/music', icon: <MusicNote fontSize="small" /> },
   { title: '主题设置', path: '/admin/themes', icon: <Style fontSize="small" /> },
+  { title: '协议管理', path: '/admin/terms', icon: <Description fontSize="small" /> },
   { title: '高级设置', path: '/admin/advanced', icon: <Settings fontSize="small" /> },
   { title: '用户管理', path: '/admin/users', icon: <Group fontSize="small" /> },
 ];
+
 export function AdminSideBar({
   collapsed,
   onToggle,
@@ -69,22 +79,27 @@ export function AdminSideBar({
   const { isAuthenticated, user, logout } = useAuthStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+
   const handleToggle = () => {
     setIsAnimating(true);
     onToggle();
   };
+
   useEffect(() => {
     if (!isAnimating) return;
     const timer = setTimeout(() => setIsAnimating(false), DRAWER_TRANSITION_MS);
     return () => clearTimeout(timer);
   }, [isAnimating, collapsed]);
+
   const handleLogout = () => {
     if (isAuthenticated) {
       setLogoutOpen(true);
     }
     onMobileClose();
   };
+
   const drawerContent = (isCollapsed: boolean) => {
+    
     if (isCollapsed) {
       return (
         <Box
@@ -99,7 +114,7 @@ export function AdminSideBar({
             px: 1,
           }}
         >
-          {}
+          {/* Expand button on top */}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -117,7 +132,8 @@ export function AdminSideBar({
           >
             <ChevronRight />
           </IconButton>
-          {}
+
+          {/* Mini Navigation */}
           <Stack
             sx={{
               flexGrow: 1,
@@ -161,6 +177,7 @@ export function AdminSideBar({
                 </Tooltip>
               );
             })}
+
             <Tooltip title="返回首页" placement="right">
               <IconButton
                 component={Link}
@@ -190,6 +207,7 @@ export function AdminSideBar({
         </Box>
       );
     }
+
     return (
       <Box
         sx={{
@@ -200,7 +218,7 @@ export function AdminSideBar({
           overflow: 'hidden',
         }}
       >
-        {}
+        {/* Header */}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
@@ -219,7 +237,8 @@ export function AdminSideBar({
             </IconButton>
           </Box>
         </DrawerHeaderContainer>
-        {}
+
+        {/* Navigation - 独立滚动区域 */}
         <Stack
           sx={{
             flexGrow: 1,
@@ -263,7 +282,8 @@ export function AdminSideBar({
               </StyledNavButton>
             );
           })}
-          {}
+
+          {/* Back to home */}
           <StyledNavButton
             component={Link}
             to="/"
@@ -289,7 +309,8 @@ export function AdminSideBar({
             </Typography>
           </StyledNavButton>
         </Stack>
-        {}
+
+        {/* Footer */}
         <Box
           sx={{
             px: 1.5,
@@ -327,10 +348,12 @@ export function AdminSideBar({
       </Box>
     );
   };
+
   const currentWidth = collapsed ? adminMiniDrawerWidth : adminDrawerWidth;
+
   return (
     <>
-      {}
+      {/* 移动端抽屉 */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -349,15 +372,22 @@ export function AdminSideBar({
       >
         {drawerContent(false)}
       </Drawer>
-      {}
+
+      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
       <Drawer
         variant="persistent"
         anchor="left"
         open
         sx={{
           display: 'block',
-          width: { xs: `${adminMobileDrawerWidth}px`, lg: currentWidth },
+          width: { xs: `${adminMobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
+          
+          transition: (theme) =>
+            theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: { xs: `${adminMobileDrawerWidth}px`, lg: currentWidth },
@@ -399,6 +429,7 @@ export function AdminSideBar({
     </>
   );
 }
+
 export function AdminNavBar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <Box
@@ -408,7 +439,7 @@ export function AdminNavBar({ onMenuClick }: { onMenuClick: () => void }) {
         left: 0,
         right: 0,
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        display: { lg: 'none' },
+        display: { md: 'none' },
       }}
     >
       <Toolbar

@@ -9,12 +9,14 @@ import {
   Typography,
   alpha,
 } from '@mui/material';
+
 const presetColors = [
   '#ef4444', '#f97316', '#f59e0b', '#84cc16',
   '#10b981', '#06b6d4', '#0ea5e9', '#3b82f6',
   '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
   '#f472b6', '#fb7185', '#78716c', '#1f2937',
 ];
+
 function hexToRgb(hex: string) {
   const clean = hex.replace('#', '');
   if (clean.length !== 6) return { r: 0, g: 0, b: 0 };
@@ -23,31 +25,39 @@ function hexToRgb(hex: string) {
   const b = parseInt(clean.substring(4, 6), 16);
   return { r: Number.isNaN(r) ? 0 : r, g: Number.isNaN(g) ? 0 : g, b: Number.isNaN(b) ? 0 : b };
 }
+
 function rgbToHex(r: number, g: number, b: number) {
   return `#${[r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('')}`;
 }
+
 function isValidHex(hex: string) {
   return /^#?[0-9A-Fa-f]{6}$/.test(hex);
 }
+
 interface ColorPickerProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   label?: string;
 }
+
 export function ColorPicker({ value, onChange, disabled, label }: ColorPickerProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [localHex, setLocalHex] = useState(value);
   const open = Boolean(anchorEl);
+
   const rgb = hexToRgb(value);
+
   const handleOpen = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     setLocalHex(value);
     setAnchorEl(e.currentTarget);
   };
+
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   const applyHex = (hex: string) => {
     const normalized = hex.startsWith('#') ? hex : `#${hex}`;
     if (isValidHex(normalized)) {
@@ -55,10 +65,12 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
     }
     setLocalHex(normalized.toLowerCase());
   };
+
   const updateChannel = (channel: 'r' | 'g' | 'b', newValue: number) => {
     const next = { ...rgb, [channel]: newValue };
     onChange(rgbToHex(next.r, next.g, next.b));
   };
+
   return (
     <>
       <ButtonBase
@@ -99,6 +111,7 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
           {value}
         </Typography>
       </ButtonBase>
+
       <Popover
         open={open}
         anchorEl={anchorEl}
@@ -129,6 +142,7 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
               borderColor: 'divider',
             }}
           />
+
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 0.75 }}>
             {presetColors.map((color) => (
               <ButtonBase
@@ -147,6 +161,7 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
               />
             ))}
           </Box>
+
           <TextField
             label="HEX"
             value={localHex}
@@ -155,6 +170,7 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
             fullWidth
             inputProps={{ maxLength: 7 }}
           />
+
           {(['r', 'g', 'b'] as const).map((channel) => (
             <Box key={channel}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>

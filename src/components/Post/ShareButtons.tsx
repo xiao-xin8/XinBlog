@@ -12,21 +12,27 @@ import {
 import ShareIcon from '@mui/icons-material/Share';
 import LinkIcon from '@mui/icons-material/Link';
 import { useSnackbar } from 'notistack';
+
 interface ShareButtonsProps {
   title: string;
   url?: string;
 }
+
 const canSystemShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
 export default function ShareButtons({ title, url }: ShareButtonsProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   const handleCopy = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).then(() => {
@@ -37,6 +43,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
     }
     handleClose();
   };
+
   const handleSystemShare = async () => {
     try {
       await navigator.share({
@@ -51,6 +58,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
     }
     handleClose();
   };
+
   if (!canSystemShare) {
     return (
       <Button
@@ -77,6 +85,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       </Button>
     );
   }
+
   return (
     <>
       <Button

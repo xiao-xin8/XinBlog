@@ -11,18 +11,23 @@ import { useThemeStore } from '@/stores/themeStore';
 import { LazyImage } from '@/components/Common/LazyImage';
 import { ImageLightbox } from '@/components/Common/ImageLightbox';
 import type { HeadingItem } from './TableOfContents';
+
 interface PostContentProps {
   content: string;
   onHeadingsExtracted?: (headings: HeadingItem[]) => void;
 }
+
 const headingLevels = [1, 2, 3, 4, 5, 6] as const;
+
 function useHeadingIds(content: string) {
   const counterRef = useRef(0);
   const idsRef = useRef<Map<number, string>>(new Map());
+
   useEffect(() => {
     counterRef.current = 0;
     idsRef.current.clear();
   }, [content]);
+
   return {
     getId: (level: number) => {
       const index = counterRef.current++;
@@ -32,6 +37,7 @@ function useHeadingIds(content: string) {
     },
   };
 }
+
 function extractHeadings(root: HTMLElement | null): HeadingItem[] {
   if (!root) return [];
   const elements = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -41,8 +47,10 @@ function extractHeadings(root: HTMLElement | null): HeadingItem[] {
     level: parseInt(el.tagName[1], 10),
   }));
 }
+
 function useHighlightTheme() {
   const { mode } = useThemeStore();
+
   useEffect(() => {
     const linkId = 'hljs-theme';
     let link = document.getElementById(linkId) as HTMLLinkElement | null;
@@ -50,6 +58,7 @@ function useHighlightTheme() {
       mode === 'dark'
         ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
         : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+
     if (!link) {
       link = document.createElement('link');
       link.id = linkId;
@@ -59,10 +68,14 @@ function useHighlightTheme() {
     link.href = themeHref;
   }, [mode]);
 }
+
 function PreBlock({ children }: { children?: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
+
   const handleCopy = async () => {
+    
+    
     const codeText = preRef.current?.textContent ?? '';
     if (!codeText) return;
     try {
@@ -70,8 +83,10 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
+      // 复制失败静默处理
     }
   };
+
   return (
     <Box sx={{ position: 'relative' }}>
       <Tooltip title={copied ? '已复制' : '复制代码'} arrow placement="left">
@@ -99,6 +114,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
     </Box>
   );
 }
+
 export function PostContent({ content, onHeadingsExtracted }: PostContentProps) {
   useHighlightTheme();
   const { getId } = useHeadingIds(content);
@@ -108,10 +124,13 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     src: '',
     alt: '',
   });
+
   useEffect(() => {
+    
     const headings = extractHeadings(rootRef.current);
     onHeadingsExtracted?.(headings);
   }, [content, onHeadingsExtracted]);
+
   const headingComponents: Components = {};
   headingLevels.forEach((level) => {
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
@@ -123,9 +142,10 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         {children}
       </Tag>
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    
     (headingComponents as any)[Tag] = Heading;
   });
+
   return (
     <Fade in timeout={400}>
       <Box

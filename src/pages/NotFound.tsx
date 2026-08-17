@@ -1,9 +1,10 @@
 import { Container, Typography, Button, Fade } from '@mui/material';
 import { Home } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+
 export function NotFound() {
   return (
-    <Fade in timeout={500}>
+    <Fade in timeout={400}>
       <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
         <Typography
           variant="h1"

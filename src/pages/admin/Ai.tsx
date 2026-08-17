@@ -45,9 +45,12 @@ import {
   type AiCustomModel,
 } from '@/api/ai';
 import { Loading } from '@/components/Common/Loading';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { useSnackbar } from 'notistack';
+
 type AiTab = 'basic' | 'apikey' | 'custom';
+
 export function Ai() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -70,6 +73,7 @@ export function Ai() {
   const [generatedKey, setGeneratedKey] = useState('');
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [showBuiltInKey, setShowBuiltInKey] = useState(false);
+
   const [models, setModels] = useState<AiModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [customModels, setCustomModels] = useState<AiCustomModel[]>([]);
@@ -78,15 +82,19 @@ export function Ai() {
   const [editingCustomModel, setEditingCustomModel] = useState<AiCustomModel | null>(null);
   const [customForm, setCustomForm] = useState({ name: '', modelId: '', baseUrl: '', apiKey: '', enabled: true });
   const [customSubmitting, setCustomSubmitting] = useState(false);
+
+  
   const [deleteKeyConfirm, setDeleteKeyConfirm] = useState<AiApiKey | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = useState(false);
   const [deleteCustomConfirm, setDeleteCustomConfirm] = useState<AiCustomModel | null>(null);
   const [deleteCustomLoading, setDeleteCustomLoading] = useState(false);
+
   const tabs: { id: AiTab; label: string }[] = [
     { id: 'basic', label: '基础设置' },
     { id: 'apikey', label: 'API Key' },
     { id: 'custom', label: '自定义模型' },
   ];
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -105,39 +113,47 @@ export function Ai() {
       cancelled = true;
     };
   }, []);
+
   const isDirty = useMemo(
     () => JSON.stringify(settings) !== JSON.stringify(initialSettings),
     [settings, initialSettings]
   );
+
   const loadKeys = async () => {
     setKeysLoading(true);
     const list = await fetchAiApiKeys();
     setKeys(list);
     setKeysLoading(false);
   };
+
   const loadModels = async () => {
     setModelsLoading(true);
     const list = await fetchAiModels();
     setModels(list);
     setModelsLoading(false);
   };
+
   const loadCustomModels = async () => {
     setCustomModelsLoading(true);
     const list = await fetchAiCustomModels();
     setCustomModels(list);
     setCustomModelsLoading(false);
   };
+
   useEffect(() => {
     loadModels();
   }, []);
+
   useEffect(() => {
     if (tab !== 'apikey') return;
     loadKeys();
   }, [tab]);
+
   useEffect(() => {
     if (tab !== 'custom') return;
     loadCustomModels();
   }, [tab]);
+
   const handleSave = async () => {
     setSaving(true);
     const updated = await updateAiSettings(settings);
@@ -150,6 +166,7 @@ export function Ai() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
+
   const handleCreateKey = async () => {
     const name = newKeyName.trim();
     if (!name) return;
@@ -165,6 +182,7 @@ export function Ai() {
       enqueueSnackbar(result.msg || '创建失败', { variant: 'error' });
     }
   };
+
   const handleDeleteKey = async () => {
     if (!deleteKeyConfirm) return;
     setDeleteKeyLoading(true);
@@ -178,13 +196,16 @@ export function Ai() {
       enqueueSnackbar('删除失败', { variant: 'error' });
     }
   };
+
   const handleConfirmDeleteKey = (key: AiApiKey) => {
     setDeleteKeyConfirm(key);
   };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     enqueueSnackbar('已复制到剪贴板', { variant: 'success' });
   };
+
   const openCustomDialog = (model?: AiCustomModel) => {
     if (model) {
       setEditingCustomModel(model);
@@ -201,11 +222,13 @@ export function Ai() {
     }
     setCustomDialogOpen(true);
   };
+
   const closeCustomDialog = () => {
     setCustomDialogOpen(false);
     setEditingCustomModel(null);
     setCustomForm({ name: '', modelId: '', baseUrl: '', apiKey: '', enabled: true });
   };
+
   const handleSaveCustomModel = async () => {
     const name = customForm.name.trim();
     const modelId = customForm.modelId.trim();
@@ -238,6 +261,7 @@ export function Ai() {
       enqueueSnackbar('保存失败', { variant: 'error' });
     }
   };
+
   const handleDeleteCustomModel = async () => {
     if (!deleteCustomConfirm) return;
     setDeleteCustomLoading(true);
@@ -252,17 +276,22 @@ export function Ai() {
       enqueueSnackbar('删除失败', { variant: 'error' });
     }
   };
+
   const handleConfirmDeleteCustomModel = (model: AiCustomModel) => {
     setDeleteCustomConfirm(model);
   };
+
   if (loading) return <Loading />;
+
   const textModels = models.filter((m) => isTextAiModel(m.id));
+
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 3, overflowWrap: 'break-word' }}>
           AI 管理
         </Typography>
+
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -362,6 +391,7 @@ export function Ai() {
             </Box>
           </Box>
         )}
+
         <Fade in timeout={300} key={tab}>
           <Box>
             {tab === 'basic' && (
@@ -379,6 +409,7 @@ export function Ai() {
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, overflowWrap: 'break-word' }}>
                   基础设置
                 </Typography>
+
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <FormControlLabel
                     control={
@@ -389,11 +420,13 @@ export function Ai() {
                     }
                     label="启用 AI 功能"
                   />
+
                   {!settings.enabled && (
                     <Typography variant="body2" color="text.secondary">
                       关闭后，文章编辑页的 AI 助手及所有 AI 接口将不可用。
                     </Typography>
                   )}
+
                   <FormControl size="small" fullWidth>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       默认文本模型
@@ -411,6 +444,7 @@ export function Ai() {
                       ))}
                     </Select>
                   </FormControl>
+
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       随机性 (Temperature)
@@ -429,6 +463,7 @@ export function Ai() {
                       valueLabelDisplay="auto"
                     />
                   </Box>
+
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       最大 Token 数
@@ -448,9 +483,11 @@ export function Ai() {
                   />
                   </Box>
                 </Box>
+
                 <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
               </Paper>
             )}
+
             {tab === 'apikey' && (
               <Paper
                 elevation={0}
@@ -472,6 +509,7 @@ export function Ai() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   接口地址：{typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1'}，支持 /v1/models、/v1/chat/completions、/v1/embeddings。
                 </Typography>
+
                 <Box
                   sx={{
                     p: 2,
@@ -509,10 +547,13 @@ export function Ai() {
                     在 Cloudflare Dashboard 中配置 AI_API_KEY 环境变量即可启用外部调用。
                   </Typography>
                 </Box>
+
                 <Divider sx={{ my: 2 }} />
+
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
                   自定义 API Key
                 </Typography>
+
                 <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
                   <TextField
                     size="small"
@@ -537,6 +578,7 @@ export function Ai() {
                     创建
                   </Button>
                 </Box>
+
                 {keysLoading ? (
                   <CircularProgress size={24} />
                 ) : keys.length === 0 ? (
@@ -582,6 +624,7 @@ export function Ai() {
                     ))}
                   </Box>
                 )}
+
                 <Box
                   sx={{
                     p: 2,
@@ -655,6 +698,7 @@ export function Ai() {
                 </Box>
               </Paper>
             )}
+
             {tab === 'custom' && (
               <Paper
                 elevation={0}
@@ -673,6 +717,7 @@ export function Ai() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   添加符合 OpenAI 接口规范的自定义模型（如 DeepSeek、OpenRouter 等），保存后会出现在基础设置的模型列表最前面。
                 </Typography>
+
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                   <Button
                     variant="contained"
@@ -683,6 +728,7 @@ export function Ai() {
                     添加模型
                   </Button>
                 </Box>
+
                 {customModelsLoading ? (
                   <CircularProgress size={24} />
                 ) : customModels.length === 0 ? (
@@ -744,6 +790,7 @@ export function Ai() {
             )}
           </Box>
         </Fade>
+
         <Paper
           elevation={0}
           sx={{
@@ -782,6 +829,7 @@ export function Ai() {
             </Box>
           </Typography>
         </Paper>
+
         <Dialog open={showKeyDialog} onClose={() => setShowKeyDialog(false)} fullWidth maxWidth="sm" BackdropProps={{ 'aria-hidden': false }}>
           <DialogTitle sx={{ fontWeight: 700 }}>API Key 创建成功</DialogTitle>
           <DialogContent>
@@ -810,6 +858,7 @@ export function Ai() {
             </Button>
           </DialogActions>
         </Dialog>
+
         <Dialog open={customDialogOpen} onClose={closeCustomDialog} fullWidth maxWidth="sm" BackdropProps={{ 'aria-hidden': false }}>
           <DialogTitle sx={{ fontWeight: 700 }}>
             {editingCustomModel ? '编辑自定义模型' : '添加自定义模型'}
@@ -879,50 +928,28 @@ export function Ai() {
             </Button>
           </DialogActions>
         </Dialog>
-        <Dialog open={Boolean(deleteKeyConfirm)} onClose={() => setDeleteKeyConfirm(null)} fullWidth maxWidth="xs" BackdropProps={{ 'aria-hidden': false }}>
-          <DialogTitle sx={{ fontWeight: 700 }}>确认删除 API Key</DialogTitle>
-          <DialogContent>
-            <Typography variant="body2">
-              确定要删除 API Key「{deleteKeyConfirm?.name}」吗？删除后无法恢复。
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
-            <Button onClick={() => setDeleteKeyConfirm(null)} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
-              取消
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={handleDeleteKey}
-              disabled={deleteKeyLoading}
-              sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}
-            >
-              {deleteKeyLoading ? '删除中...' : '删除'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog open={Boolean(deleteCustomConfirm)} onClose={() => setDeleteCustomConfirm(null)} fullWidth maxWidth="xs" BackdropProps={{ 'aria-hidden': false }}>
-          <DialogTitle sx={{ fontWeight: 700 }}>确认删除自定义模型</DialogTitle>
-          <DialogContent>
-            <Typography variant="body2">
-              确定要删除自定义模型「{deleteCustomConfirm?.name}」吗？删除后无法恢复。
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
-            <Button onClick={() => setDeleteCustomConfirm(null)} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
-              取消
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={handleDeleteCustomModel}
-              disabled={deleteCustomLoading}
-              sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}
-            >
-              {deleteCustomLoading ? '删除中...' : '删除'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+
+        <ConfirmDialog
+          open={Boolean(deleteKeyConfirm)}
+          title="确认删除 API Key"
+          content={`确定要删除 API Key「${deleteKeyConfirm?.name}」吗？删除后无法恢复。`}
+          confirmText="删除"
+          confirmColor="error"
+          loading={deleteKeyLoading}
+          onClose={() => setDeleteKeyConfirm(null)}
+          onConfirm={handleDeleteKey}
+        />
+
+        <ConfirmDialog
+          open={Boolean(deleteCustomConfirm)}
+          title="确认删除自定义模型"
+          content={`确定要删除自定义模型「${deleteCustomConfirm?.name}」吗？删除后无法恢复。`}
+          confirmText="删除"
+          confirmColor="error"
+          loading={deleteCustomLoading}
+          onClose={() => setDeleteCustomConfirm(null)}
+          onConfirm={handleDeleteCustomModel}
+        />
       </Box>
     </Fade>
   );

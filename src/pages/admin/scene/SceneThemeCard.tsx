@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Typography, alpha, useTheme } from '@mui/material';
 import type { ThemePackage } from '@/types';
+
 interface SceneThemeCardProps {
   theme: ThemePackage;
   isSelected: boolean;
@@ -8,6 +9,7 @@ interface SceneThemeCardProps {
   onReset: () => void;
   preview?: React.ReactNode;
 }
+
 export function SceneThemeCard({
   theme,
   isSelected,
@@ -19,6 +21,7 @@ export function SceneThemeCard({
   const muiTheme = useTheme();
   const scene = theme.components?.scene;
   const accent = scene?.params?.color ?? muiTheme.palette.primary.main;
+
   return (
     <Paper
       elevation={0}

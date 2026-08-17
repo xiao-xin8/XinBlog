@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSiteStore } from '@/stores/siteStore';
 import { useSnackbar } from 'notistack';
 import type { Live2dConfig } from '@/types';
+
 export type Live2dTab = 'basic' | 'tools' | 'advanced';
+
 export const tabList: { value: Live2dTab; label: string }[] = [
   { value: 'basic', label: '基础设置' },
   { value: 'tools', label: '模型工具' },
   { value: 'advanced', label: '高级选项' },
 ];
+
 export type Live2dEditor = ReturnType<typeof useLive2dEditor>;
+
 const DEFAULT_LIVE2D_CONFIG: Live2dConfig = {
   enabled: false,
   mobileEnabled: true,
@@ -28,6 +32,7 @@ const DEFAULT_LIVE2D_CONFIG: Live2dConfig = {
   cubism2Path: '/live2d/live2d.min.js',
   cubism5Path: 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js',
 };
+
 const ALL_TOOLS = [
   { key: 'hitokoto', label: '一言', description: '随机显示一句语录' },
   { key: 'asteroids', label: '飞机大战', description: '在页面上玩小飞机游戏' },
@@ -37,12 +42,15 @@ const ALL_TOOLS = [
   { key: 'info', label: '信息', description: '查看模型来源信息' },
   { key: 'quit', label: '关闭', description: '隐藏看板娘' },
 ];
+
 export function useLive2dEditor() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
   const [tab, setTab] = useState<Live2dTab>('basic');
   const [saving, setSaving] = useState(false);
+
   const current = site.config.live2d || DEFAULT_LIVE2D_CONFIG;
+
   const [enabled, setEnabled] = useState(current.enabled);
   const [mobileEnabled, setMobileEnabled] = useState(current.mobileEnabled);
   const [position, setPosition] = useState(current.position);
@@ -56,6 +64,7 @@ export function useLive2dEditor() {
   const [logLevel, setLogLevel] = useState(current.logLevel);
   const [modelSource, setModelSource] = useState(current.modelSource);
   const [customCdn, setCustomCdn] = useState(current.customCdn || '');
+
   useEffect(() => {
     const cfg = site.config.live2d || DEFAULT_LIVE2D_CONFIG;
     setEnabled(cfg.enabled);
@@ -72,6 +81,7 @@ export function useLive2dEditor() {
     setModelSource(cfg.modelSource);
     setCustomCdn(cfg.customCdn || '');
   }, [site.config.live2d]);
+
   const isDirty = useMemo(() => {
     const cfg = site.config.live2d || DEFAULT_LIVE2D_CONFIG;
     if (enabled !== cfg.enabled) return true;
@@ -104,12 +114,15 @@ export function useLive2dEditor() {
     customCdn,
     site.config.live2d,
   ]);
+
   const isToolEnabled = (key: string) => tools.includes(key);
+
   const toggleTool = (key: string) => {
     setTools((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   };
+
   const buildConfig = (): Live2dConfig => ({
     enabled,
     mobileEnabled,
@@ -129,6 +142,7 @@ export function useLive2dEditor() {
     cubism2Path: DEFAULT_LIVE2D_CONFIG.cubism2Path,
     cubism5Path: DEFAULT_LIVE2D_CONFIG.cubism5Path,
   });
+
   const resetToDefault = () => {
     const cfg = DEFAULT_LIVE2D_CONFIG;
     setEnabled(cfg.enabled);
@@ -145,6 +159,7 @@ export function useLive2dEditor() {
     setModelSource(cfg.modelSource);
     setCustomCdn(cfg.customCdn || '');
   };
+
   const validateDimensions = (label: string, value: number | string): boolean => {
     const num = Number(value);
     if (Number.isNaN(num) || num < 100) {
@@ -153,14 +168,17 @@ export function useLive2dEditor() {
     }
     return true;
   };
+
   const save = async () => {
     if (!isDirty) return true;
+
     if (!validateDimensions('宽度', width)) return false;
     if (!validateDimensions('高度', height)) return false;
     if (mobileEnabled) {
       if (!validateDimensions('移动端宽度', mobileWidth)) return false;
       if (!validateDimensions('移动端高度', mobileHeight)) return false;
     }
+
     setSaving(true);
     const config = buildConfig();
     const ok = await site.saveConfig({ live2d: config });
@@ -172,6 +190,7 @@ export function useLive2dEditor() {
     }
     return ok;
   };
+
   return {
     tab,
     setTab,

@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
+
 interface PostDetailBackButtonProps {
   label?: string;
 }
+
 export function PostDetailBackButton({ label = '返回上一级' }: PostDetailBackButtonProps) {
   const navigate = useNavigate();
+
   return (
     <Box
       component="button"

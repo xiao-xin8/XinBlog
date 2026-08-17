@@ -4,14 +4,17 @@ import { Link } from 'react-router-dom';
 import type { Post } from '@/types';
 import LikeButton from '@/components/Post/LikeButton';
 import ShareButtons from '@/components/Post/ShareButtons';
+
 interface PostDetailFooterProps {
   post: Post;
   siblings: Post[];
 }
+
 export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
   const currentIndex = siblings.findIndex((p) => p.id === post.id);
   const prevPost = currentIndex > 0 ? siblings[currentIndex - 1] : undefined;
   const nextPost = currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : undefined;
+
   return (
     <Box sx={{ mt: { xs: 4, md: 6 } }}>
       <Box
@@ -27,7 +30,9 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
         <LikeButton slug={post.slug} />
         <ShareButtons title={post.title} />
       </Box>
+
       <Divider sx={{ my: 4, borderColor: (t) => alpha(t.palette.divider, 0.5) }} />
+
       <Box
         sx={{
           display: 'flex',
@@ -80,6 +85,7 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
         ) : (
           <Box flex={1} />
         )}
+
         {nextPost ? (
           <Button
             component={Link}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColors } from '../utils/colors';
+
 interface Heart {
   id: number;
   x: number;
@@ -11,16 +12,20 @@ interface Heart {
   scale: number;
   rotation: number;
 }
+
 let heartId = 0;
+
 export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig; themeColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heartsRef = useRef<Heart[]>([]);
   const rafRef = useRef<number>(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
     const resize = () => {
       canvas.width = window.innerWidth * dpr;
@@ -31,7 +36,9 @@ export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig;
     };
     resize();
     window.addEventListener('resize', resize);
+
     const count = config.intensity === 'high' ? 5 : config.intensity === 'low' ? 2 : 3;
+
     const handleClick = (e: MouseEvent) => {
       const colors = resolveEffectColors(config.colorMode, config.customColor, themeColor, count);
       for (let i = 0; i < count; i++) {
@@ -47,6 +54,7 @@ export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig;
         });
       }
     };
+
     const drawHeart = (h: Heart) => {
       const s = h.size * h.scale;
       ctx.save();
@@ -61,6 +69,7 @@ export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig;
       ctx.fill();
       ctx.restore();
     };
+
     const animate = () => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       for (let i = heartsRef.current.length - 1; i >= 0; i--) {
@@ -76,6 +85,7 @@ export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig;
       rafRef.current = requestAnimationFrame(animate);
     };
     animate();
+
     window.addEventListener('click', handleClick);
     return () => {
       window.removeEventListener('resize', resize);
@@ -83,6 +93,7 @@ export function HeartEffect({ config, themeColor }: { config: ClickEffectConfig;
       cancelAnimationFrame(rafRef.current);
     };
   }, [config.colorMode, config.customColor, config.intensity, themeColor]);
+
   return (
     <canvas
       ref={canvasRef}

@@ -1,12 +1,14 @@
 import { Avatar, Box, Chip, Stack, Typography, alpha } from '@mui/material';
 import { useSiteStore } from '@/stores/siteStore';
 import type { HeroWidgetConfig } from '@/types';
+
 interface ProfileWidgetPropsFromConfig {
   showAvatar?: boolean;
   showTags?: boolean;
   showSocial?: boolean;
   greeting?: string;
 }
+
 export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
   const { config: siteConfig } = useSiteStore();
   const about = siteConfig.about || {};
@@ -15,6 +17,8 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
   const showTags = props.showTags !== false;
   const showSocial = props.showSocial !== false;
   const greeting = props.greeting || '你好，我是';
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -27,6 +31,7 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
   const displayBio = (isTall && h >= 3) || isLarge || (isCompact && !isWide && about.bio);
   const displayTags = showTags && ((isTall && h >= 3) || isLarge || (isCompact && !isWide)) && about.tags && about.tags.length > 0;
   const displaySocial = showSocial && ((isTall && h >= 3) || isLarge);
+
   return (
     <Box
       sx={{
@@ -76,6 +81,7 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
           </Typography>
         </Box>
       </Stack>
+
       {displayBio && (
         <Typography
           variant="body2"
@@ -92,6 +98,7 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
           {about.bio}
         </Typography>
       )}
+
       {displayTags && about.tags && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
           {about.tags.slice(0, isCompact ? 3 : 4).map((tag) => (
@@ -109,6 +116,7 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
           ))}
         </Box>
       )}
+
       {displaySocial && (
         <Typography variant="caption" color="text.secondary">
           社交链接将在这里展示

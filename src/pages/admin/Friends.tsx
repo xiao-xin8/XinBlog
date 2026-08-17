@@ -48,14 +48,19 @@ import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { FriendLink, FriendsConfig } from '@/types';
+
 type FriendsTab = 'basic' | 'style' | 'manage';
+
 const TAB_LIST: { value: FriendsTab; label: string }[] = [
   { value: 'basic', label: '基础设置' },
   { value: 'style', label: '样式配置' },
   { value: 'manage', label: '友链管理' },
 ];
+
 const MAX_AVATAR_SIZE = 30 * 1024;
+
 import { getBase64Size, compressImage } from '@/utils/image';
+
 function AvatarField({
   value,
   onChange,
@@ -64,12 +69,11 @@ function AvatarField({
   onChange: (v: string) => void;
 }) {
   const { enqueueSnackbar } = useSnackbar();
-  const theme = useTheme();
-  const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteMediaId, setPendingDeleteMediaId] = useState<number | null>(null);
+
   const handleUpload = async (file: File) => {
     try {
       const base64 = await compressImage(file, MAX_AVATAR_SIZE, 400);
@@ -88,6 +92,7 @@ function AvatarField({
       setUploading(false);
     }
   };
+
   const handleClear = () => {
     const mediaId = extractMediaId(value);
     if (mediaId) {
@@ -97,6 +102,7 @@ function AvatarField({
       onChange('');
     }
   };
+
   const handleConfirmDelete = async () => {
     setDeleting(true);
     onChange('');
@@ -112,6 +118,7 @@ function AvatarField({
     setDeleteDialogOpen(false);
     setPendingDeleteMediaId(null);
   };
+
   return (
     <Box>
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
@@ -174,43 +181,21 @@ function AvatarField({
       <Typography variant="caption" color="text.secondary">
         上传头像将自动压缩到 30KB 以内，也可引用自定义 URL
       </Typography>
-      <Dialog
+
+      <ConfirmDialog
         open={deleteDialogOpen}
+        title="确认移除头像？"
+        content="移除后该图片将从媒体库中删除，是否继续？"
+        confirmText="确认移除"
+        confirmColor="error"
+        loading={deleting}
         onClose={() => setDeleteDialogOpen(false)}
-        fullWidth
-        maxWidth="xs"
-        TransitionComponent={Grow}
-        PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
-        BackdropProps={{ 'aria-hidden': false }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>确认移除头像？</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            移除后该图片将从媒体库中删除，是否继续？
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-            <Button onClick={() => setDeleteDialogOpen(false)} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
-              取消
-            </Button>
-            <Button
-              color="error"
-              variant="contained"
-              onClick={handleConfirmDelete}
-              disabled={deleting}
-              startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : null}
-              fullWidth={isMobileAdmin}
-              sx={{ textTransform: 'none', borderRadius: 2 }}
-            >
-              {deleting ? '移除中...' : '确认移除'}
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
     </Box>
   );
 }
+
 function FriendEditDialog({
   open,
   friend,
@@ -229,6 +214,7 @@ function FriendEditDialog({
   const [description, setDescription] = useState('');
   const [avatar, setAvatar] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
+
   useEffect(() => {
     if (open) {
       setName(friend?.name || '');
@@ -238,6 +224,7 @@ function FriendEditDialog({
       setSortOrder(String(friend?.sortOrder ?? 0));
     }
   }, [open, friend]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -248,6 +235,7 @@ function FriendEditDialog({
       sortOrder: parseInt(sortOrder, 10) || 0,
     });
   };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
       <form onSubmit={handleSubmit}>
@@ -304,11 +292,13 @@ function FriendEditDialog({
     </Dialog>
   );
 }
+
 export function AdminFriends() {
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const site = useSiteStore();
+
   const friendsConfig: FriendsConfig = useMemo(
     () =>
       site.config.friends || {
@@ -322,15 +312,22 @@ export function AdminFriends() {
       },
     [site.config.friends]
   );
+
   const [tab, setTab] = useState<FriendsTab>('basic');
   const [saving, setSaving] = useState(false);
+
+  
   const [enabled, setEnabled] = useState(friendsConfig.enabled);
   const [title, setTitle] = useState(friendsConfig.title);
   const [subtitle, setSubtitle] = useState(friendsConfig.subtitle);
+
+  
   const [cardStyle, setCardStyle] = useState(friendsConfig.cardStyle);
   const [cardColor, setCardColor] = useState(friendsConfig.cardColor);
   const [avatarShape, setAvatarShape] = useState(friendsConfig.avatarShape);
   const [showDescription, setShowDescription] = useState(friendsConfig.showDescription);
+
+  
   const [friends, setFriends] = useState<FriendLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -341,6 +338,7 @@ export function AdminFriends() {
     friend: null,
     loading: false,
   });
+
   useEffect(() => {
     setEnabled(friendsConfig.enabled);
     setTitle(friendsConfig.title);
@@ -350,6 +348,7 @@ export function AdminFriends() {
     setAvatarShape(friendsConfig.avatarShape);
     setShowDescription(friendsConfig.showDescription);
   }, [friendsConfig]);
+
   const loadFriends = async () => {
     setLoading(true);
     try {
@@ -361,11 +360,13 @@ export function AdminFriends() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (tab !== 'manage') return;
     loadFriends();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
   const basicDirty = useMemo(() => {
     return (
       enabled !== friendsConfig.enabled ||
@@ -373,6 +374,7 @@ export function AdminFriends() {
       subtitle !== friendsConfig.subtitle
     );
   }, [enabled, title, subtitle, friendsConfig]);
+
   const styleDirty = useMemo(() => {
     return (
       cardStyle !== friendsConfig.cardStyle ||
@@ -381,6 +383,7 @@ export function AdminFriends() {
       showDescription !== friendsConfig.showDescription
     );
   }, [cardStyle, cardColor, avatarShape, showDescription, friendsConfig]);
+
   const saveBasic = async () => {
     await saveConfig({
       ...friendsConfig,
@@ -389,6 +392,7 @@ export function AdminFriends() {
       subtitle,
     });
   };
+
   const saveStyle = async () => {
     await saveConfig({
       ...friendsConfig,
@@ -398,6 +402,7 @@ export function AdminFriends() {
       showDescription,
     });
   };
+
   const saveConfig = async (next: FriendsConfig) => {
     setSaving(true);
     const ok = await site.saveConfig({ friends: next });
@@ -408,17 +413,21 @@ export function AdminFriends() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
+
   const handleOpenAdd = () => {
     setEditFriend(null);
     setEditOpen(true);
   };
+
   const handleOpenEdit = (friend: FriendLink) => {
     setEditFriend(friend);
     setEditOpen(true);
   };
+
   const handleCloseEdit = () => {
     setEditOpen(false);
   };
+
   const handleSaveFriend = async (data: Omit<FriendLink, 'id' | 'createdAt' | 'updatedAt'>) => {
     setFriendSaving(true);
     try {
@@ -437,9 +446,11 @@ export function AdminFriends() {
       setFriendSaving(false);
     }
   };
+
   const handleDeleteClick = (friend: FriendLink) => {
     setDeleteDialog({ open: true, friend, loading: false });
   };
+
   const handleConfirmDelete = async () => {
     const friend = deleteDialog.friend;
     if (!friend) return;
@@ -454,6 +465,7 @@ export function AdminFriends() {
       setDeleteDialog({ open: false, friend: null, loading: false });
     }
   };
+
   const renderTabs = () =>
     isMobileAdmin ? (
       <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -551,6 +563,7 @@ export function AdminFriends() {
         </Box>
       </Box>
     );
+
   const renderBasicPanel = () => (
     <Paper
       elevation={0}
@@ -587,6 +600,7 @@ export function AdminFriends() {
       </Stack>
     </Paper>
   );
+
   const renderStylePanel = () => (
     <Paper
       elevation={0}
@@ -645,8 +659,10 @@ export function AdminFriends() {
       </Stack>
     </Paper>
   );
+
   const renderManagePanel = () => {
     if (loading && friends.length === 0) return <Loading />;
+
     return (
       <>
         <Box sx={{ mb: 2 }}>
@@ -654,6 +670,7 @@ export function AdminFriends() {
             新增友链
           </Button>
         </Box>
+
         {friends.length === 0 ? (
           <Paper
             elevation={0}
@@ -826,6 +843,7 @@ export function AdminFriends() {
       </>
     );
   };
+
   return (
     <Fade in timeout={400}>
     <Box>
@@ -835,10 +853,13 @@ export function AdminFriends() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         配置友链页面开关、样式与友链列表。
       </Typography>
+
       {renderTabs()}
+
       {tab === 'basic' && renderBasicPanel()}
       {tab === 'style' && renderStylePanel()}
       {tab === 'manage' && renderManagePanel()}
+
       <FriendEditDialog
         open={editOpen}
         friend={editFriend}
@@ -846,6 +867,7 @@ export function AdminFriends() {
         onClose={handleCloseEdit}
         onSave={handleSaveFriend}
       />
+
       <ConfirmDialog
         open={deleteDialog.open}
         title="确认删除友链？"

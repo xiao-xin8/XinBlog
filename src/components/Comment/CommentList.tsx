@@ -3,6 +3,7 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CommentItem from './CommentItem';
 import type { Comment } from '@/types/interaction';
+
 interface CommentListProps {
   comments: Comment[];
   slug: string;
@@ -11,6 +12,7 @@ interface CommentListProps {
   onLoadMore: () => void;
   onDeleted: () => void;
 }
+
 export default function CommentList({
   comments,
   slug,
@@ -49,6 +51,7 @@ export default function CommentList({
       </Fade>
     );
   }
+
   return (
     <Box>
       {comments.map((comment) => (

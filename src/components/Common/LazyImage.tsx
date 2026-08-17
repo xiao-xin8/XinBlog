@@ -3,10 +3,12 @@ import { Box, alpha } from '@mui/material';
 import { keyframes } from '@mui/system';
 import { useSiteStore } from '@/stores/siteStore';
 import { isMediaUrl } from '@/api/media';
+
 const shimmer = keyframes`
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 `;
+
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src?: string;
   alt?: string;
@@ -17,6 +19,7 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   onLoad?: () => void;
   onError?: () => void;
 }
+
 export function LazyImage({
   src,
   alt = '',
@@ -33,10 +36,12 @@ export function LazyImage({
   const lazyLoadMedia = config.lazyLoadMedia ?? false;
   const isMedia = isMediaUrl(src);
   const shouldLazy = lazyLoadMedia && isMedia;
+
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [visible, setVisible] = useState(!shouldLazy);
   const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!shouldLazy) {
       setVisible(true);
@@ -44,8 +49,10 @@ export function LazyImage({
     }
     setLoaded(false);
     setError(false);
+
     const el = containerRef.current;
     if (!el) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -58,17 +65,21 @@ export function LazyImage({
     observer.observe(el);
     return () => observer.disconnect();
   }, [src, shouldLazy, rootMargin]);
+
   const handleLoad = () => {
     setLoaded(true);
     setError(false);
     onLoad?.();
   };
+
   const handleError = () => {
     setError(true);
     setLoaded(true);
     onError?.();
   };
+
   const showColorPlaceholder = placeholder !== 'none' && !loaded && !error;
+
   return (
     <Box
       ref={containerRef}

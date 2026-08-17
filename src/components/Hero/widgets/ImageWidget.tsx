@@ -1,12 +1,14 @@
 import { Box, Typography, alpha } from '@mui/material';
 import { useHeroEditContext } from '@/components/Hero/HeroEditContext';
 import type { HeroWidgetConfig } from '@/types';
+
 interface ImageWidgetPropsFromConfig {
   src?: string;
   title?: string;
   url?: string;
   objectFit?: 'cover' | 'contain';
 }
+
 export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as ImageWidgetPropsFromConfig;
   const { editable } = useHeroEditContext();
@@ -14,6 +16,8 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
   const title = props.title || '';
   const url = props.url || '';
   const objectFit = props.objectFit || 'cover';
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isWide = h === 1 && w >= 2;
@@ -21,6 +25,7 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
   const isLarge = w >= 3 && h >= 2;
   const titleVariant = isTiny ? 'caption' : isCompact ? 'caption' : isLarge ? 'h6' : 'body2';
   const showTitle = !!title && !isTiny;
+
   const content = (
     <Box
       sx={{
@@ -80,6 +85,7 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
       )}
     </Box>
   );
+
   if (url && !editable) {
     return (
       <Box component="a" href={url} target="_blank" rel="noopener noreferrer" sx={{ display: 'block', width: '100%', height: '100%', textDecoration: 'none' }}>
@@ -87,5 +93,6 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
       </Box>
     );
   }
+
   return content;
 }

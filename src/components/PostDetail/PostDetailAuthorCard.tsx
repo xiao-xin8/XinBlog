@@ -1,10 +1,12 @@
 import { Box, Typography, alpha } from '@mui/material';
 import { useSiteStore } from '@/stores/siteStore';
+
 export function PostDetailAuthorCard() {
   const { config } = useSiteStore();
   const authorName = config.author || 'Xin';
   const avatar = config.logo || '';
   const bio = config.shareDescription || '记录生活、设计与技术感悟的个人博客';
+
   return (
     <Box
       sx={{
@@ -57,9 +59,11 @@ export function PostDetailAuthorCard() {
           }}
         />
       </Box>
+
       <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 1 }}>
         {authorName}
       </Typography>
+
       <Typography
         variant="caption"
         sx={{

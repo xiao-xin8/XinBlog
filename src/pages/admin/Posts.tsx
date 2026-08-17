@@ -79,11 +79,14 @@ import { generateAiPost, fetchAiSettings, fetchAiModels, formatOptimize, isTextA
 import { peekCache } from '@/api/client';
 import { uploadMedia, deleteMedia, extractMediaId } from '@/api/media';
 import { Loading } from '@/components/Common/Loading';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { AdminPost, AdminTag, PagedResult } from '@/api/admin';
 import { useSnackbar } from 'notistack';
 import { useUIStore } from '@/stores/uiStore';
+
 const MAX_COVER_SIZE = 500 * 1024;
 const MAX_INLINE_IMAGE_SIZE = 500 * 1024;
+
 const emptyForm = {
   title: '',
   slug: '',
@@ -93,8 +96,10 @@ const emptyForm = {
   status: 'published' as 'published' | 'draft',
   tagIds: [] as number[],
 };
+
 import { getBase64Size, compressImage } from '@/utils/image';
 import { createPortal } from 'react-dom';
+
 function slugifyTag(text: string): string {
   return text
     .toString()
@@ -105,6 +110,9 @@ function slugifyTag(text: string): string {
     .replace(/--+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+
+
 export function AdminPosts() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -145,6 +153,8 @@ export function AdminPosts() {
   const aiPanelRef = useRef<HTMLDivElement>(null);
   const aiPanelScrollRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  
   const [aiOpen, setAiOpen] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
@@ -159,6 +169,8 @@ export function AdminPosts() {
   const [aiRawExpanded, setAiRawExpanded] = useState(false);
   const [aiApplying, setAiApplying] = useState(false);
   const [aiRegenerateConfirmOpen, setAiRegenerateConfirmOpen] = useState(false);
+
+  
   const [aiFormatResult, setAiFormatResult] = useState<string | null>(null);
   const [aiFormatLoading, setAiFormatLoading] = useState(false);
   const [aiFormatError, setAiFormatError] = useState('');
@@ -166,6 +178,11 @@ export function AdminPosts() {
   const [aiShowParams, setAiShowParams] = useState(false);
   const [aiModels, setAiModels] = useState<AiModel[]>([]);
   const setAdminNavHidden = useUIStore((state) => state.setAdminNavHidden);
+
+  
+  
+  
+  
   useEffect(() => {
     const panel = aiPanelRef.current;
     const box = aiPanelScrollRef.current;
@@ -191,6 +208,7 @@ export function AdminPosts() {
     panel.addEventListener('wheel', onWheel, { passive: false });
     return () => panel.removeEventListener('wheel', onWheel);
   }, [aiOpen]);
+
   const loadData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     const [postResult, tagResult] = await Promise.all([
@@ -202,14 +220,17 @@ export function AdminPosts() {
     setTags(tagResult?.list || []);
     setLoading(false);
   };
+
   useEffect(() => {
     loadData(!(postsCache.hit && tagsCache.hit));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
+
   useEffect(() => {
     if (view !== 'editor') return;
     let cancelled = false;
@@ -228,24 +249,29 @@ export function AdminPosts() {
       cancelled = true;
     };
   }, [view]);
+
   useEffect(() => {
     setAdminNavHidden(view === 'editor');
     return () => {
       setAdminNavHidden(false);
     };
   }, [view, setAdminNavHidden]);
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
+
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
+
   const tagMap = useMemo(() => {
     const map: Record<number, AdminTag> = {};
     tags.forEach((t) => (map[t.id] = t));
     return map;
   }, [tags]);
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -253,6 +279,7 @@ export function AdminPosts() {
     setPendingMediaIds([]);
     setView('editor');
   };
+
   const handleOpenEdit = async (post: AdminPost) => {
     setFormError('');
     setPendingMediaIds([]);
@@ -277,17 +304,21 @@ export function AdminPosts() {
     });
     setCoverLoading(!!full.cover_base64);
   };
+
   const handleBackToList = async () => {
+    
     for (const mediaId of pendingMediaIds) {
       try {
         await deleteMedia(mediaId);
       } catch {
+        // 忽略删除失败
       }
     }
     setPendingMediaIds([]);
     setView('list');
     setFormError('');
   };
+
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -312,6 +343,7 @@ export function AdminPosts() {
       setCoverLoading(false);
     }
   };
+
   const handleRemoveCover = () => {
     const mediaId = extractMediaId(form.coverBase64);
     if (mediaId) {
@@ -322,6 +354,7 @@ export function AdminPosts() {
       setCoverLoading(false);
     }
   };
+
   const handleConfirmRemoveCover = async () => {
     setCoverLoading(true);
     setForm((prev) => ({ ...prev, coverBase64: '' }));
@@ -338,6 +371,7 @@ export function AdminPosts() {
     setRemoveCoverDialogOpen(false);
     setRemoveCoverMediaId(null);
   };
+
   const handleApplyCoverUrl = () => {
     const url = coverUrlInput.trim();
     if (!url) return;
@@ -350,14 +384,17 @@ export function AdminPosts() {
     setCoverUrlInput('');
     setFormError('');
   };
+
   const handleOpenAddTagDialog = () => {
     setNewTagName('');
     setAddTagDialogOpen(true);
   };
+
   const handleCloseAddTagDialog = () => {
     setAddTagDialogOpen(false);
     setNewTagName('');
   };
+
   const handleCreateTagFromDialog = async () => {
     const name = newTagName.trim();
     if (!name) return;
@@ -376,6 +413,7 @@ export function AdminPosts() {
     }
     handleCloseAddTagDialog();
   };
+
   const handleSave = async () => {
     if (!form.title.trim() || !form.content.trim()) {
       setFormError('标题和内容必填');
@@ -383,6 +421,7 @@ export function AdminPosts() {
     }
     setFormError('');
     setSaving(true);
+
     const payload = {
       title: form.title.trim(),
       slug: form.slug.trim(),
@@ -392,23 +431,28 @@ export function AdminPosts() {
       status: form.status,
       tagIds: form.tagIds,
     };
+
     let result;
     if (editingId) {
       result = await updateAdminPost(editingId, payload);
     } else {
       result = await createAdminPost(payload);
     }
+
     setSaving(false);
+
     if (result.msg) {
       setFormError(result.msg);
       enqueueSnackbar(result.msg, { variant: 'error' });
       return;
     }
+
     enqueueSnackbar(editingId ? '文章已更新' : '文章已创建', { variant: 'success' });
     setPendingMediaIds([]);
     setView('list');
     await loadData();
   };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
@@ -422,6 +466,7 @@ export function AdminPosts() {
     setDeleteId(null);
     await loadData();
   };
+
   const insertMarkdown = (before: string, after: string = '') => {
     const textarea = editorRef.current;
     if (!textarea) return;
@@ -442,6 +487,7 @@ export function AdminPosts() {
       window.scrollTo({ top: savedWindowScrollY, behavior: 'auto' });
     });
   };
+
   const uploadInlineImage = async (file: File): Promise<string | null> => {
     const base64 = await compressImage(file, MAX_INLINE_IMAGE_SIZE);
     if (getBase64Size(base64) > MAX_INLINE_IMAGE_SIZE) {
@@ -451,6 +497,7 @@ export function AdminPosts() {
     const media = await uploadMedia(file.name, base64);
     return media.url;
   };
+
   const handleInlineImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -471,10 +518,12 @@ export function AdminPosts() {
       setInlineImageUploading(false);
     }
   };
+
   const handleInlineImageFromDialog = async (e: React.ChangeEvent<HTMLInputElement>) => {
     await handleInlineImage(e);
     setInlineImageDialogOpen(false);
   };
+
   const handleInsertInlineImageUrl = () => {
     const url = inlineImageUrl.trim();
     if (!url) return;
@@ -487,6 +536,7 @@ export function AdminPosts() {
     setFormError('');
     setInlineImageDialogOpen(false);
   };
+
   const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -514,6 +564,7 @@ export function AdminPosts() {
       }
     }
   };
+
   const handleAiGenerate = () => {
     const topic = aiTopic.trim();
     if (!topic) {
@@ -526,6 +577,7 @@ export function AdminPosts() {
     }
     doAiGenerate();
   };
+
   const doAiGenerate = async () => {
     const topic = aiTopic.trim();
     if (!topic) return;
@@ -576,9 +628,12 @@ export function AdminPosts() {
       setAiGenerating(false);
     }
   };
+
   const handleAiApply = async () => {
     if (!aiResult) return;
     setAiApplying(true);
+
+    
     const updatedTags = [...tags];
     const updatedTagIds: number[] = [];
     for (const tagName of aiResult.tags) {
@@ -597,6 +652,7 @@ export function AdminPosts() {
     if (updatedTags.length !== tags.length) {
       setTags(updatedTags);
     }
+
     setForm((prev) => ({
       ...prev,
       title: aiResult.title,
@@ -608,6 +664,7 @@ export function AdminPosts() {
     setAiApplying(false);
     enqueueSnackbar('AI 生成内容已应用', { variant: 'success' });
   };
+
   const handleAiDiscard = () => {
     setAiResult(null);
     setAiTopic('');
@@ -615,6 +672,7 @@ export function AdminPosts() {
     setAiError('');
     setAiRawOutput('');
   };
+
   const handleAiFormat = async () => {
     const content = form.content.trim();
     if (!content) {
@@ -637,6 +695,7 @@ export function AdminPosts() {
       setAiFormatLoading(false);
     }
   };
+
   const handleAiFormatApply = () => {
     if (!aiFormatResult) return;
     setAiFormatApplying(true);
@@ -645,10 +704,12 @@ export function AdminPosts() {
     setAiFormatResult(null);
     enqueueSnackbar('格式优化结果已应用', { variant: 'success' });
   };
+
   const handleAiFormatDiscard = () => {
     setAiFormatResult(null);
     setAiFormatError('');
   };
+
   const toolbarItems = [
     { icon: <FormatBold fontSize="small" />, title: '加粗', action: () => insertMarkdown('**', '**') },
     { icon: <FormatItalic fontSize="small" />, title: '斜体', action: () => insertMarkdown('*', '*') },
@@ -673,6 +734,7 @@ export function AdminPosts() {
       action: () => insertMarkdown('1. ', ''),
     },
   ];
+
   const aiPanelContent = (
     <Paper
       ref={aiPanelRef}
@@ -715,6 +777,7 @@ export function AdminPosts() {
           </IconButton>
         </Tooltip>
       </Box>
+
       <Box
         ref={aiPanelScrollRef}
         sx={{ flex: '1 1 auto', overflow: 'auto', overscrollBehavior: 'contain', p: 2, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}
@@ -724,6 +787,7 @@ export function AdminPosts() {
             AI 功能尚未开启，请先在「AI 管理」中启用。
           </Typography>
         )}
+
         <TextField
           label="文章主题"
           placeholder="输入主题，让 AI 生成文章"
@@ -738,6 +802,7 @@ export function AdminPosts() {
           disabled={!aiEnabled || aiGenerating}
           fullWidth
         />
+
         <TextField
           label="补充描述（可选）"
           placeholder="输入对文章风格、结构、重点等的补充要求"
@@ -748,6 +813,7 @@ export function AdminPosts() {
           multiline
           rows={3}
         />
+
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Button
             size="small"
@@ -784,6 +850,7 @@ export function AdminPosts() {
                     ))}
                   </Select>
                 </FormControl>
+
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
@@ -803,6 +870,7 @@ export function AdminPosts() {
                     sx={{ '& .MuiSlider-thumb': { borderRadius: '50%' } }}
                   />
                 </Box>
+
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
@@ -831,6 +899,7 @@ export function AdminPosts() {
             </Paper>
           </Collapse>
         </Box>
+
         {aiFormatError && (
           <Paper
             variant="outlined"
@@ -846,6 +915,7 @@ export function AdminPosts() {
             </Typography>
           </Paper>
         )}
+
         {aiError && (
           <Paper
             variant="outlined"
@@ -861,6 +931,7 @@ export function AdminPosts() {
             </Typography>
           </Paper>
         )}
+
         {aiFormatResult && (
           <Fade in timeout={300}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -905,6 +976,7 @@ export function AdminPosts() {
             </Box>
           </Fade>
         )}
+
         {aiResult && (
           <Fade in timeout={300}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -986,6 +1058,7 @@ export function AdminPosts() {
             </Box>
           </Fade>
         )}
+
         {aiRawOutput && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Button
@@ -1022,6 +1095,7 @@ export function AdminPosts() {
           </Box>
         )}
       </Box>
+
       <Box
         sx={{
           flexShrink: 0,
@@ -1045,6 +1119,7 @@ export function AdminPosts() {
         >
           {aiGenerating ? '生成中...' : '生成文章'}
         </Button>
+
         <Button
           variant="outlined"
           fullWidth
@@ -1058,6 +1133,7 @@ export function AdminPosts() {
       </Box>
     </Paper>
   );
+
   const editorPanel = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0, gap: 2, position: 'relative', overflow: 'hidden' }}>
       <Box ref={editorScrollBoxRef} sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100%', gap: 2, overflow: 'auto', overscrollBehavior: 'contain', pb: { xs: 10, sm: 0 } }}>
@@ -1077,7 +1153,7 @@ export function AdminPosts() {
           <Loading text="加载文章中..." />
         </Box>
       )}
-      {}
+      {/* 顶部操作栏 */}
       <Box
         sx={{
           display: 'flex',
@@ -1128,12 +1204,14 @@ export function AdminPosts() {
           </Button>
         </Box>
       </Box>
+
       {formError && (
         <Typography color="error" variant="body2">
           {formError}
         </Typography>
       )}
-      {}
+
+      {/* 基础信息 */}
       <Paper
         elevation={0}
         sx={{
@@ -1274,7 +1352,8 @@ export function AdminPosts() {
           </Box>
         </Stack>
       </Paper>
-      {}
+
+      {/* 移动端状态选择：放在编辑器上方，避免文章写太长时看不到 */}
       <Box
         sx={{
           display: { xs: 'flex', sm: 'none' },
@@ -1299,7 +1378,8 @@ export function AdminPosts() {
           返回即取消，不会保存修改
         </Typography>
       </Box>
-      {}
+
+      {/* 编辑器 */}
       <Paper
         elevation={0}
         sx={{
@@ -1315,7 +1395,7 @@ export function AdminPosts() {
               : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
         }}
       >
-        {}
+        {/* 工具栏 + 胶囊 Tab */}
         <Box
           ref={toolbarRef}
           sx={{
@@ -1348,7 +1428,7 @@ export function AdminPosts() {
               },
             }}
           >
-            {}
+            {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
             {/* eslint-disable-next-line react-hooks/refs */}
             {toolbarItems.map((item) => (
               <ToggleButton
@@ -1418,7 +1498,8 @@ export function AdminPosts() {
             </DialogActions>
           </Dialog>
         </Box>
-        {}
+
+        {/* 编辑区 */}
         <Box
           sx={{
             flex: 1,
@@ -1459,7 +1540,8 @@ export function AdminPosts() {
           />
         </Box>
       </Paper>
-      {}
+
+      {/* 右侧可展开/收起的 Markdown 工具栏 */}
       <Paper
         elevation={3}
         sx={{
@@ -1496,7 +1578,7 @@ export function AdminPosts() {
         </Tooltip>
         <Collapse in={editorToolbarExpanded} orientation="vertical" timeout={250}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.75, pt: 0 }}>
-            {}
+            {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
             {/* eslint-disable-next-line react-hooks/refs */}
             {toolbarItems.map((item) => (
               <Tooltip key={item.title} title={item.title} placement="left">
@@ -1521,6 +1603,7 @@ export function AdminPosts() {
           </Box>
         </Collapse>
       </Paper>
+
       {createPortal(
         <Box
           sx={{
@@ -1555,7 +1638,7 @@ export function AdminPosts() {
                 '&::-webkit-scrollbar': { display: 'none' },
               }}
             >
-              {}
+              {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
               {/* eslint-disable-next-line react-hooks/refs */}
               {toolbarItems.map((item) => (
                 <Tooltip key={item.title} title={item.title} placement="left">
@@ -1602,7 +1685,8 @@ export function AdminPosts() {
         document.body
       )}
     </Box>
-    {}
+
+    {/* AI 侧边栏抽屉：小屏覆盖，大屏持久推内容 */}
     <Drawer
       anchor="right"
       open={aiOpen}
@@ -1614,35 +1698,19 @@ export function AdminPosts() {
     >
       {aiPanelContent}
     </Drawer>
-    {}
-    <Dialog
+
+    {/* AI 重新生成确认 */}
+    <ConfirmDialog
       open={aiRegenerateConfirmOpen}
+      title="确认重新生成？"
+      content="当前已有生成结果，重新生成将清空现有内容。是否继续？"
+      confirmText="确认生成"
       onClose={() => setAiRegenerateConfirmOpen(false)}
-      fullWidth
-      maxWidth="xs"
-      TransitionComponent={Grow}
-      PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
-      BackdropProps={{ 'aria-hidden': false }}
-    >
-      <DialogTitle sx={{ fontWeight: 700 }}>确认重新生成？</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary">
-          当前已有生成结果，重新生成将清空现有内容。是否继续？
-        </Typography>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-          <Button onClick={() => setAiRegenerateConfirmOpen(false)} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
-            取消
-          </Button>
-          <Button variant="contained" onClick={doAiGenerate} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
-            确认生成
-          </Button>
-        </Box>
-      </DialogActions>
-    </Dialog>
+      onConfirm={doAiGenerate}
+    />
     </Box>
   );
+
   const listPanel = (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, minWidth: 0 }}>
@@ -1658,6 +1726,7 @@ export function AdminPosts() {
           新建
         </Button>
       </Box>
+
       {loading ? (
         <Loading text="加载文章中..." />
       ) : (
@@ -1843,25 +1912,22 @@ export function AdminPosts() {
         )}
         </Fade>
       )}
-      {}
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} fullWidth maxWidth="xs" TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
-        <DialogTitle>确认删除</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">删除后无法恢复，是否继续？</Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-            <Button onClick={() => setDeleteId(null)} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-              取消
-            </Button>
-            <Button color="error" variant="contained" startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <Delete />} onClick={handleDelete} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-              {deleting ? '删除中...' : '删除'}
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+
+      {/* 删除确认 */}
+      <ConfirmDialog
+        open={!!deleteId}
+        title="确认删除"
+        content="删除后无法恢复，是否继续？"
+        confirmText="删除"
+        confirmColor="error"
+        loading={deleting}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+      />
+
     </Box>
   );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
       {view === 'list' && (
@@ -1892,7 +1958,8 @@ export function AdminPosts() {
           </Box>
         </Fade>
       )}
-      {}
+
+      {/* 添加新标签 */}
       <Dialog
         open={addTagDialogOpen}
         onClose={handleCloseAddTagDialog}
@@ -1932,41 +1999,18 @@ export function AdminPosts() {
           </Box>
         </DialogActions>
       </Dialog>
-      {}
-      <Dialog
+
+      {/* 移除封面确认 */}
+      <ConfirmDialog
         open={removeCoverDialogOpen}
+        title="确认移除封面？"
+        content="移除后该图片将从媒体库中删除，是否继续？"
+        confirmText="确认移除"
+        confirmColor="error"
+        loading={coverLoading}
         onClose={() => setRemoveCoverDialogOpen(false)}
-        fullWidth
-        maxWidth="xs"
-        TransitionComponent={Grow}
-        PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
-        BackdropProps={{ 'aria-hidden': false }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>确认移除封面？</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            移除后该图片将从媒体库中删除，是否继续？
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-            <Button onClick={() => setRemoveCoverDialogOpen(false)} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
-              取消
-            </Button>
-            <Button
-              color="error"
-              variant="contained"
-              onClick={handleConfirmRemoveCover}
-              disabled={coverLoading}
-              startIcon={coverLoading ? <CircularProgress size={16} color="inherit" /> : null}
-              fullWidth={isMobileAdmin}
-              sx={{ textTransform: 'none', borderRadius: 2 }}
-            >
-              {coverLoading ? '移除中...' : '确认移除'}
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmRemoveCover}
+      />
     </Box>
   );
 }

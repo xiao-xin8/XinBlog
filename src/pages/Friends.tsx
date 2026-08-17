@@ -5,6 +5,7 @@ import { useSiteStore } from '@/stores/siteStore';
 import { fetchFriends } from '@/api/friends';
 import type { FriendLink, FriendsConfig } from '@/types';
 import { LazyImage } from '@/components/Common/LazyImage';
+
 function getHostName(url: string): string {
   try {
     return new URL(url).hostname;
@@ -12,10 +13,12 @@ function getHostName(url: string): string {
     return url;
   }
 }
+
 function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsConfig }) {
   const accentColor = config.cardColor || undefined;
   const isCompact = config.cardStyle === 'compact';
   const avatarRadius = config.avatarShape === 'circle' ? '50%' : 1;
+
   return (
     <Card
       elevation={0}
@@ -94,6 +97,7 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
           {friend.name.charAt(0)}
         </Box>
       )}
+
       <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: config.showDescription && friend.description ? 0.75 : 0 }}>
           <Typography
@@ -150,11 +154,13 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
     </Card>
   );
 }
+
 export function Friends() {
   const { config } = useSiteStore();
   const friendsConfig = config.friends;
   const [friends, setFriends] = useState<FriendLink[]>([]);
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (!friendsConfig?.enabled) return;
     let mounted = true;
@@ -176,8 +182,9 @@ export function Friends() {
       mounted = false;
     };
   }, [friendsConfig?.enabled]);
+
   return (
-    <Fade in timeout={500}>
+    <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, pb: { xs: 8, md: 12 } }}>
         <Paper
           elevation={0}
@@ -220,6 +227,7 @@ export function Friends() {
             </Typography>
           )}
         </Paper>
+
         {!friendsConfig?.enabled ? (
           <Paper
             elevation={0}

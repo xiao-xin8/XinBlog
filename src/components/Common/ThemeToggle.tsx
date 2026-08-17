@@ -1,8 +1,10 @@
 import { IconButton, Tooltip, alpha } from '@mui/material';
 import { DarkMode, LightMode } from '@mui/icons-material';
 import { useThemeStore } from '@/stores/themeStore';
+
 export function ThemeToggle() {
   const { mode, toggleMode } = useThemeStore();
+
   return (
     <Tooltip title={mode === 'light' ? '切换暗色模式' : '切换亮色模式'}>
       <IconButton

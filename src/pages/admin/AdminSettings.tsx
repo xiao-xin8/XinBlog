@@ -5,23 +5,28 @@ import { BasicSettings } from './BasicSettings';
 import { EmailSettings } from './EmailSettings';
 import { AdminEmailTemplates } from './EmailTemplates';
 import { Users } from './Users';
+
 type SettingsTab = 'basic' | 'email' | 'email-template' | 'users';
+
 export function AdminSettings() {
   const [tab, setTab] = useState<SettingsTab>('basic');
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
+
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'basic', label: '基础设置' },
     { id: 'email', label: '邮箱配置' },
     { id: 'email-template', label: '邮件模板' },
     { id: 'users', label: '用户管理' },
   ];
+
   return (
     <Fade in timeout={400}>
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 3, overflowWrap: 'break-word' }}>
         用户管理
       </Typography>
+
       {isMobileAdmin ? (
         <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
           <Select
@@ -119,6 +124,7 @@ export function AdminSettings() {
           </Box>
         </Box>
       )}
+
       <Fade in timeout={300} key={tab}>
         <Box>
           {tab === 'users' && <Users />}

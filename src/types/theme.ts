@@ -6,6 +6,7 @@ export interface ThemeColorConfig {
   secondaryLight: string;
   secondaryDark: string;
 }
+
 export interface ThemePreset {
   id: string;
   name: string;
@@ -13,6 +14,7 @@ export interface ThemePreset {
   colors: ThemeColorConfig;
   solid?: boolean;
 }
+
 export const themePresets: ThemePreset[] = [
   {
     id: 'aurora',

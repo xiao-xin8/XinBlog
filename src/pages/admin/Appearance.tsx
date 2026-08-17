@@ -10,9 +10,11 @@ import { CursorPanel } from './appearance/panels/CursorPanel';
 import { ClickEffectPanel } from './appearance/panels/ClickEffectPanel';
 import { BasicPanel } from './appearance/panels/BasicPanel';
 import { NavPanel } from './appearance/panels/NavPanel';
+
 export function AdminAppearance() {
   const editor = useAppearanceEditor();
   const { tab, setTab, isMobileAdmin, isDirty, saving, applyAll } = editor;
+
   return (
     <Fade in timeout={400}>
       <Box>
@@ -22,6 +24,7 @@ export function AdminAppearance() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           自定义站点配色、首页英雄区、关于页面、鼠标、点击特效、文章布局、导航栏和基础信息。
         </Typography>
+
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -119,6 +122,7 @@ export function AdminAppearance() {
             </Box>
           </Box>
         )}
+
         {tab === 'basic' && <BasicPanel editor={editor} />}
         {tab === 'hero' && <HeroPanel editor={editor} />}
         {tab === 'about' && <AboutPanel editor={editor} />}
@@ -128,6 +132,7 @@ export function AdminAppearance() {
         {tab === 'theme' && <ThemePanel editor={editor} />}
         {tab === 'font' && <FontPanel editor={editor} />}
         {tab === 'nav' && <NavPanel editor={editor} />}
+
         <FloatingSaveButton show={isDirty} saving={saving} onClick={applyAll} label="保存外观设置" />
       </Box>
     </Fade>

@@ -10,16 +10,16 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   CircularProgress,
-  Grow,
   TextField,
   alpha,
 } from '@mui/material';
 import { Check, Close, Add, DeleteOutlined, Storefront, Refresh } from '@mui/icons-material';
 import type { UserFont } from '@/types';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
+
 function FontCard({
   font,
   selected,
@@ -132,8 +132,10 @@ function FontCard({
     </ButtonBase>
   );
 }
+
 function FontStoreDialog({ editor }: { editor: AppearanceEditor }) {
   const { fontStoreOpen, setFontStoreOpen, storeLoading, storeFonts, userFonts, fontActionLoading, handleAddFont, handleOpenFontStore } = editor;
+
   return (
     <Dialog
       open={fontStoreOpen}
@@ -265,70 +267,31 @@ function FontStoreDialog({ editor }: { editor: AppearanceEditor }) {
     </Dialog>
   );
 }
+
 function FontConfirmDialog({ editor }: { editor: AppearanceEditor }) {
-  const { confirmDialog, setConfirmDialog, handleConfirmFontAction, fontActionLoading, isMobileAdmin } = editor;
+  const { confirmDialog, setConfirmDialog, handleConfirmFontAction, fontActionLoading } = editor;
   const { open, type, font } = confirmDialog;
   const isAdd = type === 'add';
   const title = isAdd ? '确认添加字体？' : '确认移除字体？';
   const content = isAdd
     ? `确定要将“${font?.name}”添加到你的字体库吗？`
     : `确定要移除“${font?.name}”吗？移除后该字体将从你的字体库中消失。`;
-  const confirmText = isAdd
-    ? fontActionLoading
-      ? '添加中...'
-      : '确认添加'
-    : fontActionLoading
-      ? '删除中...'
-      : '确认删除';
+  const confirmText = isAdd ? '确认添加' : '确认删除';
+
   return (
-    <Dialog
+    <ConfirmDialog
       open={open}
-      onClose={() => !fontActionLoading && setConfirmDialog((prev) => ({ ...prev, open: false }))}
-      fullWidth
-      maxWidth="xs"
-      TransitionComponent={Grow}
-      PaperProps={{
-        sx: { borderRadius: { xs: 2, sm: '12px' } },
-      }}
-    >
-      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText color="text.secondary">{content}</DialogContentText>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1.5,
-            width: '100%',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Button
-            onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
-            color="inherit"
-            disabled={fontActionLoading}
-            fullWidth={isMobileAdmin}
-            sx={{ textTransform: 'none', borderRadius: 2 }}
-          >
-            取消
-          </Button>
-          <Button
-            onClick={handleConfirmFontAction}
-            variant="contained"
-            color={isAdd ? 'primary' : 'error'}
-            disabled={fontActionLoading}
-            fullWidth={isMobileAdmin}
-            sx={{ textTransform: 'none', borderRadius: 2 }}
-          >
-            {confirmText}
-          </Button>
-        </Box>
-      </DialogActions>
-    </Dialog>
+      title={title}
+      content={content}
+      confirmText={confirmText}
+      confirmColor={isAdd ? 'primary' : 'error'}
+      loading={fontActionLoading}
+      onClose={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+      onConfirm={handleConfirmFontAction}
+    />
   );
 }
+
 export function FontPanel({ editor }: { editor: AppearanceEditor }) {
   const {
     userFonts,
@@ -341,6 +304,7 @@ export function FontPanel({ editor }: { editor: AppearanceEditor }) {
     setFontPreviewText,
     DEFAULT_FONT_FALLBACK,
   } = editor;
+
   return (
     <Paper
       elevation={0}
@@ -388,9 +352,11 @@ export function FontPanel({ editor }: { editor: AppearanceEditor }) {
             </Button>
           </Box>
         </Box>
+
         <Alert severity="info" sx={{ borderRadius: 1 }}>
           字体资源下载需要一定时间，若更新有延时请稍等片刻。
         </Alert>
+
         {userFonts.length === 0 ? (
           <Box
             sx={{
@@ -445,6 +411,7 @@ export function FontPanel({ editor }: { editor: AppearanceEditor }) {
             })}
           </Box>
         )}
+
         <Box
           sx={{
             p: 2,
@@ -475,6 +442,7 @@ export function FontPanel({ editor }: { editor: AppearanceEditor }) {
           </Box>
         </Box>
       </Stack>
+
       <FontStoreDialog editor={editor} />
       <FontConfirmDialog editor={editor} />
     </Paper>

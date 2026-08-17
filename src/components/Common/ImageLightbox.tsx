@@ -1,33 +1,41 @@
 import { Box, Fade, IconButton, Modal, Typography, alpha } from '@mui/material';
 import { Close, ZoomIn, ZoomOut, RotateLeft } from '@mui/icons-material';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
 interface ImageLightboxProps {
   open: boolean;
   src: string;
   alt?: string;
   onClose: () => void;
 }
+
 export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, px: 0, py: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (open) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
     }
   }, [open]);
+
   useEffect(() => {
     if (!open) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
+
   const clampScale = (value: number) => Math.min(Math.max(value, 0.5), 5);
+
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault();
@@ -36,12 +44,14 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
     },
     []
   );
+
   const handleZoomIn = () => setScale((prev) => clampScale(prev + 0.5));
   const handleZoomOut = () => setScale((prev) => clampScale(prev - 0.5));
   const handleReset = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (scale <= 1) return;
     e.preventDefault();
@@ -53,6 +63,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
       py: position.y,
     };
   };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragging) return;
     setPosition({
@@ -60,7 +71,9 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
       y: dragStartRef.current.py + (e.clientY - dragStartRef.current.y),
     });
   };
+
   const handleMouseUp = () => setDragging(false);
+
   const handleDoubleClick = () => {
     if (scale > 1) {
       handleReset();
@@ -68,6 +81,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
       setScale(2);
     }
   };
+
   return (
     <Modal
       open={open}
@@ -124,6 +138,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
               <Close />
             </IconButton>
           </Box>
+
           {alt && (
             <Typography
               variant="caption"
@@ -142,6 +157,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
               {alt}
             </Typography>
           )}
+
           <Box
             component="img"
             src={src}

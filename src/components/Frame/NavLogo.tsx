@@ -1,15 +1,19 @@
 import { Box, Typography } from '@mui/material';
 import { Logo } from '@/components/Common/Logo';
 import type { NavThemeConfig } from '@/types';
+
 interface NavLogoProps {
   navTheme: NavThemeConfig;
 }
+
 export function NavLogo({ navTheme }: NavLogoProps) {
   const logoText = navTheme.logoText ?? '';
   const activeColor = navTheme.activeColor || 'primary.main';
+
   if (!logoText) {
     return <Logo />;
   }
+
   return (
     <Box
       component="a"

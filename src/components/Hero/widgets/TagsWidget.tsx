@@ -4,10 +4,12 @@ import { LocalOffer } from '@mui/icons-material';
 import { fetchTags } from '@/api/posts';
 import { useHeroEditContext } from '@/components/Hero/HeroEditContext';
 import type { HeroWidgetConfig, Tag } from '@/types';
+
 interface TagsWidgetPropsFromConfig {
   limit?: number;
   showCount?: boolean;
 }
+
 export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as TagsWidgetPropsFromConfig;
   const { editable } = useHeroEditContext();
@@ -15,6 +17,8 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
   const showCount = props.showCount !== false;
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -23,6 +27,7 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
   const displayLimit = isTiny ? 4 : isTall ? h * 3 : isCompact ? 6 : isWide ? 5 : limit;
   const chipHeight = isTiny || isTall ? 20 : 24;
   const chipFontSize = isTiny || isTall ? 9 : 11;
+
   useEffect(() => {
     let cancelled = false;
     fetchTags()
@@ -39,10 +44,12 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, [displayLimit]);
+
   const getChipProps = (tag: Tag) =>
     editable
       ? { component: 'div' as const }
       : { component: 'a' as const, href: `/tag/${tag.slug}` };
+
   return (
     <Box
       sx={{
@@ -61,6 +68,7 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
           文章标签
         </Typography>
       </Box>
+
       {loading ? (
         <Typography variant="body2" color="text.secondary">
           加载中...

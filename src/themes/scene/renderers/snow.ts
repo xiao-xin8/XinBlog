@@ -1,5 +1,6 @@
 import { SnowEffect, type SnowEffectParams } from '@/themes/scene/components/SnowEffect';
 import type { SceneThemeRenderer } from './base';
+
 export const snowSceneRenderer: SceneThemeRenderer<SnowEffectParams> = {
   id: 'snow',
   name: '落雪冬夜',

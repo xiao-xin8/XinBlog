@@ -37,7 +37,9 @@ import { Edit, Delete, Save } from '@mui/icons-material';
 import { fetchAdminUsers, updateAdminUser, deleteAdminUser, type AdminUser } from '@/api/admin';
 import { useAuthStore } from '@/stores/authStore';
 import { Loading } from '@/components/Common/Loading';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSnackbar } from 'notistack';
+
 export function Users() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -54,6 +56,7 @@ export function Users() {
   const [editSaving, setEditSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const data = await fetchAdminUsers(page + 1, rowsPerPage);
@@ -63,17 +66,21 @@ export function Users() {
     }
     setLoading(false);
   };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
+
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
+
   const handleOpenEdit = (user: AdminUser) => {
     if (!isSuperAdmin) return;
     setEditUser(user);
@@ -84,16 +91,20 @@ export function Users() {
       status: user.status,
     });
   };
+
   const handleCloseEdit = () => {
     setEditUser(null);
     setEditForm({});
   };
+
   const handleOpenDelete = (user: AdminUser) => {
     setDeleteUser(user);
   };
+
   const handleCloseDelete = () => {
     setDeleteUser(null);
   };
+
   const handleConfirmDelete = async () => {
     if (!deleteUser) return;
     setDeleteSaving(true);
@@ -109,6 +120,7 @@ export function Users() {
       handleCloseEdit();
     }
   };
+
   const handleSaveEdit = async () => {
     if (!editUser) return;
     setEditSaving(true);
@@ -125,15 +137,18 @@ export function Users() {
     if (editForm.status !== undefined && editForm.status !== editUser.status) {
       patch.status = editForm.status ? 1 : 0;
     }
+
     if (Object.keys(patch).length === 0) {
       setEditSaving(false);
       handleCloseEdit();
       return;
     }
+
     const ok = await updateAdminUser(editUser.id, patch);
     setEditSaving(false);
     if (ok) {
       enqueueSnackbar('用户信息已保存', { variant: 'success' });
+      
       setUsers((prev) =>
         prev.map((u) => (u.id === editUser.id ? { ...u, ...patch } : u))
       );
@@ -142,7 +157,9 @@ export function Users() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
+
   if (loading && users.length === 0) return <Loading />;
+
   return (
     <Fade in timeout={400}>
     <Paper
@@ -288,6 +305,7 @@ export function Users() {
           },
         }}
       />
+
       <Dialog open={!!editUser} onClose={handleCloseEdit} fullWidth maxWidth="sm" TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
         <DialogTitle>编辑用户信息</DialogTitle>
         <DialogContent>
@@ -345,23 +363,22 @@ export function Users() {
           </Box>
         </DialogActions>
       </Dialog>
-      <Dialog open={!!deleteUser} onClose={handleCloseDelete} fullWidth maxWidth="xs" TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
-        <DialogTitle>确认删除用户</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+
+      <ConfirmDialog
+        open={!!deleteUser}
+        title="确认删除用户"
+        content={
+          <>
             确定要删除用户 <strong>{deleteUser?.username}</strong> 吗？
             该用户的点赞、评论、登录令牌等关联数据将一并删除，此操作不可恢复。
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
-          <Button onClick={handleCloseDelete} disabled={deleteSaving}>
-            取消
-          </Button>
-          <Button color="error" variant="contained" startIcon={deleteSaving ? <CircularProgress size={16} color="inherit" /> : <Delete />} onClick={handleConfirmDelete} disabled={deleteSaving}>
-            {deleteSaving ? '删除中...' : '确认删除'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </>
+        }
+        confirmText="确认删除"
+        confirmColor="error"
+        loading={deleteSaving}
+        onClose={handleCloseDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </Paper>
     </Fade>
   );

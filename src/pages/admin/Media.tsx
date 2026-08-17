@@ -42,16 +42,22 @@ import { useSnackbar } from 'notistack';
 import { fetchAdminMedia, fetchAdminMediaDetail, updateAdminMedia, fetchAdminMediaUsage } from '@/api/admin';
 import { deleteMedia, getMediaUrl, extractMediaId } from '@/api/media';
 import { Loading } from '@/components/Common/Loading';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { LazyImage } from '@/components/Common/LazyImage';
 import { useSiteStore } from '@/stores/siteStore';
 import type { AdminMedia, AdminMediaBinding, AdminMediaDetail } from '@/api/admin';
 import type { SiteConfig } from '@/types';
+
+
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
+
 import { getBase64Size, compressImageSource } from '@/utils/image';
+
 function getValueByPath(obj: unknown, path: string): unknown {
   if (!path) return undefined;
   return path.split('.').reduce<unknown>((o, key) => {
@@ -59,6 +65,7 @@ function getValueByPath(obj: unknown, path: string): unknown {
     return undefined;
   }, obj);
 }
+
 function verifyBindings(bindings: AdminMediaBinding[], siteConfig: SiteConfig, mediaId: number): AdminMediaBinding[] {
   return bindings.filter((b) => {
     if (b.type === 'site') {
@@ -75,6 +82,7 @@ function verifyBindings(bindings: AdminMediaBinding[], siteConfig: SiteConfig, m
     return true;
   });
 }
+
 function BindingList({ bindings }: { bindings: AdminMediaBinding[] }) {
   const grouped = useMemo(() => {
     const map: Record<string, AdminMediaBinding[]> = {};
@@ -84,6 +92,7 @@ function BindingList({ bindings }: { bindings: AdminMediaBinding[] }) {
     }
     return map;
   }, [bindings]);
+
   if (bindings.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary">
@@ -91,12 +100,14 @@ function BindingList({ bindings }: { bindings: AdminMediaBinding[] }) {
       </Typography>
     );
   }
+
   const typeLabel: Record<string, string> = {
     post: '文章',
     user: '用户',
     friend: '友链',
     site: '站点设置',
   };
+
   return (
     <Stack spacing={1.5}>
       {Object.entries(grouped).map(([type, list]) => (
@@ -122,37 +133,46 @@ function BindingList({ bindings }: { bindings: AdminMediaBinding[] }) {
     </Stack>
   );
 }
+
 export function AdminMedia() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const { enqueueSnackbar } = useSnackbar();
   const site = useSiteStore();
+
   const [media, setMedia] = useState<AdminMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<AdminMediaDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
   const [deleteTarget, setDeleteTarget] = useState<AdminMedia | null>(null);
   const [deleteBindings, setDeleteBindings] = useState<AdminMediaBinding[]>([]);
   const [deleteBindingsLoading, setDeleteBindingsLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const [compressingId, setCompressingId] = useState<number | null>(null);
   const [detailCache, setDetailCache] = useState<Map<number, AdminMediaDetail>>(new Map());
+
   const [compressOpen, setCompressOpen] = useState(false);
   const [compressTarget, setCompressTarget] = useState<AdminMedia | null>(null);
   const [compressMaxDim, setCompressMaxDim] = useState(1920);
   const [compressMaxSize, setCompressMaxSize] = useState(500);
   const [compressMinQuality, setCompressMinQuality] = useState(0.4);
   const [compressingOptions, setCompressingOptions] = useState(false);
+
   const [usage, setUsage] = useState<{ totalSize: number; count: number } | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
+
   const verifiedBindings = useMemo(() => {
     if (!detail) return [];
     return verifyBindings(detail.bindings, site.config, detail.id);
   }, [detail, site.config]);
+
   const loadData = async (targetPage = page + 1, limit = rowsPerPage) => {
     setLoading(true);
     const res = await fetchAdminMedia(targetPage, limit);
@@ -164,28 +184,34 @@ export function AdminMedia() {
     }
     setLoading(false);
   };
+
   const loadUsage = async () => {
     setUsageLoading(true);
     const res = await fetchAdminMediaUsage();
     if (res) setUsage(res);
     setUsageLoading(false);
   };
+
   useEffect(() => {
     loadData();
     loadUsage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useEffect(() => {
     loadData(page + 1, rowsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
+
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
+
   const handleOpenDetail = async (item: AdminMedia, force = false) => {
     setDetailOpen(true);
     if (!force) {
@@ -207,10 +233,12 @@ export function AdminMedia() {
       setDetailOpen(false);
     }
   };
+
   const handleCloseDetail = () => {
     setDetailOpen(false);
     setDetail(null);
   };
+
   const handleOpenDelete = async (item: AdminMedia) => {
     setDeleteTarget(item);
     setDeleteBindings([]);
@@ -225,10 +253,12 @@ export function AdminMedia() {
       setDeleteBindings(res.bindings);
     }
   };
+
   const handleCloseDelete = () => {
     setDeleteTarget(null);
     setDeleteBindings([]);
   };
+
   const handleOpenCompress = (item: AdminMedia) => {
     setCompressTarget(item);
     setCompressMaxDim(1920);
@@ -236,10 +266,12 @@ export function AdminMedia() {
     setCompressMinQuality(0.4);
     setCompressOpen(true);
   };
+
   const handleCloseCompress = () => {
     setCompressOpen(false);
     setCompressTarget(null);
   };
+
   const handleConfirmCompress = async () => {
     if (!compressTarget) return;
     const item = compressTarget;
@@ -288,6 +320,7 @@ export function AdminMedia() {
       setCompressingOptions(false);
     }
   };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -305,12 +338,14 @@ export function AdminMedia() {
       enqueueSnackbar('删除失败', { variant: 'error' });
     }
   };
+
   const paperShadow = {
     boxShadow: (t: typeof theme) =>
       t.palette.mode === 'light'
         ? `0 4px 20px ${alpha(t.palette.primary.main, 0.08)}`
         : `0 4px 20px ${alpha(t.palette.common.black, 0.25)}`,
   };
+
   const renderPreview = (item: AdminMedia, size: number) => (
     <Box
       sx={{
@@ -331,6 +366,7 @@ export function AdminMedia() {
       />
     </Box>
   );
+
   const renderMobileList = () => (
     <Grid container spacing={2}>
       {media.map((item) => (
@@ -395,6 +431,7 @@ export function AdminMedia() {
       )}
     </Grid>
   );
+
   const renderDesktopTable = () => (
     <Paper
       elevation={0}
@@ -501,11 +538,13 @@ export function AdminMedia() {
       )}
     </Paper>
   );
+
   const renderStorageUsage = () => {
     const quota = 500 * 1024 * 1024;
     const used = usage?.totalSize || 0;
     const percent = Math.min(100, (used / quota) * 100);
     const color = percent >= 90 ? 'error' : percent >= 70 ? 'warning' : 'success';
+
     return (
       <Tooltip title={usage ? `共 ${usage.count} 个文件 · 已用 ${Math.round(percent)}%` : '刷新以获取存储统计'}>
         <Paper
@@ -563,6 +602,7 @@ export function AdminMedia() {
       </Tooltip>
     );
   };
+
   return (
     <Fade in timeout={400}>
       <Box>
@@ -577,6 +617,7 @@ export function AdminMedia() {
           </Box>
           {renderStorageUsage()}
         </Box>
+
         {loading ? (
           <Loading text="加载媒体中..." />
         ) : (
@@ -586,7 +627,8 @@ export function AdminMedia() {
             </Box>
           </Fade>
         )}
-        {}
+
+        {/* 详情弹窗 */}
         <Dialog
           open={detailOpen}
           onClose={handleCloseDetail}
@@ -599,9 +641,7 @@ export function AdminMedia() {
           <DialogTitle sx={{ fontWeight: 700 }}>媒体详情</DialogTitle>
           <DialogContent sx={{ minHeight: { xs: 360, sm: 480 } }}>
             {detailLoading || !detail ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: { xs: 320, sm: 420 } }}>
-                <CircularProgress />
-              </Box>
+              <Loading />
             ) : (
               <Fade in timeout={400}>
                 <Stack spacing={2}>
@@ -625,18 +665,24 @@ export function AdminMedia() {
                   <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 1 }}>
                   <Typography variant="body2" color="text.secondary">文件名</Typography>
                   <Typography variant="body2" sx={{ overflowWrap: 'break-word' }}>{detail.name}</Typography>
+
                   <Typography variant="body2" color="text.secondary">大小</Typography>
                   <Typography variant="body2">{formatBytes(detail.size)}</Typography>
+
                   <Typography variant="body2" color="text.secondary">尺寸</Typography>
                   <Typography variant="body2">
                     {detail.width && detail.height ? `${detail.width} × ${detail.height}` : '未知'}
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary">类型</Typography>
                   <Typography variant="body2">{detail.mime_type}</Typography>
+
                   <Typography variant="body2" color="text.secondary">分片</Typography>
                   <Typography variant="body2">{detail.chunk_count > 0 ? `${detail.chunk_count} 片` : '无'}</Typography>
+
                   <Typography variant="body2" color="text.secondary">上传时间</Typography>
                   <Typography variant="body2">{new Date(detail.created_at).toLocaleString('zh-CN')}</Typography>
+
                   <Typography variant="body2" color="text.secondary">URL</Typography>
                   <Typography variant="body2" sx={{ overflowWrap: 'break-word' }}>{getMediaUrl(detail.id)}</Typography>
                 </Box>
@@ -685,47 +731,41 @@ export function AdminMedia() {
             </Box>
           </DialogActions>
         </Dialog>
-        {}
-        <Dialog
+
+        {/* 删除确认 */}
+        <ConfirmDialog
           open={!!deleteTarget}
+          title="确认删除媒体？"
+          content={
+            <>
+              {deleteTarget?.name && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {deleteTarget.name}
+                </Typography>
+              )}
+              {deleteBindingsLoading ? (
+                <Typography variant="body2" color="text.secondary">
+                  正在检查绑定对象...
+                </Typography>
+              ) : deleteBindings.length > 0 ? (
+                <Typography variant="body2" color="warning.main">
+                  该媒体已被 {deleteBindings.length} 个对象引用，删除后可能影响已绑定的内容，是否继续？
+                </Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  删除后无法恢复，是否继续？
+                </Typography>
+              )}
+            </>
+          }
+          confirmText="删除"
+          confirmColor="error"
+          loading={deleting}
           onClose={handleCloseDelete}
-          fullWidth
-          maxWidth="xs"
-          TransitionComponent={Grow}
-          PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
-          BackdropProps={{ 'aria-hidden': false }}
-        >
-          <DialogTitle sx={{ fontWeight: 700 }}>确认删除媒体？</DialogTitle>
-          <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {deleteTarget?.name}
-            </Typography>
-            {deleteBindingsLoading ? (
-              <Typography variant="body2" color="text.secondary">
-                正在检查绑定对象...
-              </Typography>
-            ) : deleteBindings.length > 0 ? (
-              <Typography variant="body2" color="warning.main">
-                该媒体已被 {deleteBindings.length} 个对象引用，删除后可能影响已绑定的内容，是否继续？
-              </Typography>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                删除后无法恢复，是否继续？
-              </Typography>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-              <Button onClick={handleCloseDelete} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-                取消
-              </Button>
-              <Button color="error" variant="contained" onClick={handleDelete} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-                {deleting ? '删除中...' : '删除'}
-              </Button>
-            </Box>
-          </DialogActions>
-        </Dialog>
-        {}
+          onConfirm={handleDelete}
+        />
+
+        {/* 压缩选项 */}
         <Dialog
           open={compressOpen}
           onClose={handleCloseCompress}

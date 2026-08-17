@@ -6,11 +6,13 @@ import { deleteComment } from '@/api/comments';
 import { useAuthStore } from '@/stores/authStore';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { Comment } from '@/types/interaction';
+
 interface CommentItemProps {
   comment: Comment;
   slug: string;
   onDeleted: () => void;
 }
+
 function formatTime(iso: string) {
   const date = new Date(iso);
   return date.toLocaleString('zh-CN', {
@@ -21,10 +23,12 @@ function formatTime(iso: string) {
     minute: '2-digit',
   });
 }
+
 const statusLabel: Record<string, { text: string; color: string }> = {
   pending: { text: '待审核', color: 'warning.main' },
   rejected: { text: '未通过', color: 'error.main' },
 };
+
 export default function CommentItem({ comment, slug, onDeleted }: CommentItemProps) {
   const { user, isAuthenticated } = useAuthStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -34,6 +38,7 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
   const status = statusLabel[comment.status];
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const handleConfirmDelete = async () => {
     setDeleting(true);
     try {
@@ -49,6 +54,7 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
       setDeleteDialogOpen(false);
     }
   };
+
   return (
     <Fade in timeout={300}>
       <Paper
@@ -125,6 +131,7 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
           </Typography>
         </Box>
       </Box>
+
       <ConfirmDialog
         open={deleteDialogOpen}
         title="确认删除评论？"

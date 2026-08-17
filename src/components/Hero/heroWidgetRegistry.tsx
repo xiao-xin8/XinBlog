@@ -6,11 +6,13 @@ import { HitokotoWidget } from './widgets/HitokotoWidget';
 import { MusicWidget } from './widgets/MusicWidget';
 import { PostsWidget } from './widgets/PostsWidget';
 import { TagsWidget } from './widgets/TagsWidget';
+
 export interface WidgetSize {
   w: number;
   h: number;
   label?: string;
 }
+
 export interface PropSchema {
   key: string;
   label: string;
@@ -22,6 +24,7 @@ export interface PropSchema {
   max?: number;
   step?: number;
 }
+
 export interface HeroWidgetDefinition {
   id: string;
   name: string;
@@ -32,6 +35,7 @@ export interface HeroWidgetDefinition {
   defaultProps: Record<string, unknown>;
   render: (config: HeroWidgetConfig) => React.ReactNode;
 }
+
 const definitions: HeroWidgetDefinition[] = [
   {
     id: 'profile',
@@ -232,20 +236,25 @@ const definitions: HeroWidgetDefinition[] = [
     render: (config) => <TagsWidget config={config} />,
   },
 ];
+
 export function getHeroWidgetDefinitions(): HeroWidgetDefinition[] {
   return definitions;
 }
+
 export function getHeroWidgetDefinition(id: string): HeroWidgetDefinition | undefined {
   return definitions.find((d) => d.id === id);
 }
+
 export function getHeroWidgetDefaultSize(id: string): WidgetSize {
   const def = getHeroWidgetDefinition(id);
   return def?.sizes[0] || { w: 1, h: 1 };
 }
+
 export function getHeroWidgetSize(id: string, w: number, h: number): WidgetSize | undefined {
   const def = getHeroWidgetDefinition(id);
   return def?.sizes.find((s) => s.w === w && s.h === h);
 }
+
 export function fillHeroWidgetProps(config: HeroWidgetConfig): HeroWidgetConfig {
   const def = getHeroWidgetDefinition(config.type);
   if (!def) return config;

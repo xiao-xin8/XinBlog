@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
+
 interface Petal {
   id: number;
   left: string;
@@ -8,6 +9,7 @@ interface Petal {
   delay: number;
   rotation: number;
 }
+
 export interface SakuraEffectParams {
   [key: string]: unknown;
   count?: number;
@@ -17,6 +19,7 @@ export interface SakuraEffectParams {
   minDuration?: number;
   maxDuration?: number;
 }
+
 export function SakuraEffect({ params }: { params: SakuraEffectParams }) {
   const {
     count = 40,
@@ -26,7 +29,9 @@ export function SakuraEffect({ params }: { params: SakuraEffectParams }) {
     minDuration = 6,
     maxDuration = 14,
   } = params;
+
   const [petals, setPetals] = useState<Petal[]>([]);
+
   useEffect(() => {
     const generated = Array.from({ length: Math.max(1, Math.min(count, 100)) }).map((_, i) => ({
       id: i,
@@ -38,6 +43,7 @@ export function SakuraEffect({ params }: { params: SakuraEffectParams }) {
     }));
     setPetals(generated);
   }, [count, minSize, maxSize, minDuration, maxDuration]);
+
   return (
     <Box
       sx={{

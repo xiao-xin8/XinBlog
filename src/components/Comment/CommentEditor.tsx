@@ -3,16 +3,20 @@ import { Box, Button, TextField, Typography, Paper, alpha, Fade } from '@mui/mat
 import SendIcon from '@mui/icons-material/Send';
 import { useSnackbar } from 'notistack';
 import { createComment } from '@/api/comments';
+
 interface CommentEditorProps {
   slug: string;
   onSuccess: () => void;
 }
+
 const MAX_LENGTH = 2000;
+
 export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+
   const handleSubmit = async () => {
     const text = content.trim();
     if (!text) {
@@ -40,8 +44,10 @@ export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
       setLoading(false);
     }
   };
+
   const nearLimit = content.length > MAX_LENGTH * 0.9;
   const overLimit = content.length > MAX_LENGTH;
+
   return (
     <Fade in timeout={300}>
       <Paper

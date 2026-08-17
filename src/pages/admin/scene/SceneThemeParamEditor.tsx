@@ -1,27 +1,33 @@
 import { Box, FormControlLabel, Slider, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, alpha } from '@mui/material';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { SceneThemeConfig, ThemeParamSchema } from '@/types';
+
 interface SceneThemeParamEditorProps {
   schema: ThemeParamSchema[];
   config: SceneThemeConfig;
   onChange: (patch: Partial<SceneThemeConfig>) => void;
 }
+
 export function SceneThemeParamEditor({ schema, config, onChange }: SceneThemeParamEditorProps) {
   const params = config.params || {};
+
   const updateParam = (key: string, value: unknown) => {
     onChange({
       params: { ...params, [key]: value },
     });
   };
+
   if (schema.length === 0) {
     return (
       <Typography color="text.secondary">该场景主题暂无可调参数。</Typography>
     );
   }
+
   return (
     <Stack spacing={3}>
       {schema.map((item) => {
         const value = params[item.key];
+
         if (item.type === 'number') {
           const numeric = typeof value === 'number' ? value : (item.min ?? 0);
           return (
@@ -45,6 +51,7 @@ export function SceneThemeParamEditor({ schema, config, onChange }: SceneThemePa
             </Box>
           );
         }
+
         if (item.type === 'boolean') {
           return (
             <FormControlLabel
@@ -59,6 +66,7 @@ export function SceneThemeParamEditor({ schema, config, onChange }: SceneThemePa
             />
           );
         }
+
         if (item.type === 'select') {
           return (
             <Box key={item.key}>
@@ -99,6 +107,7 @@ export function SceneThemeParamEditor({ schema, config, onChange }: SceneThemePa
             </Box>
           );
         }
+
         if (item.type === 'color') {
           return (
             <Box key={item.key}>
@@ -112,6 +121,7 @@ export function SceneThemeParamEditor({ schema, config, onChange }: SceneThemePa
             </Box>
           );
         }
+
         return null;
       })}
     </Stack>

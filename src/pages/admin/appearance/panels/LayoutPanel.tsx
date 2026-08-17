@@ -5,8 +5,10 @@ import { PostListHorizontal } from '@/components/Post/PostListHorizontal';
 import { PostListMagazine } from '@/components/Post/PostListMagazine';
 import { layouts } from '../useAppearanceEditor';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+
 export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
   const { postLayout, setPostLayout, previewPosts, previewLoading } = editor;
+
   const renderPreview = () => {
     if (previewLoading) {
       return <Loading text="加载预览中..." />;
@@ -21,6 +23,7 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
         return <PostListGrid posts={previewPosts} />;
     }
   };
+
   return (
     <>
       <Paper
@@ -91,6 +94,7 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
           ))}
         </ToggleButtonGroup>
       </Paper>
+
       <Paper
         elevation={0}
         sx={{

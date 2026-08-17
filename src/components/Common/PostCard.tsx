@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import { buildPostCardOutput } from '@/utils/themeRenderers';
 import { mergeCardTheme } from '@/utils/postCardTheme';
 import { useThemeConfigStore, getActiveColors } from '@/stores/themeConfigStore';
+
 interface PostCardProps {
   post: Post;
   theme?: PostCardThemeConfig;
@@ -26,6 +27,7 @@ interface PostCardProps {
   height?: { xs?: number; sm?: number; md?: number };
   index?: number;
 }
+
 function CardTags({
   post,
   visible,
@@ -59,6 +61,7 @@ function CardTags({
     </Box>
   );
 }
+
 function CardMeta({ post, sx }: { post: Post; sx?: SxProps<Theme> }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', typography: 'caption', ...sx }}>
@@ -79,6 +82,7 @@ function CardMeta({ post, sx }: { post: Post; sx?: SxProps<Theme> }) {
     </Box>
   );
 }
+
 function adaptThemeForLayout(theme: PostCardThemeConfig, forcedLayout?: 'overlay' | 'clean' | 'horizontal'): PostCardThemeConfig {
   if (!forcedLayout) return theme;
   const next: PostCardThemeConfig = { ...theme, layout: forcedLayout };
@@ -93,6 +97,7 @@ function adaptThemeForLayout(theme: PostCardThemeConfig, forcedLayout?: 'overlay
   }
   return next;
 }
+
 export function PostCard({ post, theme, forcedLayout, height, index }: PostCardProps) {
   const { config } = useSiteStore();
   const themeConfig = useThemeConfigStore();
@@ -105,9 +110,11 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
     themeColor: activeColors.primary,
     borderRadius: config.theme?.borderRadius ?? 16,
   });
+
   if (output) {
     const mediaAsBackground = output.mediaAsBackground ?? output.layout === 'overlay';
     const rootSx = height ? { ...output.root, height } : output.root;
+
     return (
       <Fade in timeout={300} style={{ height: '100%' }}>
         <ButtonBase
@@ -170,8 +177,10 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
       </Fade>
     );
   }
+
   const horizontal = forcedLayout === 'horizontal';
   if (horizontal) {
+    
     return (
       <Fade in timeout={300} style={{ height: '100%' }}>
         <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{
@@ -217,7 +226,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                   flexShrink: 0,
                   overflow: 'hidden',
                   '& img': {
-                    transition: 'transform 0.3s ease',
+                    transition: 'transform 0.6s ease',
                   },
                 }}
               >
@@ -239,6 +248,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
       </Fade>
     );
   }
+
   return (
     <Fade in timeout={300} style={{ height: '100%' }}>
       <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{
@@ -284,7 +294,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                 borderRadius: (theme) => `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
                 overflow: 'hidden',
                 '& img': {
-                  transition: 'transform 0.3s ease',
+                  transition: 'transform 0.6s ease',
                 },
               }}
             >
@@ -306,6 +316,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
     </Fade>
   );
 }
+
 export function PostCardSkeleton() {
   return (
     <Paper elevation={0} sx={{ height: '100%', overflow: 'hidden', borderRadius: 1 }}>

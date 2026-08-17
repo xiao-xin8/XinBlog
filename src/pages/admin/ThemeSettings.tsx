@@ -41,6 +41,7 @@ import { SceneThemePanel } from './scene/SceneThemePanel';
 import { HeroThemePanel } from './hero/HeroThemePanel';
 import { NavSettings } from './NavSettings';
 import { PostDetailThemePanel } from './postDetail/PostDetailThemePanel';
+
 type DisplayTheme = {
   id: string;
   name: string;
@@ -50,7 +51,9 @@ type DisplayTheme = {
   isActive: boolean;
   builtin?: boolean;
 };
+
 type ThemeTab = 'post-card' | 'post-detail' | 'scene' | 'hero' | 'nav';
+
 const tabList: { value: ThemeTab; label: string }[] = [
   { value: 'post-card', label: '文章卡片' },
   { value: 'post-detail', label: '文章详情' },
@@ -58,14 +61,21 @@ const tabList: { value: ThemeTab; label: string }[] = [
   { value: 'hero', label: '英雄区主题' },
   { value: 'nav', label: '导航设置' },
 ];
+
 function builtinThemeById(id: string): ThemePackage | undefined {
   return BUILTIN_THEMES.find((t) => t.id === id);
 }
+
+
 function resolveActiveBuiltinId(variant: string): string {
   if (variant === 'default') return '';
   const t = BUILTIN_THEMES.find((b) => (b.components?.postCard?.variant || '') === variant);
   return t?.id || '';
 }
+
+
+
+
 function buildEditingThemeFromSaved(id: string, saved?: PostCardThemeConfig): ThemePackage | null {
   const pkg = builtinThemeById(id);
   if (!pkg) return null;
@@ -80,6 +90,8 @@ function buildEditingThemeFromSaved(id: string, saved?: PostCardThemeConfig): Th
     },
   };
 }
+
+
 const ThemePreviewThumb = ({ bordered }: { bordered?: boolean }) => {
   const theme = useTheme();
   const accent = theme.palette.primary.main;
@@ -104,11 +116,13 @@ const ThemePreviewThumb = ({ bordered }: { bordered?: boolean }) => {
     </svg>
   );
 };
+
 const layouts: { id: PostLayoutMode; name: string; icon: React.ReactNode }[] = [
   { id: 'grid', name: '网格卡片', icon: <GridView sx={{ fontSize: 20 }} /> },
   { id: 'list', name: '横向列表', icon: <ViewList sx={{ fontSize: 20 }} /> },
   { id: 'magazine', name: '杂志布局', icon: <AutoStories sx={{ fontSize: 20 }} /> },
 ];
+
 export function AdminThemeSettings() {
   const site = useSiteStore();
   const ui = useUIStore();
@@ -120,6 +134,7 @@ export function AdminThemeSettings() {
   const [loading, setLoading] = useState(true);
   const tabContainerRef = useRef<HTMLDivElement>(null);
   const [tabsCompact, setTabsCompact] = useState(false);
+
   useEffect(() => {
     const el = tabContainerRef.current;
     if (!el) return undefined;
@@ -131,12 +146,14 @@ export function AdminThemeSettings() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
   const [activeThemeId, setActiveThemeId] = useState<string>('');
   const [pendingActiveThemeId, setPendingActiveThemeId] = useState<string>('');
   const [pendingResetToDefault, setPendingResetToDefault] = useState(false);
   const [editingThemeId, setEditingThemeId] = useState<string>('');
   const [editingTheme, setEditingTheme] = useState<ThemePackage | null>(null);
   const [originalEditingTheme, setOriginalEditingTheme] = useState<ThemePackage | null>(null);
+
   const [previewPosts, setPreviewPosts] = useState<Post[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewLayout, setPreviewLayout] = useState<PostLayoutMode>(() => {
@@ -144,12 +161,14 @@ export function AdminThemeSettings() {
     if (layout && ['grid', 'list', 'magazine'].includes(layout)) return layout as PostLayoutMode;
     return 'grid';
   });
+
   useEffect(() => {
     const layout = site.config.postLayout || ui.postLayout;
     if (layout && ['grid', 'list', 'magazine'].includes(layout)) {
       setPreviewLayout(layout as PostLayoutMode);
     }
   }, [site.config.postLayout, ui.postLayout]);
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -164,6 +183,8 @@ export function AdminThemeSettings() {
       setPendingResetToDefault(false);
       setEditingThemeId(activeId);
       if (activeId) {
+        
+        
         const pkg = buildEditingThemeFromSaved(activeId, site.config.cardTheme);
         if (pkg) {
           setEditingTheme(pkg);
@@ -181,6 +202,7 @@ export function AdminThemeSettings() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useEffect(() => {
     let mounted = true;
     setPreviewLoading(true);
@@ -193,8 +215,11 @@ export function AdminThemeSettings() {
       mounted = false;
     };
   }, []);
+
   const handleSelectEditTheme = (id: string) => {
     setEditingThemeId(id);
+    
+    
     const savedVariant = site.config.cardTheme?.variant || 'default';
     const savedId = resolveActiveBuiltinId(savedVariant);
     const useSaved = id === savedId ? site.config.cardTheme : undefined;
@@ -207,17 +232,22 @@ export function AdminThemeSettings() {
       setOriginalEditingTheme(null);
     }
   };
+
   const isEditingThemeActive = useMemo(() => {
     if (!editingThemeId || !pendingActiveThemeId) return false;
     return editingThemeId === pendingActiveThemeId;
   }, [editingThemeId, pendingActiveThemeId]);
+
   const editingCardTheme = useMemo(() => {
     return normalizeCardTheme(editingTheme?.components?.postCard || defaultCardTheme);
   }, [editingTheme]);
+
   const activeRenderer = useMemo(() => getPostCardRenderer(editingCardTheme.variant), [editingCardTheme.variant]);
   const activeSchema = useMemo<ThemeParamSchema[]>(() => {
     return editingCardTheme.schema || activeRenderer?.schema || [];
   }, [editingCardTheme.schema, activeRenderer]);
+
+  
   const displayThemes = useMemo<DisplayTheme[]>(() => {
     const variant = site.config.cardTheme?.variant || 'default';
     return BUILTIN_THEMES.map((t) => ({
@@ -230,6 +260,7 @@ export function AdminThemeSettings() {
       builtin: true,
     }));
   }, [site.config.cardTheme?.variant]);
+
   const updateEditingCardTheme = (patch: Partial<PostCardThemeConfig>) => {
     setEditingTheme((prev) => {
       if (!prev) return prev;
@@ -248,6 +279,7 @@ export function AdminThemeSettings() {
       };
     });
   };
+
   const handleResetCardTheme = () => {
     if (!editingTheme) return;
     const renderer = getPostCardRenderer(editingCardTheme.variant);
@@ -257,16 +289,19 @@ export function AdminThemeSettings() {
     updateEditingCardTheme(defaults);
     enqueueSnackbar('已恢复默认卡片样式，点击保存后生效', { variant: 'info' });
   };
+
   const isDirty = useMemo(() => {
     if (!editingTheme || !originalEditingTheme) return false;
     return JSON.stringify(editingTheme) !== JSON.stringify(originalEditingTheme);
   }, [editingTheme, originalEditingTheme]);
+
   const handleApplyTheme = (id: string) => {
     setPendingActiveThemeId(id);
     setPendingResetToDefault(false);
     handleSelectEditTheme(id);
     enqueueSnackbar('已选择该主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleResetToDefault = () => {
     setPendingActiveThemeId('');
     setPendingResetToDefault(true);
@@ -275,17 +310,29 @@ export function AdminThemeSettings() {
     setOriginalEditingTheme(null);
     enqueueSnackbar('已选择默认主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleSaveTheme = async () => {
     setSaving(true);
     try {
       const nextCardTheme: PostCardThemeConfig = pendingResetToDefault
         ? { ...defaultCardTheme }
         : (editingTheme?.components?.postCard ?? site.config.cardTheme ?? defaultCardTheme);
+
+      
+      
       const optimistic = normalizeSiteConfig({ ...site.config, cardTheme: nextCardTheme });
       site.setConfig({ cardTheme: optimistic.cardTheme ?? defaultCardTheme });
       setCachedSiteConfig(optimistic);
+
+      
+      
       const ok = await site.saveConfig({ cardTheme: nextCardTheme });
       if (!ok) throw new Error('主题设置保存失败');
+
+      
+      
+      
+      
       const variant = nextCardTheme.variant || 'default';
       if (pendingResetToDefault || variant === 'default') {
         const clearRes = await apiPost<null>('/api/v1/admin/themes/clear-active', {});
@@ -297,10 +344,14 @@ export function AdminThemeSettings() {
         });
         if (applyRes.code !== 0) throw new Error(applyRes.msg || '应用主题失败');
       }
+
+      
       const newActiveId = resolveActiveBuiltinId(variant);
       setActiveThemeId(newActiveId);
       setPendingActiveThemeId(newActiveId);
       setPendingResetToDefault(false);
+      
+      
       setOriginalEditingTheme(editingTheme ? JSON.parse(JSON.stringify(editingTheme)) : null);
       enqueueSnackbar('主题设置已保存', { variant: 'success' });
     } catch (err) {
@@ -309,6 +360,7 @@ export function AdminThemeSettings() {
       setSaving(false);
     }
   };
+
   const renderCardPreview = () => {
     if (previewLoading) return <Loading text="加载预览中..." />;
     if (previewPosts.length === 0) {
@@ -326,6 +378,7 @@ export function AdminThemeSettings() {
       </Box>
     );
   };
+
   const renderPostCardPanel = () => (
     <Stack spacing={3}>
       <Paper
@@ -498,6 +551,7 @@ export function AdminThemeSettings() {
           </Grid>
         )}
       </Paper>
+
       {editingTheme && isEditingThemeActive && (
         <Fade in timeout={400} key={editingThemeId || 'none'}>
           <Box>
@@ -636,6 +690,7 @@ export function AdminThemeSettings() {
                 )}
               </Stack>
             </Paper>
+
             <Paper
               elevation={0}
               sx={{
@@ -691,6 +746,7 @@ export function AdminThemeSettings() {
           </Box>
         </Fade>
       )}
+
       <FloatingSaveButton
         show={isDirty || pendingActiveThemeId !== activeThemeId || pendingResetToDefault}
         saving={saving}
@@ -699,11 +755,17 @@ export function AdminThemeSettings() {
       />
     </Stack>
   );
+
   const renderPostDetailPanel = () => <PostDetailThemePanel />;
+
   const renderScenePanel = () => <SceneThemePanel />;
+
   const renderHeroPanel = () => <HeroThemePanel />;
+
   const renderNavPanel = () => <NavSettings />;
+
   if (loading) return <Loading text="加载主题配置中..." />;
+
   return (
     <Fade in timeout={400}>
       <Box>
@@ -717,6 +779,7 @@ export function AdminThemeSettings() {
             </Typography>
           </Box>
         </Box>
+
         <Box ref={tabContainerRef} sx={{ mt: 3, mb: 3 }}>
           {isMobileAdmin || tabsCompact ? (
             <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -815,6 +878,7 @@ export function AdminThemeSettings() {
             </Box>
           )}
         </Box>
+
         <Fade in timeout={300} key={tab}>
           <Box>
             {tab === 'post-card' && renderPostCardPanel()}

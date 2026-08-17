@@ -15,6 +15,7 @@ import { fetchEmailSettings, updateEmailSettings, type EmailSettings } from '@/a
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { useSnackbar } from 'notistack';
+
 export function EmailSettings() {
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export function EmailSettings() {
     smtpSecure: false,
   });
   const [initialSettings, setInitialSettings] = useState<EmailSettings>(settings);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -47,11 +49,14 @@ export function EmailSettings() {
       cancelled = true;
     };
   }, []);
+
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+
   const handleSave = async () => {
     setSaving(true);
     const ok = await updateEmailSettings(settings);
     if (ok) {
+      
       try {
         const data = await fetchEmailSettings();
         if (data) {
@@ -59,6 +64,7 @@ export function EmailSettings() {
           setInitialSettings(data);
         }
       } catch {
+        // 刷新失败不影响保存成功的提示
       }
       enqueueSnackbar('邮箱配置已保存', { variant: 'success' });
     } else {
@@ -66,7 +72,9 @@ export function EmailSettings() {
     }
     setSaving(false);
   };
+
   if (loading) return <Loading />;
+
   return (
     <Fade in timeout={400}>
     <Paper
@@ -86,6 +94,7 @@ export function EmailSettings() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, overflowWrap: 'break-word' }}>
         用于发送登录验证码等系统邮件。Cloudflare Workers 环境优先推荐 Resend API，SMTP 出站通常受限。
       </Typography>
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         <FormControl fullWidth>
           <InputLabel>发送方式</InputLabel>
@@ -98,6 +107,7 @@ export function EmailSettings() {
             <MenuItem value="smtp">SMTP</MenuItem>
           </Select>
         </FormControl>
+
         <TextField
           label="发件人邮箱"
           value={settings.from}
@@ -112,6 +122,7 @@ export function EmailSettings() {
           fullWidth
           placeholder="XinBlog"
         />
+
         {settings.provider === 'resend' && (
           <TextField
             label="Resend API Key"
@@ -122,6 +133,7 @@ export function EmailSettings() {
             type="password"
           />
         )}
+
         {settings.provider === 'smtp' && (
           <>
             <TextField
@@ -165,6 +177,7 @@ export function EmailSettings() {
           </>
         )}
       </Box>
+
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存配置" />
     </Paper>
     </Fade>

@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { MainLayout } from '@/components/Frame/MainLayout';
@@ -6,6 +5,7 @@ import { AdminLayout } from '@/components/Admin/AdminLayout';
 import { PageLoading } from '@/components/Common/Loading';
 import { RouteErrorBoundary } from '@/components/Common/RouteErrorBoundary';
 import { useAuthStore } from '@/stores/authStore';
+
 const Home = lazy(() => import('@/pages/Home').then((m) => ({ default: m.Home })));
 const PostDetail = lazy(() => import('@/pages/PostDetail').then((m) => ({ default: m.PostDetail })));
 const TagPage = lazy(() => import('@/pages/TagPage').then((m) => ({ default: m.TagPage })));
@@ -20,16 +20,24 @@ const AdminTags = lazy(() => import('@/pages/admin/Tags').then((m) => ({ default
 const AdminMedia = lazy(() => import('@/pages/admin/Media').then((m) => ({ default: m.AdminMedia })));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
 const AdminLive2d = lazy(() => import('@/pages/admin/Live2d').then((m) => ({ default: m.AdminLive2d })));
+const AdminMusic = lazy(() => import('@/pages/admin/Music').then((m) => ({ default: m.AdminMusic })));
 const AdminAdvancedSettings = lazy(() => import('@/pages/admin/AdvancedSettings').then((m) => ({ default: m.AdvancedSettings })));
 const AdminComments = lazy(() => import('@/pages/admin/Comments').then((m) => ({ default: m.AdminComments })));
 const AdminFriends = lazy(() => import('@/pages/admin/Friends').then((m) => ({ default: m.AdminFriends })));
 const AdminAi = lazy(() => import('@/pages/admin/Ai').then((m) => ({ default: m.Ai })));
+const AdminMessageWall = lazy(() => import('@/pages/admin/MessageWall').then((m) => ({ default: m.AdminMessageWall })));
 const AdminThemeSettings = lazy(() => import('@/pages/admin/ThemeSettings').then((m) => ({ default: m.AdminThemeSettings })));
+const TermsEditor = lazy(() => import('@/pages/admin/TermsEditor').then((m) => ({ default: m.TermsEditor })));
 const Friends = lazy(() => import('@/pages/Friends').then((m) => ({ default: m.Friends })));
+const Terms = lazy(() => import('@/pages/Terms').then((m) => ({ default: m.Terms })));
 const Profile = lazy(() => import('@/pages/Profile').then((m) => ({ default: m.Profile })));
+const MusicPage = lazy(() => import('@/pages/Music').then((m) => ({ default: m.MusicPage })));
+const MessageWall = lazy(() => import('@/pages/MessageWall').then((m) => ({ default: m.default })));
+
 function SuspensePage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoading />}>{children}</Suspense>;
 }
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -39,9 +47,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [valid, setValid] = useState(false);
   const [forbidden, setForbidden] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
+
     const verify = async () => {
+      
       if (!isAuthenticated || !token || !user) {
         if (!cancelled) {
           setForbidden(false);
@@ -50,6 +61,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      
       if (user.role !== 'super_admin') {
         if (!cancelled) {
           setForbidden(true);
@@ -58,6 +71,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const now = Math.floor(Date.now() / 1000);
@@ -77,6 +92,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         }
         return;
       }
+
+      
       const ok = await refresh();
       if (!cancelled) {
         setForbidden(false);
@@ -84,12 +101,18 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         setChecking(false);
       }
     };
+
     verify();
+
     return () => {
       cancelled = true;
     };
   }, [isAuthenticated, token, user, refresh]);
+
+  
   if (checking) return <PageLoading />;
+
+  
   if (forbidden) {
     return (
       <SuspensePage>
@@ -97,11 +120,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       </SuspensePage>
     );
   }
+
   if (!valid) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
+
   return <>{children}</>;
 }
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -118,6 +144,10 @@ export const router = createBrowserRouter([
       { path: 'about', element: <SuspensePage><About /></SuspensePage> },
       { path: 'friends', element: <SuspensePage><Friends /></SuspensePage> },
       { path: 'profile', element: <SuspensePage><Profile /></SuspensePage> },
+      { path: 'music', element: <SuspensePage><MusicPage /></SuspensePage> },
+      { path: 'message-wall', element: <SuspensePage><MessageWall /></SuspensePage> },
+      { path: 'agreement', element: <SuspensePage><Terms /></SuspensePage> },
+      { path: 'privacy', element: <SuspensePage><Terms /></SuspensePage> },
       { path: '404', element: <SuspensePage><NotFound /></SuspensePage> },
       { path: '*', element: <Navigate to="/404" replace /> },
     ],
@@ -142,11 +172,14 @@ export const router = createBrowserRouter([
       { path: 'media', element: <SuspensePage><AdminMedia /></SuspensePage> },
       { path: 'appearance', element: <SuspensePage><AdminAppearance /></SuspensePage> },
       { path: 'live2d', element: <SuspensePage><AdminLive2d /></SuspensePage> },
+      { path: 'music', element: <SuspensePage><AdminMusic /></SuspensePage> },
       { path: 'advanced', element: <SuspensePage><AdminAdvancedSettings /></SuspensePage> },
       { path: 'comments', element: <SuspensePage><AdminComments /></SuspensePage> },
+      { path: 'message-wall', element: <SuspensePage><AdminMessageWall /></SuspensePage> },
       { path: 'friends', element: <SuspensePage><AdminFriends /></SuspensePage> },
       { path: 'ai', element: <SuspensePage><AdminAi /></SuspensePage> },
       { path: 'themes', element: <SuspensePage><AdminThemeSettings /></SuspensePage> },
+      { path: 'terms', element: <SuspensePage><TermsEditor /></SuspensePage> },
       { path: 'users', element: <SuspensePage><AdminSettings /></SuspensePage> },
       { path: '*', element: <Navigate to="/admin" replace /> },
     ],

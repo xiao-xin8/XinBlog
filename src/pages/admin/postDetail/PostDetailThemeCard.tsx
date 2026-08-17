@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Typography, alpha, useTheme } from '@mui/material';
 import type { ThemePackage } from '@/types';
+
 interface PostDetailThemeCardProps {
   theme: ThemePackage;
   isSelected: boolean;
@@ -7,6 +8,7 @@ interface PostDetailThemeCardProps {
   onApply: () => void;
   onReset: () => void;
 }
+
 export function PostDetailThemeCard({
   theme,
   isSelected,
@@ -18,6 +20,7 @@ export function PostDetailThemeCard({
   const postDetail = theme.components?.postDetail;
   const isGlass = postDetail?.variant === 'glass';
   const accent = muiTheme.palette.primary.main;
+
   return (
     <Paper
       elevation={0}

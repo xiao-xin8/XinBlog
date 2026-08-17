@@ -33,14 +33,17 @@ import { Delete, Edit, Add, Save } from '@mui/icons-material';
 import { fetchAdminTags, createAdminTag, updateAdminTag, deleteAdminTag } from '@/api/admin';
 import { peekCache } from '@/api/client';
 import { Loading } from '@/components/Common/Loading';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { AdminTag, PagedResult } from '@/api/admin';
 import { useSnackbar } from 'notistack';
+
 const emptyForm = {
   name: '',
   slug: '',
   color: '#5b7cfa',
 };
+
 export function AdminTags() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -58,6 +61,7 @@ export function AdminTags() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const loadTags = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     const result = await fetchAdminTags(page + 1, rowsPerPage);
@@ -65,23 +69,28 @@ export function AdminTags() {
     setTotal(result?.total || 0);
     setLoading(false);
   };
+
   useEffect(() => {
     loadTags(!tagsCache.hit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
+
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
     setFormError('');
     setOpen(true);
   };
+
   const handleOpenEdit = (tag: AdminTag) => {
     setEditingId(tag.id);
     setForm({
@@ -92,10 +101,12 @@ export function AdminTags() {
     setFormError('');
     setOpen(true);
   };
+
   const handleClose = () => {
     setOpen(false);
     setFormError('');
   };
+
   const handleSave = async () => {
     if (!form.name.trim()) {
       setFormError('标签名必填');
@@ -103,27 +114,33 @@ export function AdminTags() {
     }
     setFormError('');
     setSaving(true);
+
     const payload = {
       name: form.name.trim(),
       slug: form.slug.trim(),
       color: form.color,
     };
+
     let result;
     if (editingId) {
       result = await updateAdminTag(editingId, payload);
     } else {
       result = await createAdminTag(payload);
     }
+
     setSaving(false);
+
     if (result.msg) {
       setFormError(result.msg);
       enqueueSnackbar(result.msg, { variant: 'error' });
       return;
     }
+
     enqueueSnackbar(editingId ? '标签已更新' : '标签已创建', { variant: 'success' });
     setOpen(false);
     await loadTags();
   };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
@@ -137,6 +154,7 @@ export function AdminTags() {
     setDeleteId(null);
     await loadTags();
   };
+
   return (
     <Fade in timeout={400}>
     <Box>
@@ -158,6 +176,7 @@ export function AdminTags() {
           新建
         </Button>
       </Box>
+
       <Paper
         elevation={0}
         sx={{
@@ -341,7 +360,8 @@ export function AdminTags() {
           />
         )}
       </Paper>
-      {}
+
+      {/* 编辑/新建弹窗 */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
         <DialogTitle>{editingId ? '编辑标签' : '新建标签'}</DialogTitle>
         <DialogContent dividers>
@@ -380,23 +400,18 @@ export function AdminTags() {
           </Button>
         </DialogActions>
       </Dialog>
-      {}
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} fullWidth maxWidth="xs" TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
-        <DialogTitle>确认删除</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">删除后无法恢复，是否继续？</Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' } }}>
-            <Button onClick={() => setDeleteId(null)} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-              取消
-            </Button>
-              <Button color="error" variant="contained" startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <Delete />} onClick={handleDelete} disabled={deleting} fullWidth={isMobileAdmin} sx={{ borderRadius: 2 }}>
-              {deleting ? '删除中...' : '删除'}
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+
+      {/* 删除确认 */}
+      <ConfirmDialog
+        open={!!deleteId}
+        title="确认删除"
+        content="删除后无法恢复，是否继续？"
+        confirmText="删除"
+        confirmColor="error"
+        loading={deleting}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+      />
     </Box>
     </Fade>
   );

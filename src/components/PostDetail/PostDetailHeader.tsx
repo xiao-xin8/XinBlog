@@ -2,15 +2,19 @@ import { Box, Typography, alpha } from '@mui/material';
 import dayjs from 'dayjs';
 import type { Post } from '@/types';
 import { PostDetailBackButton } from './PostDetailBackButton';
+import { TagChip } from '@/components/Common/TagChip';
+
 interface PostDetailHeaderProps {
   post: Post;
   showBackButton?: boolean;
   titleColor?: string;
 }
+
 export function PostDetailHeader({ post, showBackButton = true, titleColor }: PostDetailHeaderProps) {
   return (
     <Box component="header" sx={{ mb: { xs: 3, md: 4 } }}>
       {showBackButton && <PostDetailBackButton />}
+
       {post.cover && (
         <Box
           sx={{
@@ -26,7 +30,7 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
               height: '100%',
               objectFit: 'cover',
               opacity: 0.9,
-              transition: 'transform 1s ease',
+              transition: 'transform 0.6s ease',
             },
             '&:hover img': {
               transform: 'scale(1.05)',
@@ -36,6 +40,7 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
           <Box component="img" src={post.cover} alt={post.title} loading="eager" />
         </Box>
       )}
+
       <Box
         sx={{
           display: 'flex',
@@ -76,30 +81,12 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
           </Box>
           写作时间：{dayjs(post.createdAt).format('YYYY-MM-DD')}
         </Box>
+
         {post.tags.map((tag) => (
-          <Box
-            key={tag.id}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: { xs: 1.5, md: 2 },
-              py: { xs: 0.75, md: 1 },
-              borderRadius: '999px',
-              fontSize: { xs: '0.75rem', md: '0.875rem' },
-              fontWeight: 700,
-              color: 'secondary.main',
-              bgcolor: (t) => alpha(t.palette.secondary.main, t.palette.mode === 'light' ? 0.08 : 0.15),
-              border: (t) => `1px solid ${alpha(t.palette.secondary.main, 0.12)}`,
-            }}
-          >
-            <Typography component="span" sx={{ fontSize: 'inherit', opacity: 0.7 }}>
-              #
-            </Typography>
-            {tag.name}
-          </Box>
+          <TagChip key={tag.id} tag={tag} />
         ))}
       </Box>
+
       <Typography
         variant="h1"
         sx={{

@@ -1,5 +1,6 @@
 import { apiGet } from './client';
 import type { Post, Tag } from '@/types';
+
 export interface BackendTag {
   id?: number | string;
   name: string;
@@ -7,6 +8,7 @@ export interface BackendTag {
   color?: string;
   post_count?: number;
 }
+
 export interface BackendPost {
   id: number | string;
   title: string;
@@ -22,18 +24,21 @@ export interface BackendPost {
   updated_at: string;
   tags?: BackendTag[];
 }
+
 export interface PostsResponse {
   list: BackendPost[];
   total: number;
   page: number;
   limit: number;
 }
+
 export interface PostsPageResponse {
   list: Post[];
   total: number;
   page: number;
   limit: number;
 }
+
 export function transformTag(backend: BackendTag): Tag {
   return {
     id: String(backend.id ?? backend.slug),
@@ -43,7 +48,9 @@ export function transformTag(backend: BackendTag): Tag {
     count: backend.post_count ?? 0,
   };
 }
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 export function transformPost(backend: BackendPost, defaultAuthor = '星语'): Post {
   let cover = backend.cover_base64 || undefined;
   if (cover && !cover.startsWith('data:') && !cover.startsWith('http') && !cover.startsWith('/api/v1/media/') && !cover.startsWith(`${API_BASE}/api/v1/media/`)) {
@@ -64,12 +71,15 @@ export function transformPost(backend: BackendPost, defaultAuthor = '星语'): P
     views: backend.views ?? 0,
   };
 }
+
 export interface FetchPostsOptions {
   page?: number;
   limit?: number;
   tag?: string;
 }
+
 const MAX_PAGE_LIMIT = 50;
+
 function buildPostsQuery(options?: FetchPostsOptions): { params: URLSearchParams; page: number; limit: number } {
   const page = Math.max(1, options?.page ?? 1);
   const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, options?.limit ?? 10));
@@ -77,6 +87,7 @@ function buildPostsQuery(options?: FetchPostsOptions): { params: URLSearchParams
   if (options?.tag) params.set('tag', options.tag);
   return { params, page, limit };
 }
+
 export async function fetchPostsPage(options?: FetchPostsOptions): Promise<PostsPageResponse> {
   const { params, page, limit } = buildPostsQuery(options);
   const res = await apiGet<PostsResponse>(`/api/v1/posts?${params.toString()}`);
@@ -88,11 +99,13 @@ export async function fetchPostsPage(options?: FetchPostsOptions): Promise<Posts
     list: res.data.list.map((p) => transformPost(p)),
   };
 }
+
 export async function fetchPosts(options?: FetchPostsOptions | string): Promise<Post[]> {
   const opts: FetchPostsOptions = typeof options === 'string' ? { tag: options } : options || {};
   const data = await fetchPostsPage({ ...opts, limit: opts.limit ?? MAX_PAGE_LIMIT });
   return data.list;
 }
+
 export async function fetchAllPosts(tag?: string): Promise<Post[]> {
   const all: Post[] = [];
   let page = 1;
@@ -104,11 +117,13 @@ export async function fetchAllPosts(tag?: string): Promise<Post[]> {
   }
   return all;
 }
+
 export async function fetchPostBySlug(slug: string): Promise<Post | null> {
   const res = await apiGet<BackendPost>(`/api/v1/posts/${slug}`);
   if (res.code !== 0 || !res.data) return null;
   return transformPost(res.data);
 }
+
 export async function fetchTags(): Promise<Tag[]> {
   const res = await apiGet<BackendTag[]>('/api/v1/tags');
   if (res.code !== 0 || !res.data) return [];

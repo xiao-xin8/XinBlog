@@ -1,10 +1,12 @@
 import { Container, Box, Typography, Paper, alpha, Fade } from '@mui/material';
 import { LazyImage } from '@/components/Common/LazyImage';
 import { useSiteStore } from '@/stores/siteStore';
+
 export function About() {
   const { config } = useSiteStore();
+
   return (
-    <Fade in timeout={500}>
+    <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, pb: { xs: 8, md: 12 } }}>
         <Paper
           elevation={0}
@@ -54,6 +56,7 @@ export function About() {
               {config.about.bio}
             </Typography>
           )}
+
           {config.about?.tags && config.about.tags.length > 0 && (
             <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
               {config.about.tags.map((tag) => (

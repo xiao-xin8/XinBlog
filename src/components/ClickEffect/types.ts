@@ -11,6 +11,7 @@ export interface ClickEffectParticle {
   rotation?: number;
   rotationSpeed?: number;
 }
+
 export interface RenderContext {
   ctx: CanvasRenderingContext2D;
   dpr: number;

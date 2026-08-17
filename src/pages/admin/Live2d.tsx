@@ -15,10 +15,12 @@ import { BasicPanel } from './live2d/panels/BasicPanel';
 import { ToolsPanel } from './live2d/panels/ToolsPanel';
 import { AdvancedPanel } from './live2d/panels/AdvancedPanel';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
+
 export function AdminLive2d() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const editor = useLive2dEditor();
+
   return (
     <Fade in timeout={400}>
       <Box>
@@ -27,6 +29,7 @@ export function AdminLive2d() {
             看板娘设置
           </Typography>
         </Box>
+
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -124,6 +127,7 @@ export function AdminLive2d() {
             </Box>
           </Box>
         )}
+
         <Fade in timeout={300} key={editor.tab}>
           <Box>
             {editor.tab === 'basic' && <BasicPanel editor={editor} />}
@@ -131,12 +135,14 @@ export function AdminLive2d() {
             {editor.tab === 'advanced' && <AdvancedPanel editor={editor} />}
           </Box>
         </Fade>
+
         <FloatingSaveButton
           show={editor.isDirty}
           saving={editor.saving}
           onClick={editor.save}
           label="保存设置"
         />
+
         <Box
           sx={{
             mt: 4,

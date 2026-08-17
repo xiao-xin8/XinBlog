@@ -3,8 +3,10 @@ import { Check } from '@mui/icons-material';
 import { themePresets } from '@/types/theme';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+
 export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
   const { useCustom, presetId, resetToPreset, setUseCustom, colors, handleColorChange, borderRadius, setBorderRadius, activeColors } = editor;
+
   return (
     <>
       <Paper
@@ -100,6 +102,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           })}
         </Grid>
       </Paper>
+
       <Paper
         elevation={0}
         sx={{
@@ -127,6 +130,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
             <ToggleButton value="custom">自定义</ToggleButton>
           </ToggleButtonGroup>
         </Box>
+
         <Grid container spacing={3}>
           {([
             { key: 'primary', label: '主色' },
@@ -149,6 +153,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           ))}
         </Grid>
       </Paper>
+
       <Paper
         elevation={0}
         sx={{
@@ -188,6 +193,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           />
         </Box>
       </Paper>
+
       <Paper
         elevation={0}
         sx={{

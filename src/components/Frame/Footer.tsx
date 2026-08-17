@@ -1,8 +1,11 @@
-import { Box, Typography, Container, alpha, Fade } from '@mui/material';
+import { Box, Typography, Container, alpha, Fade, Divider } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { useSiteStore } from '@/stores/siteStore';
 import { APP_VERSION, SITE_NAME, SITE_HOMEPAGE_URL } from '@/config';
+
 export function Footer() {
   const { config } = useSiteStore();
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -53,6 +56,49 @@ export function Footer() {
               {SITE_NAME}
             </Box>
           </Typography>
+          <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: { xs: 1.5, sm: 2.5 },
+              flexWrap: 'wrap',
+            }}
+          >
+            <Typography
+              component={Link}
+              to="/agreement"
+              variant="caption"
+              sx={{
+                color: (theme) => alpha(theme.palette.primary.main, 0.7),
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+                '&:hover': {
+                  color: (theme) => theme.palette.primary.main,
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              用户协议
+            </Typography>
+            <Typography
+              component={Link}
+              to="/privacy"
+              variant="caption"
+              sx={{
+                color: (theme) => alpha(theme.palette.primary.main, 0.7),
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+                '&:hover': {
+                  color: (theme) => theme.palette.primary.main,
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              隐私政策
+            </Typography>
+          </Box>
         </Box>
       </Container>
     </Box>

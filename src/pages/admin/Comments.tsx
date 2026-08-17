@@ -13,6 +13,7 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Checkbox,
   useMediaQuery,
   alpha,
   Fade,
@@ -20,17 +21,20 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useSnackbar } from 'notistack';
 import { getInteractionSettings, updateInteractionSettings } from '@/api/interaction';
-import { getAdminComments, updateAdminComment, deleteAdminComment } from '@/api/comments';
+import { getAdminComments, updateAdminComment, updateAdminCommentsBatch, deleteAdminComment } from '@/api/comments';
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { InteractionSettings, AdminComment } from '@/types/interaction';
+
 type CommentTab = 'settings' | 'audit' | 'manage';
+
 const TAB_LIST: { value: CommentTab; label: string }[] = [
   { value: 'settings', label: '基础设置' },
   { value: 'audit', label: '评论审核' },
   { value: 'manage', label: '评论管理' },
 ];
+
 function formatTime(iso: string) {
   const date = new Date(iso);
   return date.toLocaleString('zh-CN', {
@@ -41,6 +45,7 @@ function formatTime(iso: string) {
     minute: '2-digit',
   });
 }
+
 export function AdminComments() {
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
@@ -54,6 +59,7 @@ export function AdminComments() {
   const [initialSettings, setInitialSettings] = useState<InteractionSettings>(settings);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -61,10 +67,13 @@ export function AdminComments() {
   const [loading, setLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: number | null }>({
     open: false,
     id: null,
   });
+
   const loadComments = useCallback(
     async (targetPage: number, status?: string, limit = rowsPerPage) => {
       setLoading(true);
@@ -79,6 +88,7 @@ export function AdminComments() {
     },
     [enqueueSnackbar, rowsPerPage]
   );
+
   useEffect(() => {
     getInteractionSettings().then((res) => {
       if (res.code === 0 && res.data) {
@@ -90,10 +100,12 @@ export function AdminComments() {
       setSettingsLoading(false);
     });
   }, [enqueueSnackbar]);
+
   const settingsDirty = useMemo(
     () => JSON.stringify(settings) !== JSON.stringify(initialSettings),
     [settings, initialSettings]
   );
+
   useEffect(() => {
     if (tab === 'settings') return;
     const status = tab === 'audit' ? 'pending' : 'approved';
@@ -106,9 +118,11 @@ export function AdminComments() {
         enqueueSnackbar(res.msg || '获取评论失败', { variant: 'error' });
       }
       setPage(0);
+      setSelectedIds(new Set());
       setLoading(false);
     });
   }, [tab, rowsPerPage, enqueueSnackbar]);
+
   const handleSaveSettings = async () => {
     setSaving(true);
     const res = await updateInteractionSettings(settings);
@@ -123,6 +137,7 @@ export function AdminComments() {
     }
     setSaving(false);
   };
+
   const handleStatusChange = async (id: number, status: string) => {
     setProcessingIds((prev) => new Set(prev).add(id));
     try {
@@ -141,9 +156,51 @@ export function AdminComments() {
       });
     }
   };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const allSelected = comments.length > 0 && comments.every((c) => selectedIds.has(c.id));
+  const someSelected = comments.some((c) => selectedIds.has(c.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(comments.map((c) => c.id)));
+    }
+  };
+
+  const handleBatchApprove = async (ids: number[]) => {
+    if (ids.length === 0) return;
+    setBatchLoading(true);
+    try {
+      const res = await updateAdminCommentsBatch(ids, 'approved');
+      if (res.code === 0) {
+        enqueueSnackbar(`已通过 ${ids.length} 条评论`, { variant: 'success' });
+        setSelectedIds(new Set());
+        loadComments(page + 1, tab === 'audit' ? 'pending' : 'approved');
+      } else {
+        enqueueSnackbar(res.msg || '操作失败', { variant: 'error' });
+      }
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
   const handleDeleteClick = (id: number) => {
     setDeleteDialog({ open: true, id });
   };
+
   const handleConfirmDelete = async () => {
     const id = deleteDialog.id;
     if (id == null) return;
@@ -165,20 +222,24 @@ export function AdminComments() {
       setDeleteDialog({ open: false, id: null });
     }
   };
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
     loadComments(newPage + 1, tab === 'audit' ? 'pending' : 'approved');
   };
+
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
+
   const paperShadow = {
     boxShadow: (t: typeof theme) =>
       t.palette.mode === 'light'
         ? `0 4px 20px ${alpha(t.palette.primary.main, 0.08)}`
         : `0 4px 20px ${alpha(t.palette.common.black, 0.25)}`,
   };
+
   const renderSettings = () => (
     <Paper
       elevation={0}
@@ -228,6 +289,7 @@ export function AdminComments() {
       )}
     </Paper>
   );
+
   const renderCommentCard = (comment: AdminComment) => (
     <Paper
       key={comment.id}
@@ -242,7 +304,15 @@ export function AdminComments() {
         },
       }}
     >
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5, minWidth: 0 }}>
+        {tab === 'audit' && (
+          <Checkbox
+            size="small"
+            checked={selectedIds.has(comment.id)}
+            onChange={() => toggleSelect(comment.id)}
+            sx={{ p: 0.5, mt: -0.5 }}
+          />
+        )}
         <Avatar src={comment.avatar || undefined} alt={comment.username || '用户'} sx={{ width: 40, height: 40, flexShrink: 0 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle2" sx={{ overflowWrap: 'break-word', fontWeight: 700 }}>
@@ -289,6 +359,7 @@ export function AdminComments() {
       )}
     </Paper>
   );
+
   const renderCommentList = () => {
     if (loading) {
       return (
@@ -334,6 +405,54 @@ export function AdminComments() {
           }}
         >
           <Box sx={{ p: 2 }}>
+            {tab === 'audit' && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 2,
+                  py: 1.5,
+                  mb: 2,
+                  border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.15)}`,
+                  borderRadius: 1,
+                  bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Checkbox
+                  size="small"
+                  checked={allSelected}
+                  indeterminate={someSelected && !allSelected}
+                  onChange={toggleSelectAll}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  已选 {selectedIds.size} 项
+                </Typography>
+                <Box sx={{ flex: 1 }} />
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  disabled={selectedIds.size === 0 || batchLoading}
+                  onClick={() => handleBatchApprove([...selectedIds])}
+                  startIcon={batchLoading ? <CircularProgress size={14} color="inherit" /> : undefined}
+                  sx={{ textTransform: 'none', borderRadius: 1, minWidth: 88 }}
+                >
+                  {batchLoading ? '处理中' : '同意选中'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  disabled={comments.length === 0 || batchLoading}
+                  onClick={() => handleBatchApprove(comments.map((c) => c.id))}
+                  sx={{ textTransform: 'none', borderRadius: 1, minWidth: 88 }}
+                >
+                  全部同意
+                </Button>
+              </Box>
+            )}
             {comments.map((comment, index) => (
               <Box key={comment.id}>
                 {renderCommentCard(comment)}
@@ -367,12 +486,14 @@ export function AdminComments() {
       </Fade>
     );
   };
+
   return (
     <Fade in timeout={400}>
     <Box>
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
         评论管理
       </Typography>
+
       {isMobileAdmin ? (
         <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
           <Select
@@ -469,6 +590,7 @@ export function AdminComments() {
           </Box>
         </Box>
       )}
+
       <Fade in timeout={300} key={tab}>
         <Box>
           {tab === 'settings' && renderSettings()}
@@ -476,6 +598,7 @@ export function AdminComments() {
           {tab === 'manage' && renderCommentList()}
         </Box>
       </Fade>
+
       <ConfirmDialog
         open={deleteDialog.open}
         title="确认删除评论？"

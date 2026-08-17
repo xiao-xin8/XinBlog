@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColors } from '../utils/colors';
+
 interface Confetti {
   id: number;
   x: number;
@@ -14,16 +15,20 @@ interface Confetti {
   rotation: number;
   rotationSpeed: number;
 }
+
 let confettiId = 0;
+
 export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConfig; themeColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const confettiRef = useRef<Confetti[]>([]);
   const rafRef = useRef<number>(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
     const resize = () => {
       canvas.width = window.innerWidth * dpr;
@@ -34,7 +39,9 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
     };
     resize();
     window.addEventListener('resize', resize);
+
     const count = config.intensity === 'high' ? 24 : config.intensity === 'low' ? 12 : 16;
+
     const handleClick = (e: MouseEvent) => {
       const colors = resolveEffectColors(config.colorMode, config.customColor, themeColor, count);
       for (let i = 0; i < count; i++) {
@@ -55,6 +62,7 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
         });
       }
     };
+
     const animate = () => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       for (let i = confettiRef.current.length - 1; i >= 0; i--) {
@@ -65,6 +73,7 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
         c.vx *= 0.97;
         c.rotation += c.rotationSpeed;
         c.opacity -= 0.01;
+
         ctx.save();
         ctx.globalAlpha = Math.max(0, c.opacity);
         ctx.translate(c.x, c.y);
@@ -72,6 +81,7 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
         ctx.fillStyle = c.color;
         ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
         ctx.restore();
+
         if (c.opacity <= 0) {
           confettiRef.current.splice(i, 1);
         }
@@ -79,6 +89,7 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
       rafRef.current = requestAnimationFrame(animate);
     };
     animate();
+
     window.addEventListener('click', handleClick);
     return () => {
       window.removeEventListener('resize', resize);
@@ -86,6 +97,7 @@ export function ConfettiEffect({ config, themeColor }: { config: ClickEffectConf
       cancelAnimationFrame(rafRef.current);
     };
   }, [config.colorMode, config.customColor, config.intensity, themeColor]);
+
   return (
     <canvas
       ref={canvasRef}

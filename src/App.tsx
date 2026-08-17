@@ -10,7 +10,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { Loading } from '@/components/Common/Loading';
 import { SceneThemeEffects } from '@/themes/scene';
 import { ClickEffect } from '@/components/ClickEffect';
+import { GlobalMusicPlayer } from '@/components/MusicPlayer/GlobalMusicPlayer';
+import { MusicPlayerProvider } from '@/components/MusicPlayer/MusicPlayerContext';
 import { DISABLE_CONTEXT_MENU } from '@/config';
+
 function GlobalScrollbarStyles() {
   return (
     <GlobalStyles
@@ -52,14 +55,18 @@ function GlobalScrollbarStyles() {
     />
   );
 }
+
 function App() {
   const theme = useAppTheme();
   const [initialized, setInitialized] = useState(false);
+  const music = useSiteStore((s) => s.config.music);
+
   useEffect(() => {
     const state = useThemeConfigStore.getState();
     if (state.borderRadius > 16) {
       useThemeConfigStore.setState({ borderRadius: 16 });
     }
+    
     const init = async () => {
       await useSiteStore.getState().loadConfig();
       await useThemeConfigStore.getState().loadConfig();
@@ -68,6 +75,7 @@ function App() {
     };
     init();
   }, []);
+
   useEffect(() => {
     if (!DISABLE_CONTEXT_MENU) return;
     const handleContextMenu = (e: MouseEvent) => {
@@ -78,26 +86,34 @@ function App() {
       document.removeEventListener('contextmenu', handleContextMenu);
     };
   }, []);
+
+  
   useEffect(() => {
     let timer: number | undefined;
+
     const scheduleRefresh = () => {
       window.clearTimeout(timer);
       const { isAuthenticated, token, refresh } = useAuthStore.getState();
       if (!isAuthenticated || !token) return;
+
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (!payload.exp) return;
+
         const expiresAt = payload.exp * 1000;
         const refreshAt = expiresAt - 5 * 60 * 1000; 
         const delay = refreshAt - Date.now();
+
         if (delay <= 0) {
           refresh();
         } else {
           timer = window.setTimeout(() => refresh(), delay);
         }
       } catch {
+        // token 格式异常，忽略定时刷新
       }
     };
+
     scheduleRefresh();
     const unsubscribe = useAuthStore.subscribe((state, prevState) => {
       if (state.isAuthenticated && !prevState.isAuthenticated) {
@@ -107,19 +123,29 @@ function App() {
         window.clearTimeout(timer);
       }
     });
+
     return () => {
       window.clearTimeout(timer);
       unsubscribe();
     };
   }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalScrollbarStyles />
       <SceneThemeEffects />
       <ClickEffect />
-      {initialized ? <RouterProvider router={router} /> : <Loading fullScreen text="正在加载站点配置..." />}
+      {initialized ? (
+        <MusicPlayerProvider config={music}>
+          <RouterProvider router={router} />
+          <GlobalMusicPlayer />
+        </MusicPlayerProvider>
+      ) : (
+        <Loading fullScreen text="正在加载站点配置..." />
+      )}
     </ThemeProvider>
   );
 }
+
 export default App;

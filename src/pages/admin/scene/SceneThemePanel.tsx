@@ -18,7 +18,13 @@ import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { SceneThemeCard } from './SceneThemeCard';
 import { SceneThemeParamEditor } from './SceneThemeParamEditor';
 import type { SceneThemeConfig, ThemePackage } from '@/types';
+
 const DEFAULT_SCENE_THEME: SceneThemeConfig = { variant: 'default' };
+
+
+
+
+
 function buildEditingTheme(
   id: string,
   saved?: SceneThemeConfig
@@ -31,35 +37,44 @@ function buildEditingTheme(
     : { ...pkgScene };
   return { package: pkg, config: mergedConfig };
 }
+
 function resolveActiveBuiltinId(variant: string): string {
   if (variant === 'default') return '';
   return BUILTIN_SCENE_THEMES.find((b) => (b.components?.scene?.variant || '') === variant)?.id || '';
 }
+
 function getRendererSchema(variant: string) {
   const renderer = getSceneThemeRenderer(variant);
   return renderer?.schema || [];
 }
+
 export function SceneThemePanel() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [activeThemeId, setActiveThemeId] = useState<string>('');
   const [pendingThemeId, setPendingThemeId] = useState<string>('');
   const [pendingResetToDefault, setPendingResetToDefault] = useState(false);
+
   const [editingTheme, setEditingTheme] = useState<{ package: ThemePackage; config: SceneThemeConfig } | null>(null);
   const [originalEditingTheme, setOriginalEditingTheme] = useState<string>('');
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       setLoading(true);
       await site.loadConfig();
       if (!mounted) return;
+
       const variant = site.config.sceneTheme?.variant || 'default';
       const activeId = resolveActiveBuiltinId(variant);
       setActiveThemeId(activeId);
       setPendingThemeId(activeId);
       setPendingResetToDefault(false);
+
       if (activeId) {
         const editing = buildEditingTheme(activeId, site.config.sceneTheme);
         setEditingTheme(editing);
@@ -76,6 +91,7 @@ export function SceneThemePanel() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const handleSelectTheme = (id: string) => {
     setPendingThemeId(id);
     setPendingResetToDefault(false);
@@ -86,6 +102,7 @@ export function SceneThemePanel() {
     setOriginalEditingTheme(JSON.stringify(editing?.config));
     enqueueSnackbar('已选择该场景主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleResetToDefault = () => {
     setPendingThemeId('');
     setPendingResetToDefault(true);
@@ -93,6 +110,7 @@ export function SceneThemePanel() {
     setOriginalEditingTheme('');
     enqueueSnackbar('已选择默认主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleUpdateConfig = (patch: Partial<SceneThemeConfig>) => {
     setEditingTheme((prev) => {
       if (!prev) return prev;
@@ -102,6 +120,7 @@ export function SceneThemePanel() {
       };
     });
   };
+
   const handleResetParams = () => {
     if (!editingTheme) return;
     const pkgScene = editingTheme.package.components?.scene;
@@ -111,22 +130,27 @@ export function SceneThemePanel() {
     setEditingTheme({ package: editingTheme.package, config: defaults });
     enqueueSnackbar('已恢复默认参数，点击保存后生效', { variant: 'info' });
   };
+
   const isDirty = useMemo(() => {
     if (pendingThemeId !== activeThemeId || pendingResetToDefault) return true;
     if (!editingTheme) return false;
     return JSON.stringify(editingTheme.config) !== originalEditingTheme;
   }, [editingTheme, originalEditingTheme, pendingThemeId, activeThemeId, pendingResetToDefault]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const nextSceneTheme: SceneThemeConfig = pendingResetToDefault
         ? { ...DEFAULT_SCENE_THEME }
         : (editingTheme?.config ?? site.config.sceneTheme ?? DEFAULT_SCENE_THEME);
+
       const optimistic = normalizeSiteConfig({ ...site.config, sceneTheme: nextSceneTheme });
       site.setConfig({ sceneTheme: optimistic.sceneTheme });
       setCachedSiteConfig(optimistic);
+
       const ok = await site.saveConfig({ sceneTheme: nextSceneTheme });
       if (!ok) throw new Error('场景主题保存失败');
+
       const newActiveId = resolveActiveBuiltinId(nextSceneTheme.variant);
       setActiveThemeId(newActiveId);
       setPendingThemeId(newActiveId);
@@ -139,9 +163,11 @@ export function SceneThemePanel() {
       setSaving(false);
     }
   };
+
   const activeSchema = useMemo(() => {
     return editingTheme?.config.schema || getRendererSchema(editingTheme?.config.variant || '');
   }, [editingTheme]);
+
   const renderThemeList = () => (
     <Paper
       elevation={0}
@@ -246,6 +272,7 @@ export function SceneThemePanel() {
       </Grid>
     </Paper>
   );
+
   const renderEditor = () => {
     if (!editingTheme || pendingThemeId === '') return null;
     return (
@@ -310,6 +337,7 @@ export function SceneThemePanel() {
               onChange={handleUpdateConfig}
             />
           </Paper>
+
           <Paper
             elevation={0}
             sx={{
@@ -334,6 +362,7 @@ export function SceneThemePanel() {
                 bgcolor: 'background.default',
                 border: '1px solid',
                 borderColor: 'divider',
+                
                 transform: 'scale(1)',
               }}
             >
@@ -350,6 +379,7 @@ export function SceneThemePanel() {
       </Fade>
     );
   };
+
   if (loading) {
     return (
       <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
@@ -357,6 +387,7 @@ export function SceneThemePanel() {
       </Box>
     );
   }
+
   return (
     <Stack spacing={3}>
       {renderThemeList()}

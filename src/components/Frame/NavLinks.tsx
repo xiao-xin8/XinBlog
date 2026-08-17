@@ -4,21 +4,26 @@ import type { Theme } from '@mui/material/styles';
 import { Link, useLocation } from 'react-router-dom';
 import { MenuOpen } from '@mui/icons-material';
 import { useSiteStore } from '@/stores/siteStore';
+import { useMessageWallEnabled } from '@/hooks/useMessageWallEnabled';
 import type { NavItemConfig, NavThemeConfig } from '@/types';
+
 function isExternalUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
+
 function resolveNavColor(color?: string): string | undefined {
   if (!color) return undefined;
   const trimmed = color.trim();
   if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) return trimmed;
   return trimmed;
 }
+
 interface DesktopNavLinkProps {
   item: NavItemConfig;
   active: boolean;
   navTheme?: NavThemeConfig;
 }
+
 function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
   const theme = useTheme();
   const customColor = resolveNavColor(item.color);
@@ -32,6 +37,7 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
     : active
       ? activeColor
       : 'text.primary';
+
   const baseSx = {
     position: 'relative' as const,
     px: isGlass ? 2 : 1.5,
@@ -75,6 +81,7 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
         }
       : {},
   };
+
   if (isExternalUrl(item.url)) {
     return (
       <ButtonBase
@@ -88,30 +95,37 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
       </ButtonBase>
     );
   }
+
   return (
     <ButtonBase component={Link} to={item.url} sx={baseSx}>
       {item.title}
     </ButtonBase>
   );
 }
+
 interface MobileNavMenuProps {
   items: NavItemConfig[];
   navTheme?: NavThemeConfig;
 }
+
 const defaultNavItems: NavItemConfig[] = [
   { id: 'nav-home', title: '首页', url: '/', color: '', openInNewTab: false },
   { id: 'nav-tags', title: '标签', url: '/tag/all', color: '', openInNewTab: false },
+  { id: 'nav-message-wall', title: '留言墙', url: '/message-wall', color: '', openInNewTab: false },
   { id: 'nav-friends', title: '友链', url: '/friends', color: '', openInNewTab: false },
   { id: 'nav-about', title: '关于', url: '/about', color: '', openInNewTab: false },
   { id: 'nav-profile', title: '个人中心', url: '/profile', color: '', openInNewTab: false },
 ];
+
 function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const location = useLocation();
   const open = Boolean(anchorEl);
   const displayItems = items.length > 0 ? items : defaultNavItems;
+
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
   return (
     <>
       <Tooltip title="导航菜单">
@@ -146,11 +160,17 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
               mt: 1,
               borderRadius: 2,
               minWidth: 180,
-              bgcolor: (theme) => alpha(theme.palette.background.paper, navTheme?.variant === 'glass' ? 0.85 : 1),
-              backdropFilter: navTheme?.variant === 'glass' ? 'blur(16px)' : 'none',
+              bgcolor: (theme) =>
+                navTheme?.variant === 'glass'
+                  ? alpha(theme.palette.background.paper, navTheme?.glassOpacity ?? 0.4)
+                  : alpha(theme.palette.background.paper, 1),
+              backdropFilter: navTheme?.variant === 'glass' ? `blur(${navTheme?.blur ?? 16}px)` : 'none',
               border: (theme) =>
                 navTheme?.variant === 'glass'
-                  ? `1px solid ${alpha(theme.palette.common.white, theme.palette.mode === 'light' ? 0.3 : 0.1)}`
+                  ? `1px solid ${alpha(
+                      theme.palette.mode === 'light' ? theme.palette.common.white : theme.palette.common.black,
+                      navTheme?.borderOpacity ?? 0.2
+                    )}`
                   : 'none',
               boxShadow: (theme) =>
                 theme.palette.mode === 'light'
@@ -176,6 +196,7 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
               bgcolor: (theme: Theme) => alpha(navTheme?.activeColor || theme.palette.primary.main, 0.08),
             },
           };
+
           if (isExternalUrl(item.url)) {
             return (
               <MenuItem
@@ -191,6 +212,7 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
               </MenuItem>
             );
           }
+
           return (
             <MenuItem
               key={item.id}
@@ -207,26 +229,34 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
     </>
   );
 }
+
 interface NavLinksProps {
   items: NavItemConfig[];
   forceMobile?: boolean;
   navTheme?: NavThemeConfig;
 }
+
 export function NavLinks({ items, forceMobile, navTheme }: NavLinksProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { config } = useSiteStore();
+  const messageWallEnabled = useMessageWallEnabled();
   const fallbackItems = config.friends?.enabled
     ? defaultNavItems
     : defaultNavItems.filter((item) => item.url !== '/friends');
-  const displayItems = items.length > 0 ? items : fallbackItems;
+  
+  const displayItems = (items.length > 0 ? items : fallbackItems).filter(
+    (item) => messageWallEnabled || item.url !== '/message-wall'
+  );
   const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+
   if (forceMobile || isMobile) {
     return <MobileNavMenu items={displayItems} navTheme={navTheme} />;
   }
   const maxVisible = isLg ? 5 : 3;
   const visibleItems = displayItems.slice(0, maxVisible);
   const moreItems = displayItems.slice(maxVisible);
+
   return (
     <DesktopNavLinks
       visibleItems={visibleItems}
@@ -235,11 +265,13 @@ export function NavLinks({ items, forceMobile, navTheme }: NavLinksProps) {
     />
   );
 }
+
 interface DesktopNavLinksProps {
   visibleItems: NavItemConfig[];
   moreItems: NavItemConfig[];
   navTheme?: NavThemeConfig;
 }
+
 function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -247,8 +279,10 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
   const theme = useTheme();
   const textColor = navTheme?.textColor;
   const activeColor = navTheme?.activeColor || theme.palette.primary.main;
+
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
   return (
     <Box
       sx={{
@@ -310,8 +344,22 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                   mt: 1,
                   borderRadius: 2,
                   minWidth: 180,
-                  bgcolor: (theme) => alpha(theme.palette.background.paper, navTheme?.variant === 'glass' ? 0.85 : 1),
-                  backdropFilter: navTheme?.variant === 'glass' ? 'blur(16px)' : 'none',
+                  bgcolor: (theme) =>
+                    navTheme?.variant === 'glass'
+                      ? alpha(theme.palette.background.paper, navTheme?.glassOpacity ?? 0.4)
+                      : alpha(theme.palette.background.paper, 1),
+                  backdropFilter: navTheme?.variant === 'glass' ? `blur(${navTheme?.blur ?? 16}px)` : 'none',
+                  border: (theme) =>
+                    navTheme?.variant === 'glass'
+                      ? `1px solid ${alpha(
+                          theme.palette.mode === 'light' ? theme.palette.common.white : theme.palette.common.black,
+                          navTheme?.borderOpacity ?? 0.2
+                        )}`
+                      : 'none',
+                  boxShadow: (theme) =>
+                    theme.palette.mode === 'light'
+                      ? `0 8px 32px ${alpha(theme.palette.primary.main, 0.12)}`
+                      : `0 8px 32px ${alpha(theme.palette.common.black, 0.4)}`,
                 },
               },
             }}
@@ -332,6 +380,7 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                   bgcolor: (theme: Theme) => alpha(navTheme?.activeColor || theme.palette.primary.main, 0.08),
                 },
               };
+
               if (isExternalUrl(item.url)) {
                 return (
                   <MenuItem
@@ -347,6 +396,7 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                   </MenuItem>
                 );
               }
+
               return (
                 <MenuItem
                   key={item.id}

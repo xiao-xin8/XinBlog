@@ -2,6 +2,7 @@ import { Box, Typography, Paper, Stack, alpha, TextField } from '@mui/material';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import { ImageField } from '../ImageField';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+
 export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
   const {
     heroTitle,
@@ -18,6 +19,7 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
     isMobileAdmin,
     handleImageUpload,
   } = editor;
+
   return (
     <Paper
       elevation={0}

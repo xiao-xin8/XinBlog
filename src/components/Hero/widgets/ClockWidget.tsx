@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import type { HeroWidgetConfig } from '@/types';
+
 interface ClockWidgetPropsFromConfig {
   format?: '24h' | '12h';
   showSeconds?: boolean;
   showDate?: boolean;
 }
+
 function formatTime(date: Date, format: '24h' | '12h', showSeconds: boolean): string {
   let hours = date.getHours();
   const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -18,6 +20,7 @@ function formatTime(date: Date, format: '24h' | '12h', showSeconds: boolean): st
   const h = String(hours).padStart(2, '0');
   return showSeconds ? `${h}:${minutes}:${seconds}${suffix}` : `${h}:${minutes}${suffix}`;
 }
+
 function formatDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -25,18 +28,22 @@ function formatDate(date: Date): string {
   const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
   return `${y}年${m}月${d}日 ${week}`;
 }
+
 function formatShortDate(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
   return `${m}/${d} ${week}`;
 }
+
 export function ClockWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as ClockWidgetPropsFromConfig;
   const format = props.format || '24h';
   const showSeconds = props.showSeconds === true;
   const showDate = props.showDate !== false;
   const [now, setNow] = useState(new Date());
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -46,10 +53,12 @@ export function ClockWidget({ config }: { config: HeroWidgetConfig }) {
   const timeVariant = isTiny ? 'h5' : isWide ? 'h4' : 'h3';
   const displaySeconds = showSeconds && (isLarge || isTall);
   const displayDate = showDate && !isTiny;
+
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
   return (
     <Box
       sx={{

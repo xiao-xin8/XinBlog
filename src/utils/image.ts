@@ -3,6 +3,7 @@ export function getBase64Size(base64: string): number {
   const len = base64.length - (head + 1);
   return Math.floor(len * 0.75);
 }
+
 export function compressImage(file: File, maxSize: number, maxDim = 1920): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -24,6 +25,7 @@ export function compressImage(file: File, maxSize: number, maxDim = 1920): Promi
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
+
         let quality = 0.92;
         let base64 = canvas.toDataURL('image/jpeg', quality);
         while (getBase64Size(base64) > maxSize && quality > 0.1) {
@@ -39,11 +41,13 @@ export function compressImage(file: File, maxSize: number, maxDim = 1920): Promi
     reader.readAsDataURL(file);
   });
 }
+
 export interface CompressSourceOptions {
   maxSize: number;
   maxDim: number;
   minQuality: number;
 }
+
 export function compressImageSource(src: string, options: CompressSourceOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -64,6 +68,7 @@ export function compressImageSource(src: string, options: CompressSourceOptions)
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
+
       let quality = 0.92;
       let base64 = canvas.toDataURL('image/jpeg', quality);
       const step = Math.max(0.02, (0.92 - options.minQuality) / 20);

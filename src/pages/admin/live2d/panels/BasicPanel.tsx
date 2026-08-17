@@ -12,9 +12,11 @@ import {
   alpha,
 } from '@mui/material';
 import type { Live2dEditor } from '../useLive2dEditor';
+
 interface BasicPanelProps {
   editor: Live2dEditor;
 }
+
 export function BasicPanel({ editor }: BasicPanelProps) {
   const {
     enabled,
@@ -38,6 +40,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
     modelSource,
     setModelSource,
   } = editor;
+
   return (
     <Paper
       elevation={0}
@@ -53,6 +56,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, overflowWrap: 'break-word' }}>
         基础设置
       </Typography>
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <FormControlLabel
           control={
@@ -63,6 +67,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
           }
           label="启用看板娘"
         />
+
         <FormControlLabel
           control={
             <Switch
@@ -72,6 +77,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
           }
           label="移动端显示"
         />
+
         <FormControl fullWidth>
           <InputLabel>显示位置</InputLabel>
           <Select
@@ -83,6 +89,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
             <MenuItem value="left">左下角</MenuItem>
           </Select>
         </FormControl>
+
         <FormControl fullWidth>
           <InputLabel>模型资源来源</InputLabel>
           <Select
@@ -94,6 +101,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
             <MenuItem value="cdn">直接从官方 CDN 加载</MenuItem>
           </Select>
         </FormControl>
+
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <TextField
             label="宽度（像素）"
@@ -110,6 +118,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
             fullWidth
           />
         </Box>
+
         {mobileEnabled && (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <TextField
@@ -128,6 +137,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
             />
           </Box>
         )}
+
         <FormControlLabel
           control={
             <Switch
@@ -137,6 +147,7 @@ export function BasicPanel({ editor }: BasicPanelProps) {
           }
           label="允许拖动"
         />
+
         <FormControlLabel
           control={
             <Switch

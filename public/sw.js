@@ -1,10 +1,12 @@
 const CACHE_NAME = 'xinblog-shell-v2';
 const SHELL_ASSETS = ['/', '/index.html'];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)).then(() => self.skipWaiting())
   );
 });
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
@@ -14,12 +16,17 @@ self.addEventListener('activate', (event) => {
       .then(() => self.clients.claim())
   );
 });
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  
   if (request.method !== 'GET' || url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
     return;
   }
+
+  
   if (
     url.pathname.startsWith('/assets/') ||
     /\.(js|css|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|ico|json)$/.test(url.pathname)
@@ -38,6 +45,8 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+
+  
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => caches.match('/index.html') || caches.match('/'))

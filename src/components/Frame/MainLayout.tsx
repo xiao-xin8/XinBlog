@@ -9,9 +9,11 @@ import { useUIStore } from '@/stores/uiStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
+
 interface MainLayoutProps {
   children: React.ReactNode;
 }
+
 export function MainLayout({ children }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { sidebarCollapsed } = useUIStore();
@@ -24,19 +26,24 @@ export function MainLayout({ children }: MainLayoutProps) {
     touchMultiplier: 1,
     disableOnTouch: true,
   });
+
   const hasBackground = Boolean(config.backgroundImage);
   const backgroundOpacity = config.backgroundOpacity ?? 1;
   const backgroundBlur = config.backgroundBlur ?? 0;
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
   useEffect(() => {
     scrollToTop(true);
   }, [location.pathname, scrollToTop]);
+
   const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('md'), true);
   const currentDrawerWidth = isDesktop
     ? (sidebarCollapsed ? miniDrawerWidth : drawerWidth)
     : mobileDrawerWidth;
+
   return (
     <Box
       sx={{
@@ -98,12 +105,12 @@ export function MainLayout({ children }: MainLayoutProps) {
             minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
-            px: { xs: 2, md: 3 },
+            px: { xs: 2, md: 0 },
           }}
         >
           <Toolbar />
           <Box sx={{ flexGrow: 1 }}>
-            <Fade in timeout={200} key={location.pathname}>
+            <Fade in timeout={400} key={location.pathname}>
               <Box sx={{ minHeight: '100%' }}>{children}</Box>
             </Fade>
           </Box>

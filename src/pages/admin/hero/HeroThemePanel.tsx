@@ -48,15 +48,18 @@ import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { Loading } from '@/components/Common/Loading';
 import type { HeroConfig, HeroWidgetConfig, HeroLayout } from '@/types';
+
 function generateWidgetId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
+
 const FIXED_COLS = 6;
 const MOBILE_MAX_WIDGETS = 4;
 const FIXED_GAP = 16;
+
 const WIDGET_ICON_MAP: Record<string, React.ComponentType<{ sx?: object }>> = {
   profile: AccountCircle,
   clock: AccessTime,
@@ -66,12 +69,15 @@ const WIDGET_ICON_MAP: Record<string, React.ComponentType<{ sx?: object }>> = {
   posts: Article,
   tags: LocalOffer,
 };
+
 function defaultLayout(): HeroLayout {
   return { cols: FIXED_COLS, gap: FIXED_GAP, widgets: [] };
 }
+
 function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
+
 function hasWidgetCollisions(widgets: HeroWidgetConfig[]): boolean {
   for (let i = 0; i < widgets.length; i++) {
     for (let j = i + 1; j < widgets.length; j++) {
@@ -80,6 +86,7 @@ function hasWidgetCollisions(widgets: HeroWidgetConfig[]): boolean {
   }
   return false;
 }
+
 function findFreePosition(
   widgets: HeroWidgetConfig[],
   w: number,
@@ -98,10 +105,12 @@ function findFreePosition(
   }
   return { x: 0, y: maxY + 1 };
 }
+
 function getPropValue(props: Record<string, unknown> | undefined, schema: PropSchema): unknown {
   if (props && schema.key in props) return props[schema.key];
   return schema.defaultValue;
 }
+
 function ThemePreviewThumb({ bento }: { bento?: boolean }) {
   const fill = bento ? '#6366f1' : undefined;
   return (
@@ -124,14 +133,17 @@ function ThemePreviewThumb({ bento }: { bento?: boolean }) {
     </svg>
   );
 }
+
 export function HeroThemePanel() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
+
   const [loading, setLoading] = useState(true);
   const [pendingMode, setPendingMode] = useState<'classic' | 'bento'>('classic');
   const [widgets, setWidgets] = useState<HeroWidgetConfig[]>([]);
   const [originalSnapshot, setOriginalSnapshot] = useState<HeroConfig | null>(null);
   const [saving, setSaving] = useState(false);
+
   const [editOpen, setEditOpen] = useState(false);
   const [editingWidget, setEditingWidget] = useState<HeroWidgetConfig | null>(null);
   const [editProps, setEditProps] = useState<Record<string, unknown>>({});
@@ -139,6 +151,8 @@ export function HeroThemePanel() {
     open: false,
     widget: null,
   });
+
+  
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -158,7 +172,9 @@ export function HeroThemePanel() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const savedHero = useMemo(() => site.config.hero || {}, [site.config.hero]);
+
   const previewHero: HeroConfig = useMemo(
     () => ({
       ...savedHero,
@@ -171,19 +187,23 @@ export function HeroThemePanel() {
     }),
     [savedHero, pendingMode, widgets]
   );
+
   const isDirty = useMemo(() => {
     if (!originalSnapshot) return false;
     if (pendingMode !== originalSnapshot.mode) return true;
     return JSON.stringify(widgets) !== JSON.stringify((originalSnapshot.layout || defaultLayout()).widgets || []);
   }, [pendingMode, widgets, originalSnapshot]);
+
   const handleResetToDefault = () => {
     setPendingMode('classic');
     enqueueSnackbar('已选择默认英雄区主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleApplyBento = () => {
     setPendingMode('bento');
     enqueueSnackbar('已选择自定义多功能主题，点击保存后生效', { variant: 'info' });
   };
+
   const handleAddWidget = (type: string) => {
     const def = getHeroWidgetDefinition(type);
     if (!def) return;
@@ -206,11 +226,13 @@ export function HeroThemePanel() {
       enqueueSnackbar(`移动端最多显示 ${MOBILE_MAX_WIDGETS} 个组件，新组件已默认设为移动端隐藏`, { variant: 'info' });
     }
   };
+
   const handleEdit = (widget: HeroWidgetConfig) => {
     setEditingWidget(widget);
     setEditProps(widget.props ? { ...widget.props } : {});
     setEditOpen(true);
   };
+
   const handleSaveEdit = () => {
     if (!editingWidget) return;
     setWidgets((prev) =>
@@ -227,6 +249,7 @@ export function HeroThemePanel() {
     setEditingWidget(null);
     setEditProps({});
   };
+
   const handleToggleHideOnMobile = () => {
     if (!editingWidget) return;
     const willShowOnMobile = editingWidget.hideOnMobile === true;
@@ -239,15 +262,19 @@ export function HeroThemePanel() {
     }
     setEditingWidget((prev) => (prev ? { ...prev, hideOnMobile: !prev.hideOnMobile } : prev));
   };
+
   const handleDelete = (widget: HeroWidgetConfig) => {
     setDeleteDialog({ open: true, widget });
   };
+
   const confirmDelete = () => {
     if (!deleteDialog.widget) return;
     setWidgets((prev) => prev.filter((w) => w.id !== deleteDialog.widget!.id));
     setDeleteDialog({ open: false, widget: null });
   };
+
   const hasCollisions = useMemo(() => hasWidgetCollisions(widgets), [widgets]);
+
   const handleSave = async () => {
     if (pendingMode === 'bento' && hasCollisions) {
       enqueueSnackbar('组件布局存在重叠，请调整后再保存', { variant: 'error' });
@@ -268,6 +295,7 @@ export function HeroThemePanel() {
       setCachedSiteConfig(optimistic);
       const ok = await site.saveConfig({ hero: nextHero });
       if (!ok) throw new Error('英雄区主题保存失败');
+      
       setOriginalSnapshot(JSON.parse(JSON.stringify(nextHero)));
       enqueueSnackbar('英雄区主题已保存', { variant: 'success' });
     } catch (err) {
@@ -276,10 +304,13 @@ export function HeroThemePanel() {
       setSaving(false);
     }
   };
+
   const definitions = getHeroWidgetDefinitions();
+
   if (loading) {
     return <Loading text="加载英雄区主题中..." />;
   }
+
   return (
     <Fade in timeout={400}>
       <Stack spacing={3}>
@@ -406,6 +437,7 @@ export function HeroThemePanel() {
             </Grid>
           </Grid>
         </Paper>
+
         {pendingMode === 'bento' && (
           <Fade in timeout={400}>
             <Stack spacing={3}>
@@ -519,6 +551,7 @@ export function HeroThemePanel() {
                   })}
                 </Box>
               </Paper>
+
               <Paper
                 elevation={0}
                 sx={{
@@ -553,7 +586,9 @@ export function HeroThemePanel() {
             </Stack>
           </Fade>
         )}
+
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存英雄区主题" />
+
         <Dialog
           open={editOpen}
           onClose={() => setEditOpen(false)}
@@ -577,6 +612,7 @@ export function HeroThemePanel() {
                   }
                   label={editingWidget.hideOnMobile ? '移动端隐藏' : '移动端显示'}
                 />
+
                 {(() => {
                   const def = getHeroWidgetDefinition(editingWidget.type);
                   if (!def || def.sizes.length <= 1) return null;
@@ -604,6 +640,7 @@ export function HeroThemePanel() {
                     </FormControl>
                   );
                 })()}
+
                 {getHeroWidgetDefinition(editingWidget.type)?.propSchema.map((schema) => {
                   const value = getPropValue(editProps, schema);
                   if (schema.type === 'boolean') {
@@ -680,6 +717,7 @@ export function HeroThemePanel() {
             </Button>
           </DialogActions>
         </Dialog>
+
         <ConfirmDialog
           open={deleteDialog.open}
           title="删除组件"

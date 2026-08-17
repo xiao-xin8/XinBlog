@@ -2,12 +2,15 @@ import { useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColor, resolveEffectColors } from './utils/colors';
+
 interface ClickEffectPreviewProps {
   config: ClickEffectConfig;
   themeColor: string;
 }
+
 export function ClickEffectPreview({ config, themeColor }: ClickEffectPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+
   const spawn = useCallback(
     (e: React.MouseEvent) => {
       const container = containerRef.current;
@@ -15,6 +18,7 @@ export function ClickEffectPreview({ config, themeColor }: ClickEffectPreviewPro
       const rect = container.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
+
       switch (config.type) {
         case 'heart':
           spawnHeart(container, x, y, config, themeColor);
@@ -43,6 +47,7 @@ export function ClickEffectPreview({ config, themeColor }: ClickEffectPreviewPro
     },
     [config, themeColor]
   );
+
   return (
     <Box
       ref={containerRef}
@@ -59,6 +64,7 @@ export function ClickEffectPreview({ config, themeColor }: ClickEffectPreviewPro
     />
   );
 }
+
 function createParticle(container: HTMLDivElement) {
   const el = document.createElement('div');
   el.style.position = 'absolute';
@@ -66,6 +72,7 @@ function createParticle(container: HTMLDivElement) {
   container.appendChild(el);
   return el;
 }
+
 function spawnHeart(
   container: HTMLDivElement,
   x: number,
@@ -95,6 +102,7 @@ function spawnHeart(
     setTimeout(() => el.remove(), 1200);
   }
 }
+
 function spawnBubble(
   container: HTMLDivElement,
   x: number,
@@ -120,9 +128,11 @@ function spawnBubble(
       el.style.transform = `translate(calc(-50% + ${(Math.random() - 0.5) * 60}px), -160%)`;
       el.style.opacity = '0';
     });
-    setTimeout(() => el.remove(), 1400);
+    
+    setTimeout(() => el.remove(), 1450);
   }
 }
+
 function spawnText(
   container: HTMLDivElement,
   x: number,
@@ -150,6 +160,7 @@ function spawnText(
   });
   setTimeout(() => el.remove(), 1200);
 }
+
 function spawnStar(
   container: HTMLDivElement,
   x: number,
@@ -180,6 +191,7 @@ function spawnStar(
     setTimeout(() => el.remove(), 1000);
   }
 }
+
 function spawnRipple(
   container: HTMLDivElement,
   x: number,
@@ -206,6 +218,7 @@ function spawnRipple(
   });
   setTimeout(() => el.remove(), 800);
 }
+
 function spawnFirework(
   container: HTMLDivElement,
   x: number,
@@ -236,6 +249,7 @@ function spawnFirework(
     setTimeout(() => el.remove(), 900);
   }
 }
+
 function spawnConfetti(
   container: HTMLDivElement,
   x: number,

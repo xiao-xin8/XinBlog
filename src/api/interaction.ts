@@ -1,11 +1,14 @@
 import { apiGet, apiPatch } from './client';
 import type { InteractionSettings, ApiResult } from '../types/interaction';
+
 const INTERACTION_CACHE_KEY = 'interaction-settings-cache';
 const CACHE_TTL = 5 * 60 * 1000; 
+
 interface CachedInteraction {
   data: InteractionSettings;
   ts: number;
 }
+
 function readLocalCache(): InteractionSettings | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -21,25 +24,31 @@ function readLocalCache(): InteractionSettings | null {
     return null;
   }
 }
+
 function writeLocalCache(data: InteractionSettings) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(INTERACTION_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
   } catch {
+    // ignore
   }
 }
+
 function clearLocalCache() {
   if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem(INTERACTION_CACHE_KEY);
   } catch {
+    // ignore
   }
 }
+
 const defaultSettings: InteractionSettings = {
   commentsEnabled: true,
   likesEnabled: true,
   commentAudit: true,
 };
+
 export async function getInteractionSettings() {
   const cached = readLocalCache();
   if (cached) {
@@ -47,6 +56,7 @@ export async function getInteractionSettings() {
     writeLocalCache(merged);
     return { code: 0, data: merged, msg: 'ok' } as ApiResult<InteractionSettings>;
   }
+
   const res = await apiGet<InteractionSettings>('/api/v1/settings/interaction');
   if (res.code === 0 && res.data) {
     const merged = { ...defaultSettings, ...res.data };
@@ -55,6 +65,7 @@ export async function getInteractionSettings() {
   }
   return res;
 }
+
 export async function updateInteractionSettings(data: InteractionSettings) {
   const normalized = {
     commentsEnabled: data.commentsEnabled !== false,

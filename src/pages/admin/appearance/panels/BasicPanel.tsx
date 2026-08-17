@@ -3,6 +3,7 @@ import type { PaginationMode } from '@/types';
 import { ImageField } from '../ImageField';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+
 export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
   const {
     siteName,
@@ -37,6 +38,7 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
     isMobileAdmin,
     handleImageUpload,
   } = editor;
+
   return (
     <Paper
       elevation={0}

@@ -1,7 +1,9 @@
 import { Paper, Stack, alpha, TextField } from '@mui/material';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+
 export function AboutPanel({ editor }: { editor: AppearanceEditor }) {
   const { aboutSubtitle, setAboutSubtitle, aboutBio, setAboutBio, aboutTags, setAboutTags } = editor;
+
   return (
     <Paper
       elevation={0}

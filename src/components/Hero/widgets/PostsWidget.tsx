@@ -4,12 +4,14 @@ import { Article } from '@mui/icons-material';
 import { fetchPostsPage } from '@/api/posts';
 import { useHeroEditContext } from '@/components/Hero/HeroEditContext';
 import type { HeroWidgetConfig, Post } from '@/types';
+
 interface PostsWidgetPropsFromConfig {
   limit?: number;
   showCover?: boolean;
   showExcerpt?: boolean;
   showTags?: boolean;
 }
+
 export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as PostsWidgetPropsFromConfig;
   const { editable } = useHeroEditContext();
@@ -19,6 +21,8 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const showTags = props.showTags !== false;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -29,6 +33,7 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const displayExcerpt = showExcerpt && (isLarge || (isTall && h >= 3)) && !isWide;
   const displayTags = showTags && (isLarge || (isTall && h >= 3)) && !isWide;
   const displayCover = showCover && !isTiny && !isTall && !isWide;
+
   useEffect(() => {
     let cancelled = false;
     fetchPostsPage({ page: 1, limit: displayLimit })
@@ -45,10 +50,12 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, [displayLimit]);
+
   const getItemProps = (post: Post) =>
     editable
       ? { component: 'div' as const }
       : { component: 'a' as const, href: `/post/${post.slug}` };
+
   return (
     <Box
       sx={{
@@ -67,6 +74,7 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
           最新文章
         </Typography>
       </Box>
+
       {loading ? (
         <Typography variant="body2" color="text.secondary">
           加载中...

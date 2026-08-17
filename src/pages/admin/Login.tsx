@@ -17,11 +17,14 @@ import {
   DialogContent,
   Slider,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Lock, Person, Email, VpnKey } from '@mui/icons-material';
 import { useAuthStore } from '@/stores/authStore';
 import { fetchAuthSettings } from '@/api/admin';
 import { apiPost } from '@/api/client';
+
 export function AdminLogin() {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -42,12 +45,16 @@ export function AdminLogin() {
   const [emailVerification, setEmailVerification] = useState(false);
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [captchaValue, setCaptchaValue] = useState(0);
+  const [agreed, setAgreed] = useState(false);
+
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, from, navigate]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -63,6 +70,7 @@ export function AdminLogin() {
       cancelled = true;
     };
   }, []);
+
   useEffect(() => {
     setError('');
     setSuccess('');
@@ -72,12 +80,15 @@ export function AdminLogin() {
     setEmail('');
     setCode('');
     setShowPassword(false);
+    setAgreed(false);
   }, [tab]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setLoading(true);
+
     try {
       if (tab === 1) {
         if (/[\u4e00-\u9fa5]/.test(username)) {
@@ -109,6 +120,7 @@ export function AdminLogin() {
       setLoading(false);
     }
   };
+
   const openCaptcha = () => {
     if (!username) {
       setError('请先输入用户名');
@@ -127,18 +139,22 @@ export function AdminLogin() {
     setCaptchaValue(0);
     setCaptchaOpen(true);
   };
+
   const closeCaptcha = () => {
     setCaptchaOpen(false);
     setCaptchaValue(0);
   };
+
   const handleCaptchaChange = (_: React.SyntheticEvent | Event, value: number | number[]) => {
     setCaptchaValue(value as number);
   };
+
   const handleCaptchaCommit = async (_: React.SyntheticEvent | Event, value: number | number[]) => {
     if (value !== 100) return;
     setCaptchaOpen(false);
     await sendCode();
   };
+
   const sendCode = async () => {
     setSendingCode(true);
     setError('');
@@ -156,6 +172,7 @@ export function AdminLogin() {
       setSendingCode(false);
     }
   };
+
   const inputRippleSx = {
     '& .MuiOutlinedInput-root': {
       position: 'relative',
@@ -181,8 +198,9 @@ export function AdminLogin() {
       },
     },
   };
+
   return (
-    <Fade in timeout={500}>
+    <Fade in timeout={400}>
       <Box
         sx={{
           minHeight: '100dvh',
@@ -225,6 +243,7 @@ export function AdminLogin() {
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
             {tab === 0 ? '欢迎回来，请登录您的账号' : '创建新账号，加入站点'}
           </Typography>
+
           {allowRegister ? (
             <Box
               sx={{
@@ -298,16 +317,19 @@ export function AdminLogin() {
               </Typography>
             </Box>
           )}
+
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {error}
             </Alert>
           )}
+
           {success && (
             <Alert severity="success" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {success}
             </Alert>
           )}
+
           <Fade in timeout={200} key={tab}>
             <Box
               component="form"
@@ -428,11 +450,65 @@ export function AdminLogin() {
                   }}
                 />
               )}
+              {tab === 1 && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={agreed}
+                      onChange={(e) => setAgreed(e.target.checked)}
+                      size="small"
+                      sx={{
+                        color: (theme) => alpha(theme.palette.primary.main, 0.4),
+                        '&.Mui-checked': {
+                          color: 'primary.main',
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+                      我已阅读并同意{' '}
+                      <Typography
+                        component={Link}
+                        to="/agreement"
+                        target="_blank"
+                        variant="body2"
+                        sx={{
+                          color: 'primary.main',
+                          textDecoration: 'underline',
+                          fontWeight: 500,
+                          fontSize: 'inherit',
+                          '&:hover': { opacity: 0.8 },
+                        }}
+                      >
+                        用户协议
+                      </Typography>
+                      {' 和 '}
+                      <Typography
+                        component={Link}
+                        to="/privacy"
+                        target="_blank"
+                        variant="body2"
+                        sx={{
+                          color: 'primary.main',
+                          textDecoration: 'underline',
+                          fontWeight: 500,
+                          fontSize: 'inherit',
+                          '&:hover': { opacity: 0.8 },
+                        }}
+                      >
+                        隐私政策
+                      </Typography>
+                    </Typography>
+                  }
+                  sx={{ m: 0 }}
+                />
+              )}
               <Button
                 type="submit"
                 variant="contained"
                 size="large"
-                disabled={loading}
+                disabled={loading || (tab === 1 && !agreed)}
                 startIcon={loading ? <CircularProgress size={18} color="inherit" /> : undefined}
                 sx={{
                   mt: 1,
@@ -453,6 +529,7 @@ export function AdminLogin() {
               </Button>
             </Box>
           </Fade>
+
           <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
               component={Link}
@@ -471,6 +548,7 @@ export function AdminLogin() {
             </Button>
           </Box>
         </Paper>
+
         <Dialog
           open={captchaOpen}
           onClose={closeCaptcha}

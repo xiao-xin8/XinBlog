@@ -11,16 +11,19 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import type { ReactNode } from 'react';
+
 export interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  content: string;
+  content: ReactNode;
   confirmText?: string;
   confirmColor?: 'primary' | 'error' | 'warning' | 'success' | 'info';
   loading?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
+
 export function ConfirmDialog({
   open,
   title,
@@ -33,6 +36,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <Dialog
       open={open}

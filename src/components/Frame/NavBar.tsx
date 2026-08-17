@@ -22,12 +22,14 @@ import { NavLogo } from '@/components/Frame/NavLogo';
 import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
+
 interface NavBarProps {
   onMenuClick: () => void;
   drawerOpen?: boolean;
   drawerWidth?: number;
   scrollTargetRef?: RefObject<HTMLElement | null>;
 }
+
 export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrollTargetRef }: NavBarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -43,12 +45,15 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const userMenuOpen = Boolean(anchorEl);
+
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleUserMenuClose = () => {
     setAnchorEl(null);
   };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchValue.trim();
@@ -56,17 +61,21 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
       navigate(`/?q=${encodeURIComponent(trimmed)}`);
     }
   };
+
   const handleMobileSearchOpen = () => {
     setMobileSearchOpen(true);
   };
+
   const handleMobileSearchClose = () => {
     setMobileSearchOpen(false);
     setSearchValue('');
   };
+
   const glassOpacity = navTheme.glassOpacity ?? 0.4;
   const glassBlur = navTheme.blur ?? 16;
   const borderOpacity = navTheme.borderOpacity ?? 0.2;
   const shadowOpacity = navTheme.shadowOpacity ?? 0.08;
+
   return (
     <AppBar
       position="fixed"
@@ -98,10 +107,9 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
         transform: hidden ? 'translateY(-100%)' : 'translateY(0)',
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3 }, minHeight: { xs: 56, sm: 64 } }}>
+      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1, sm: 2, md: 0 }, minHeight: { xs: 56, sm: 64 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
           <IconButton
-            edge="start"
             onClick={onMenuClick}
             aria-label="打开导航菜单"
             className="live2d-tip-menu"
@@ -113,10 +121,11 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           >
             <MenuIcon />
           </IconButton>
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', minWidth: 0 }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', minWidth: 0 }}>
             <NavLogo navTheme={navTheme} />
           </Box>
         </Box>
+
         {isMobile ? (
           <Box
             component="form"
@@ -217,6 +226,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           <Box sx={{ color: navTheme.textColor || 'inherit' }}>
             <ThemeToggle />
           </Box>
+
           {isAuthenticated && user ? (
             <>
               <Tooltip title="账户菜单">
@@ -318,6 +328,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           )}
         </Box>
       </Toolbar>
+
       {mobileSearchOpen && (
         <Toolbar
           sx={{
@@ -401,6 +412,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           </Box>
         </Toolbar>
       )}
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}

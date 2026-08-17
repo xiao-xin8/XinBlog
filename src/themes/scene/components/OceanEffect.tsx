@@ -1,4 +1,5 @@
 import { Box, useTheme } from '@mui/material';
+
 export interface OceanEffectParams {
   [key: string]: unknown;
   waveColor?: string;
@@ -6,6 +7,7 @@ export interface OceanEffectParams {
   speed?: number;
   opacity?: number;
 }
+
 export function OceanEffect({ params }: { params: OceanEffectParams }) {
   const theme = useTheme();
   const {
@@ -14,6 +16,7 @@ export function OceanEffect({ params }: { params: OceanEffectParams }) {
     speed = 8,
     opacity = 0.18,
   } = params;
+
   return (
     <Box
       sx={{

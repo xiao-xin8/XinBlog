@@ -1,10 +1,12 @@
 import { Box, alpha } from '@mui/material';
 import { PostContent } from '@/components/Post/PostContent';
 import type { HeadingItem } from '@/components/Post/TableOfContents';
+
 interface PostDetailContentProps {
   content: string;
   onHeadingsExtracted?: (headings: HeadingItem[]) => void;
 }
+
 export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailContentProps) {
   return (
     <Box
@@ -111,6 +113,7 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
             borderColor: 'divider',
             my: 4,
           },
+
         },
       }}
     >

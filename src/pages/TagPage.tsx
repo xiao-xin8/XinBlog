@@ -5,7 +5,9 @@ import { LocalOffer, ExpandMore, ChevronLeft, ChevronRight } from '@mui/icons-ma
 import { fetchTags, fetchPostsPage } from '@/api/posts';
 import { useSiteStore } from '@/stores/siteStore';
 import { PostList } from '@/components/Post/PostList';
+import { Loading } from '@/components/Common/Loading';
 import type { Tag, Post, PaginationMode } from '@/types';
+
 export function TagPage() {
   const { slug } = useParams<{ slug: string }>();
   const { config } = useSiteStore();
@@ -18,17 +20,22 @@ export function TagPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const requestKeyRef = useRef(0);
+
   const activeSlug = slug === 'all' ? undefined : slug;
+
   const loadPosts = useCallback(async (targetPage: number, append: boolean) => {
     const key = ++requestKeyRef.current;
     const isInitial = targetPage === 1 && !append;
     if (isInitial) setLoading(true);
     else setLoadingMore(true);
+
     const [tagsData, postsData] = await Promise.all([
       fetchTags(),
       fetchPostsPage({ page: targetPage, limit: pageSize, tag: activeSlug }),
     ]);
+
     if (key !== requestKeyRef.current) return;
+
     setTags(tagsData);
     setPosts((prev) => (append ? [...prev, ...postsData.list] : postsData.list));
     setTotal(postsData.total);
@@ -36,34 +43,40 @@ export function TagPage() {
     if (isInitial) setLoading(false);
     setLoadingMore(false);
   }, [activeSlug, pageSize]);
+
   useEffect(() => {
     requestKeyRef.current += 1;
     loadPosts(1, false);
   }, [activeSlug, loadPosts]);
+
   const hasMore = posts.length < total;
   const hasPrev = page > 1;
   const hasNext = posts.length < total;
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       loadPosts(page + 1, true);
     }
   };
+
   const handlePrevPage = () => {
     if (hasPrev) {
       loadPosts(page - 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   const handleNextPage = () => {
     if (hasNext) {
       loadPosts(page + 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   if (slug === 'all') {
     return (
-      <Fade in timeout={500}>
-        <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 }, pb: 8 }}>
+      <Fade in timeout={400}>
+        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, pb: 8 }}>
           <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
             标签
           </Typography>
@@ -114,9 +127,7 @@ export function TagPage() {
             全部文章
           </Typography>
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
+            <Loading />
           ) : (
             <Fade in timeout={400}>
               <Box>
@@ -189,17 +200,18 @@ export function TagPage() {
       </Fade>
     );
   }
+
   const tag = tags.find((t) => t.slug === slug);
+
   if (!loading && !tag) {
     return <Navigate to="/404" replace />;
   }
+
   return (
-    <Fade in timeout={500}>
-        <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 }, pb: 8 }}>
+    <Fade in timeout={400}>
+        <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, pb: 8 }}>
           {loading || !tag ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
+            <Loading />
           ) : (
             <Fade in timeout={400}>
               <Box sx={{ textAlign: 'center', mb: { xs: 3, md: 6 } }}>

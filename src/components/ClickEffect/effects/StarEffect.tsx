@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClickEffectConfig } from '@/types';
 import { resolveEffectColors } from '../utils/colors';
+
 interface Star {
   id: number;
   x: number;
@@ -13,14 +14,19 @@ interface Star {
   vx: number;
   vy: number;
 }
+
 let starId = 0;
+
 export function StarEffect({ config, themeColor }: { config: ClickEffectConfig; themeColor: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<Star[]>([]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
     const count = config.intensity === 'high' ? 10 : config.intensity === 'low' ? 4 : 6;
+
     const handleClick = (e: MouseEvent) => {
       const colors = resolveEffectColors(config.colorMode, config.customColor, themeColor, count);
       for (let i = 0; i < count; i++) {
@@ -39,6 +45,7 @@ export function StarEffect({ config, themeColor }: { config: ClickEffectConfig; 
           vy: Math.sin(angle) * speed - 1,
         };
         starsRef.current.push(star);
+
         const el = document.createElement('div');
         el.innerHTML = '★';
         el.style.position = 'fixed';
@@ -54,6 +61,7 @@ export function StarEffect({ config, themeColor }: { config: ClickEffectConfig; 
         container.appendChild(el);
       }
     };
+
     let raf = 0;
     const animate = () => {
       for (let i = starsRef.current.length - 1; i >= 0; i--) {
@@ -78,6 +86,7 @@ export function StarEffect({ config, themeColor }: { config: ClickEffectConfig; 
       raf = requestAnimationFrame(animate);
     };
     animate();
+
     window.addEventListener('click', handleClick);
     return () => {
       window.removeEventListener('click', handleClick);
@@ -86,6 +95,7 @@ export function StarEffect({ config, themeColor }: { config: ClickEffectConfig; 
       starsRef.current = [];
     };
   }, [config.colorMode, config.customColor, config.intensity, themeColor]);
+
   return (
     <div
       ref={containerRef}

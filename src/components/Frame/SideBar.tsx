@@ -9,56 +9,79 @@ import {
   darken,
   lighten,
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, Home, Info, LocalOffer, Login, Logout, Settings, AccountCircle, People } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, Home, Info, LocalOffer, Login, Logout, Settings, AccountCircle, People, MusicNote, Forum } from '@mui/icons-material';
 import { DRAWER_TRANSITION_MS, DrawerHeaderContainer, StyledNavButton, type NavItem } from './drawerShared';
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
+import { useMessageWallEnabled } from '@/hooks/useMessageWallEnabled';
 import { Logo } from '@/components/Common/Logo';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
+
 interface SideBarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
+
 export const drawerWidth = 260;
 export const miniDrawerWidth = 56;
 export const mobileDrawerWidth = 1;
+
 const baseNavItems: NavItem[] = [
   { title: '首页', path: '/', icon: <Home fontSize="small" /> },
   { title: '标签', path: '/tag/all', icon: <LocalOffer fontSize="small" /> },
+  { title: '留言墙', path: '/message-wall', icon: <Forum fontSize="small" /> },
   { title: '友链', path: '/friends', icon: <People fontSize="small" /> },
   { title: '关于', path: '/about', icon: <Info fontSize="small" /> },
   { title: '个人中心', path: '/profile', icon: <AccountCircle fontSize="small" /> },
+  { title: '音乐', path: '/music', icon: <MusicNote fontSize="small" /> },
 ];
+
 export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const location = useLocation();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { config } = useSiteStore();
+  const messageWallEnabled = useMessageWallEnabled();
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+
   const navItems = useMemo(() => {
-    if (config.friends?.enabled) return baseNavItems;
-    return baseNavItems.filter((item) => item.path !== '/friends');
-  }, [config.friends?.enabled]);
+    let items = [...baseNavItems];
+    if (!config.friends?.enabled) {
+      items = items.filter((item) => item.path !== '/friends');
+    }
+    if (!config.music?.showPage) {
+      items = items.filter((item) => item.path !== '/music');
+    }
+    if (!messageWallEnabled) {
+      items = items.filter((item) => item.path !== '/message-wall');
+    }
+    return items;
+  }, [config.friends?.enabled, config.music?.showPage, messageWallEnabled]);
+
   const handleToggle = () => {
     setIsAnimating(true);
     toggleSidebar();
   };
+
   useEffect(() => {
     if (!isAnimating) return;
     const timer = setTimeout(() => setIsAnimating(false), DRAWER_TRANSITION_MS);
     return () => clearTimeout(timer);
   }, [isAnimating, sidebarCollapsed]);
+
   const handleLogout = () => {
     if (isAuthenticated) {
       setLogoutOpen(true);
     }
     onMobileClose();
   };
+
   const drawerContent = (collapsed: boolean) => {
+    
     if (collapsed) {
       return (
         <Box
@@ -73,7 +96,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             px: 1,
           }}
         >
-          {}
+          {/* Expand button on top */}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -92,7 +115,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           >
             <ChevronRight />
           </IconButton>
-          {}
+
+          {/* Mini Navigation */}
           <Stack
             sx={{
               flexGrow: 1,
@@ -135,6 +159,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 </Tooltip>
               );
             })}
+
             {user?.role === 'super_admin' && (
               <Tooltip title="管理后台" placement="right">
                 <IconButton
@@ -167,6 +192,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         </Box>
       );
     }
+
     return (
       <Box
         sx={{
@@ -177,7 +203,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           overflow: 'hidden',
         }}
       >
-        {}
+        {/* Header */}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
@@ -197,7 +223,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             </IconButton>
           </Box>
         </DrawerHeaderContainer>
-        {}
+
+        {/* Navigation - 独立滚动区域 */}
         <Stack
           sx={{
             flexGrow: 1,
@@ -240,7 +267,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
               </StyledNavButton>
             );
           })}
-          {}
+
+          {/* Admin Entry - 仅超级管理员可见 */}
           {user?.role === 'super_admin' && (
             <StyledNavButton
               active={location.pathname.startsWith('/admin')}
@@ -269,7 +297,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             </StyledNavButton>
           )}
         </Stack>
-        {}
+
+        {/* Footer: login/logout & user info */}
         <Box
           sx={{
             px: 1.5,
@@ -307,10 +336,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
       </Box>
     );
   };
+
   const currentWidth = sidebarCollapsed ? miniDrawerWidth : drawerWidth;
+
   return (
     <>
-      {}
+      {/* 移动端抽屉 */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -329,7 +360,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
       >
         {drawerContent(false)}
       </Drawer>
-      {}
+
+      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
       <Drawer
         variant="persistent"
         anchor="left"
@@ -338,6 +370,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           display: 'block',
           width: { xs: `${mobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
+          
+          transition: (theme) =>
+            theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: { xs: `${mobileDrawerWidth}px`, md: currentWidth },
@@ -379,6 +417,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
     </>
   );
 }
+
 export function SideBarHeaderSpacer() {
   return <Toolbar />;
 }

@@ -19,13 +19,19 @@ import { fetchUserProfile, updateUserProfile } from '@/api/user';
 import { Loading } from '@/components/Common/Loading';
 import type { UserProfile } from '@/api/user';
 import { useSnackbar } from 'notistack';
+
 const MAX_AVATAR_SIZE = 30 * 1024;
+
 import { getBase64Size, compressImage } from '@/utils/image';
+
+
+
 const roleLabels: Record<string, string> = {
   guest: '访客',
   admin: '管理员',
   super_admin: '超级管理员',
 };
+
 export function Profile() {
   const { user, isAuthenticated, updateUser } = useAuthStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -39,6 +45,7 @@ export function Profile() {
   });
   const [avatarLoading, setAvatarLoading] = useState(false);
   const userExists = !!user;
+
   useEffect(() => {
     let mounted = true;
     const fallbackAvatar = user?.avatar || '';
@@ -60,6 +67,7 @@ export function Profile() {
       mounted = false;
     };
   }, [user?.avatar, userExists]);
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -76,6 +84,7 @@ export function Profile() {
       setMessage({ type: 'error', text: '头像处理失败' });
     }
   };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -92,6 +101,7 @@ export function Profile() {
     }
     setSaving(false);
   };
+
   if (!isAuthenticated) {
     return (
       <Container maxWidth="sm" sx={{ py: { xs: 6, sm: 8 }, minHeight: { xs: '60dvh', sm: 'auto' }, display: 'flex', alignItems: 'center' }}>
@@ -118,13 +128,15 @@ export function Profile() {
       </Container>
     );
   }
+
   if (loading) {
     return <Loading text="加载个人资料中..." />;
   }
+
   return (
-    <Fade in timeout={500}>
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
-        {}
+    <Fade in timeout={400}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+        {/* Header Card */}
       <Paper
         elevation={0}
         sx={{
@@ -161,6 +173,7 @@ export function Profile() {
         >
           <AutoAwesome sx={{ fontSize: { xs: 20, sm: 28 } }} />
         </Box>
+
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
           {avatarLoading && !profile.avatar && (
             <Skeleton
@@ -211,6 +224,7 @@ export function Profile() {
             <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
           </Button>
         </Box>
+
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }, overflowWrap: 'break-word' }}>
           {profile.nickname || user?.username}
         </Typography>
@@ -232,7 +246,8 @@ export function Profile() {
           }}
         />
       </Paper>
-      {}
+
+      {/* Form Card */}
       <Paper
         elevation={0}
         sx={{
@@ -240,8 +255,8 @@ export function Profile() {
           p: { xs: 3, md: 4 },
           boxShadow: (theme) =>
             theme.palette.mode === 'light'
-              ? `0 4px 24px ${alpha(theme.palette.primary.main, 0.08)}`
-              : `0 4px 24px ${alpha(theme.palette.common.black, 0.25)}`,
+              ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.08)}`
+              : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
         }}
       >
         {message && (
@@ -249,6 +264,7 @@ export function Profile() {
             {message.text}
           </Alert>
         )}
+
         <Box sx={{ display: 'grid', gap: 3 }}>
           <TextField
             label="用户名"
@@ -281,6 +297,7 @@ export function Profile() {
             rows={3}
             placeholder="写一句话，展示此刻的心情"
           />
+
           <Box sx={{ display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
             <Button
               variant="contained"

@@ -10,14 +10,17 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+
 interface LogoutConfirmDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
+
 export function LogoutConfirmDialog({ open, onClose, onConfirm }: LogoutConfirmDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <Dialog
       open={open}

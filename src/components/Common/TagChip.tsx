@@ -1,13 +1,16 @@
 import { Chip, alpha } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import type { Tag } from '@/types';
+
 interface TagChipProps {
   tag: Tag;
   size?: 'small' | 'medium';
   onClick?: () => void;
 }
+
 export function TagChip({ tag, size = 'small', onClick }: TagChipProps) {
   const navigate = useNavigate();
+
   const handleClick = () => {
     if (onClick) {
       onClick();
@@ -15,6 +18,7 @@ export function TagChip({ tag, size = 'small', onClick }: TagChipProps) {
     }
     navigate(`/tag/${tag.slug}`);
   };
+
   return (
     <Chip
       component="button"

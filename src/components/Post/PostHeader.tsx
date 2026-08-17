@@ -4,13 +4,16 @@ import dayjs from 'dayjs';
 import type { Post } from '@/types';
 import { TagChip } from '@/components/Common/TagChip';
 import { useSiteStore } from '@/stores/siteStore';
+
 interface PostHeaderProps {
   post: Post;
 }
+
 export function PostHeader({ post }: PostHeaderProps) {
   const { config } = useSiteStore();
   const authorName = config.author || post.author || '';
   const authorAvatar = config.logo || '';
+
   return (
     <Fade in timeout={400}>
       <Box sx={{ mb: 4 }}>
@@ -32,11 +35,13 @@ export function PostHeader({ post }: PostHeaderProps) {
           }}
         />
       )}
+
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, minWidth: 0 }}>
         {post.tags.map((tag) => (
           <TagChip key={tag.id} tag={tag} />
         ))}
       </Box>
+
       <Typography
         variant="h2"
         component="h1"
@@ -44,6 +49,7 @@ export function PostHeader({ post }: PostHeaderProps) {
       >
         {post.title}
       </Typography>
+
       <Box
         sx={{
           display: 'flex',
@@ -84,18 +90,21 @@ export function PostHeader({ post }: PostHeaderProps) {
             {authorName}
           </Typography>
         </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <AccessTime sx={{ fontSize: 18 }} />
           <Typography variant="body2">
             发布于 {dayjs(post.createdAt).format('YYYY-MM-DD')}
           </Typography>
         </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <AccessTime sx={{ fontSize: 18 }} />
           <Typography variant="body2">
             {post.readingTime} 分钟阅读
           </Typography>
         </Box>
+
         {post.views !== undefined && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Visibility sx={{ fontSize: 18 }} />

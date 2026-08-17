@@ -9,16 +9,13 @@ import {
   Select,
   MenuItem,
   TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   CircularProgress,
-  Grow,
 } from '@mui/material';
 import { Close, Image as ImageIcon } from '@mui/icons-material';
 import { extractMediaId, deleteMedia } from '@/api/media';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSnackbar } from 'notistack';
+
 interface ImageFieldProps {
   label: string;
   value: string;
@@ -27,9 +24,11 @@ interface ImageFieldProps {
   hint?: string;
   acceptUrl?: boolean;
   showSizeSelect?: boolean;
-  isMobileAdmin: boolean;
+  isMobileAdmin?: boolean;
   onUpload: (file: File, targetSize: number, setter: (url: string) => void, label: string) => Promise<void>;
 }
+
+
 export function ImageField({
   label,
   value,
@@ -38,7 +37,6 @@ export function ImageField({
   hint,
   acceptUrl,
   showSizeSelect = true,
-  isMobileAdmin,
   onUpload,
 }: ImageFieldProps) {
   const { enqueueSnackbar } = useSnackbar();
@@ -47,6 +45,7 @@ export function ImageField({
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteMediaId, setPendingDeleteMediaId] = useState<number | null>(null);
+
   const sizeOptions = useMemo(() => {
     const options: number[] = [];
     for (let s = 100 * 1024; s <= maxSize; s += 100 * 1024) {
@@ -54,6 +53,7 @@ export function ImageField({
     }
     return options;
   }, [maxSize]);
+
   const handleClear = () => {
     const mediaId = extractMediaId(value);
     if (mediaId) {
@@ -63,6 +63,7 @@ export function ImageField({
       onChange('');
     }
   };
+
   const handleConfirmDelete = async () => {
     setDeleting(true);
     onChange('');
@@ -78,6 +79,7 @@ export function ImageField({
     setDeleteDialogOpen(false);
     setPendingDeleteMediaId(null);
   };
+
   return (
     <Box>
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
@@ -156,40 +158,17 @@ export function ImageField({
           {hint}
         </Typography>
       )}
-      <Dialog
+
+      <ConfirmDialog
         open={deleteDialogOpen}
+        title={`确认移除${label}？`}
+        content="移除后该图片将从媒体库中删除，是否继续？"
+        confirmText="确认移除"
+        confirmColor="error"
+        loading={deleting}
         onClose={() => setDeleteDialogOpen(false)}
-        fullWidth
-        maxWidth="xs"
-        TransitionComponent={Grow}
-        PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
-        BackdropProps={{ 'aria-hidden': false }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>确认移除{label}？</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            移除后该图片将从媒体库中删除，是否继续？
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
-            <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
-              取消
-            </Button>
-            <Button
-              color="error"
-              variant="contained"
-              onClick={handleConfirmDelete}
-              disabled={deleting}
-              startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : null}
-              fullWidth={isMobileAdmin}
-              sx={{ textTransform: 'none', borderRadius: 2 }}
-            >
-              {deleting ? '移除中...' : '确认移除'}
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
     </Box>
   );
 }

@@ -9,10 +9,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   CircularProgress,
-  Grow,
   Slider,
   ButtonBase,
   alpha,
@@ -20,8 +18,11 @@ import {
 import { Check, Close, Add, DeleteOutlined, Storefront, Refresh, Mouse } from '@mui/icons-material';
 import type { UserCursor } from '@/types';
 import type { AppearanceEditor } from '../useAppearanceEditor';
+import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
+
 function CursorStoreDialog({ editor }: { editor: AppearanceEditor }) {
   const { cursorStoreOpen, setCursorStoreOpen, cursorStoreLoading, storeCursors, userCursors, cursorActionLoading, handleAddCursor, handleOpenCursorStore } = editor;
+
   return (
     <Dialog
       open={cursorStoreOpen}
@@ -152,70 +153,31 @@ function CursorStoreDialog({ editor }: { editor: AppearanceEditor }) {
     </Dialog>
   );
 }
+
 function CursorConfirmDialog({ editor }: { editor: AppearanceEditor }) {
-  const { cursorConfirmDialog, setCursorConfirmDialog, handleConfirmCursorAction, cursorActionLoading, isMobileAdmin } = editor;
+  const { cursorConfirmDialog, setCursorConfirmDialog, handleConfirmCursorAction, cursorActionLoading } = editor;
   const { open, type, cursor } = cursorConfirmDialog;
   const isAdd = type === 'add';
   const title = isAdd ? '确认添加鼠标？' : '确认移除鼠标？';
   const content = isAdd
     ? `确定要将“${cursor?.name}”添加到你的鼠标库吗？`
     : `确定要移除“${cursor?.name}”吗？移除后该鼠标将从你的鼠标库中消失。`;
-  const confirmText = isAdd
-    ? cursorActionLoading
-      ? '添加中...'
-      : '确认添加'
-    : cursorActionLoading
-      ? '删除中...'
-      : '确认删除';
+  const confirmText = isAdd ? '确认添加' : '确认删除';
+
   return (
-    <Dialog
+    <ConfirmDialog
       open={open}
-      onClose={() => !cursorActionLoading && setCursorConfirmDialog((prev) => ({ ...prev, open: false }))}
-      fullWidth
-      maxWidth="xs"
-      TransitionComponent={Grow}
-      PaperProps={{
-        sx: { borderRadius: { xs: 2, sm: '12px' } },
-      }}
-    >
-      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText color="text.secondary">{content}</DialogContentText>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1.5,
-            width: '100%',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Button
-            onClick={() => setCursorConfirmDialog((prev) => ({ ...prev, open: false }))}
-            color="inherit"
-            disabled={cursorActionLoading}
-            fullWidth={isMobileAdmin}
-            sx={{ textTransform: 'none', borderRadius: 2 }}
-          >
-            取消
-          </Button>
-          <Button
-            onClick={handleConfirmCursorAction}
-            variant="contained"
-            color={isAdd ? 'primary' : 'error'}
-            disabled={cursorActionLoading}
-            fullWidth={isMobileAdmin}
-            sx={{ textTransform: 'none', borderRadius: 2 }}
-          >
-            {confirmText}
-          </Button>
-        </Box>
-      </DialogActions>
-    </Dialog>
+      title={title}
+      content={content}
+      confirmText={confirmText}
+      confirmColor={isAdd ? 'primary' : 'error'}
+      loading={cursorActionLoading}
+      onClose={() => setCursorConfirmDialog((prev) => ({ ...prev, open: false }))}
+      onConfirm={handleConfirmCursorAction}
+    />
   );
 }
+
 function CursorCard({
   cursor,
   selected,
@@ -327,6 +289,7 @@ function CursorCard({
     </ButtonBase>
   );
 }
+
 export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
   const {
     userCursors,
@@ -338,6 +301,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
     setCursorSize,
     previewCursorUrl,
   } = editor;
+
   return (
     <Paper
       elevation={0}
@@ -385,9 +349,11 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             </Button>
           </Box>
         </Box>
+
         <Alert severity="info" sx={{ borderRadius: 1 }}>
           鼠标资源下载需要一定时间，若更新有延时请稍等片刻。
         </Alert>
+
         {userCursors.length === 0 ? (
           <Box
             sx={{
@@ -442,6 +408,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             })}
           </Box>
         )}
+
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -466,6 +433,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             valueLabelDisplay="auto"
           />
         </Box>
+
         <Box
           sx={{
             p: 2,
@@ -496,6 +464,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
           </Box>
         </Box>
       </Stack>
+
       <CursorStoreDialog editor={editor} />
       <CursorConfirmDialog editor={editor} />
     </Paper>

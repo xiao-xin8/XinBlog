@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useSiteStore } from '@/stores/siteStore';
 import { themePresets, type ThemeColorConfig } from '@/types/theme';
+
 export interface CustomThemeConfig {
   presetId: string;
   customColors: ThemeColorConfig;
@@ -11,7 +12,9 @@ export interface CustomThemeConfig {
   loadConfig: () => Promise<void>;
   saveConfig: (config: Partial<Omit<CustomThemeConfig, 'loaded' | 'loadConfig' | 'saveConfig'>>) => Promise<boolean>;
 }
+
 const defaultPreset = themePresets.find((p) => p.id === 'ocean') || themePresets[0];
+
 const initialState: Omit<CustomThemeConfig, 'loadConfig' | 'saveConfig'> = {
   presetId: defaultPreset.id,
   customColors: { ...defaultPreset.colors },
@@ -19,6 +22,7 @@ const initialState: Omit<CustomThemeConfig, 'loadConfig' | 'saveConfig'> = {
   borderRadius: 16,
   loaded: false,
 };
+
 function applyThemePatch(patch: Partial<CustomThemeConfig>): Partial<CustomThemeConfig> {
   const next: Partial<CustomThemeConfig> = { loaded: true };
   if (patch.presetId !== undefined) next.presetId = patch.presetId;
@@ -29,11 +33,14 @@ function applyThemePatch(patch: Partial<CustomThemeConfig>): Partial<CustomTheme
   }
   return next;
 }
+
 export const useThemeConfigStore = create<CustomThemeConfig>()(
   persist(
     (set, get) => ({
       ...initialState,
+
       loadConfig: async () => {
+        
         const siteTheme = useSiteStore.getState().config.theme;
         if (siteTheme) {
           set(applyThemePatch(siteTheme));
@@ -41,6 +48,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
         }
         set({ loaded: true });
       },
+
       saveConfig: async (newConfig) => {
         const merged = {
           presetId: get().presetId,
@@ -49,6 +57,8 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
           borderRadius: get().borderRadius,
           ...newConfig,
         };
+
+        
         set({ ...merged, loaded: true });
         return true;
       },
@@ -57,6 +67,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
       name: 'theme-config',
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState as CustomThemeConfig) };
+        
         if (merged.borderRadius > 32) {
           merged.borderRadius = 32;
         }
@@ -65,6 +76,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
     }
   )
 );
+
 export function getActiveColors(config: CustomThemeConfig): ThemeColorConfig {
   if (config.useCustomColors) {
     return config.customColors;

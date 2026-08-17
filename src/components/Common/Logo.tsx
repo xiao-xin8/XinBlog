@@ -1,12 +1,15 @@
 import { Box, Typography, alpha } from '@mui/material';
 import { useSiteStore } from '@/stores/siteStore';
+
 interface LogoProps {
   collapsed?: boolean;
 }
+
 export function Logo({ collapsed = false }: LogoProps) {
   const { config } = useSiteStore();
   const logoUrl = config.logo || '/logo.png';
   const siteName = config.siteName || 'XinBlog';
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 1.5, minWidth: 0, maxWidth: '100%' }}>
       <Box

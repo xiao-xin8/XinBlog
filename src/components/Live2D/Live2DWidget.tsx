@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { useSiteStore } from '@/stores/siteStore';
 import type { Live2dConfig } from '@/types';
+
 const CSS_ID = 'live2d-widget-css';
 const CUSTOM_STYLE_ID = 'live2d-widget-custom-style';
 const INIT_CHECK_INTERVAL = 50;
 const OFFICIAL_CDN = 'https://fastly.jsdelivr.net/gh/fghrsh/live2d_api/';
+
 interface Live2dWindow extends Window {
   initWidget?: (config: Record<string, unknown>) => void;
   __live2d_initialized?: boolean;
 }
+
 function loadCss(href: string) {
   return new Promise<void>((resolve, reject) => {
     const existing = document.getElementById(CSS_ID) as HTMLLinkElement | null;
@@ -25,6 +28,7 @@ function loadCss(href: string) {
     document.head.appendChild(link);
   });
 }
+
 function loadScript(src: string) {
   return new Promise<void>((resolve, reject) => {
     const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
@@ -41,32 +45,42 @@ function loadScript(src: string) {
     document.head.appendChild(script);
   });
 }
+
 function removeWidgetDom() {
   document.getElementById('waifu')?.remove();
   document.getElementById('waifu-toggle')?.remove();
 }
+
 function removeStyles() {
   document.getElementById(CSS_ID)?.remove();
   document.getElementById(CUSTOM_STYLE_ID)?.remove();
 }
+
 function cleanupWidget() {
   removeWidgetDom();
   removeStyles();
   const win = window as unknown as Live2dWindow;
   win.__live2d_initialized = false;
 }
+
 function setLoading(loading: boolean) {
   const canvas = document.getElementById('waifu-canvas');
   if (!canvas) return;
   canvas.classList.toggle('live2d-loading', loading);
 }
+
 function isMobileScreen() {
   return window.innerWidth <= 768;
 }
+
 const LOCAL_MODEL_PATH = '/live2d-models/';
+
 async function resolveCdnPath(modelSource: 'local' | 'cdn', customCdn?: string): Promise<string> {
+  
   const fallback = customCdn?.trim() || OFFICIAL_CDN;
+  
   if (modelSource === 'cdn') return fallback;
+  
   try {
     const res = await fetch(`${LOCAL_MODEL_PATH}model_list.json`, {
       method: 'HEAD',
@@ -74,9 +88,11 @@ async function resolveCdnPath(modelSource: 'local' | 'cdn', customCdn?: string):
     });
     if (res.ok) return LOCAL_MODEL_PATH;
   } catch {
+    // ignore
   }
   return fallback;
 }
+
 function applyCustomStyles(config: Live2dConfig) {
   let style = document.getElementById(CUSTOM_STYLE_ID) as HTMLStyleElement | null;
   if (!style) {
@@ -84,12 +100,14 @@ function applyCustomStyles(config: Live2dConfig) {
     style.id = CUSTOM_STYLE_ID;
     document.head.appendChild(style);
   }
+
   const isLeft = config.position === 'left';
   const position = isLeft ? 'left: 0; right: auto;' : 'right: 0; left: auto;';
   const transformOrigin = isLeft ? 'left bottom' : 'right bottom';
   const isMobile = isMobileScreen();
   const width = isMobile && config.mobileWidth ? config.mobileWidth : config.width;
   const height = isMobile && config.mobileHeight ? config.mobileHeight : config.height;
+
   style.textContent = `
     #waifu {
       position: fixed !important;
@@ -161,16 +179,21 @@ function applyCustomStyles(config: Live2dConfig) {
     }
   `;
 }
+
 async function initLive2d(config: Live2dConfig) {
   const win = window as unknown as Live2dWindow;
   if (win.__live2d_initialized) {
     applyCustomStyles(config);
     return;
   }
+
   localStorage.removeItem('waifu-disabled');
   localStorage.removeItem('waifu-display');
+
   applyCustomStyles(config);
+
   const cdnPath = await resolveCdnPath(config.modelSource, config.customCdn);
+
   win.initWidget?.({
     waifuPath: config.waifuPath,
     cdnPath,
@@ -181,14 +204,17 @@ async function initLive2d(config: Live2dConfig) {
     showToggleAfterQuit: config.showToggleAfterQuit,
     logLevel: config.logLevel,
   });
+
   win.__live2d_initialized = true;
 }
+
 export function Live2DWidget() {
   const config = useSiteStore((state) => state.config.live2d);
   const configRef = useRef(config);
   useEffect(() => {
     configRef.current = config;
   });
+
   useEffect(() => {
     const cfg = configRef.current;
     if (!cfg || !cfg.enabled) {
@@ -199,19 +225,25 @@ export function Live2DWidget() {
       cleanupWidget();
       return;
     }
+
     let cancelled = false;
     let checkTimer: ReturnType<typeof setInterval> | null = null;
+
     const onLoading = () => setLoading(true);
     const onLoaded = () => setLoading(false);
+
     const shouldShow = () => !isMobileScreen() || cfg.mobileEnabled;
+
     const startInit = async () => {
       try {
         await loadCss('/live2d/waifu.css');
         if (cancelled) return;
         await loadScript('/live2d/waifu-tips.js');
         if (cancelled) return;
+
         window.addEventListener('live2d-loading', onLoading);
         window.addEventListener('live2d-loaded', onLoaded);
+
         checkTimer = setInterval(() => {
           if (cancelled) {
             if (checkTimer) clearInterval(checkTimer);
@@ -224,9 +256,12 @@ export function Live2DWidget() {
           }
         }, INIT_CHECK_INTERVAL);
       } catch {
+        // 静态资源加载失败时静默失败，不影响页面主体功能
       }
     };
+
     startInit();
+
     const handleResize = () => {
       if (!shouldShow()) {
         cleanupWidget();
@@ -237,7 +272,9 @@ export function Live2DWidget() {
         startInit();
       }
     };
+
     window.addEventListener('resize', handleResize);
+
     return () => {
       cancelled = true;
       if (checkTimer) clearInterval(checkTimer);
@@ -246,5 +283,6 @@ export function Live2DWidget() {
       window.removeEventListener('resize', handleResize);
     };
   }, [config]);
+
   return null;
 }

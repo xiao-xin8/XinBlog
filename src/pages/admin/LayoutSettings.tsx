@@ -24,6 +24,7 @@ import type { PostLayoutMode } from '@/stores/uiStore';
 import type { Post } from '@/types';
 import { useSnackbar } from 'notistack';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
+
 const layouts: { id: PostLayoutMode; name: string; desc: string; icon: React.ReactNode }[] = [
   {
     id: 'grid',
@@ -44,6 +45,7 @@ const layouts: { id: PostLayoutMode; name: string; desc: string; icon: React.Rea
     icon: <AutoStories sx={{ fontSize: { xs: 28, md: 40 } }} />,
   },
 ];
+
 export function AdminLayoutSettings() {
   const ui = useUIStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -54,11 +56,13 @@ export function AdminLayoutSettings() {
   const isDirty = selected !== initialSelected;
   const [saving, setSaving] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
+
   useEffect(() => {
     fetchPosts().then((data) => {
       if (data.length) setPosts(data);
     });
   }, []);
+
   const applyLayout = async () => {
     setSaving(true);
     const ok = await ui.saveConfig({ postLayout: selected });
@@ -71,6 +75,7 @@ export function AdminLayoutSettings() {
     }
     setSaving(false);
   };
+
   const renderPreview = () => {
     switch (selected) {
       case 'list':
@@ -82,6 +87,7 @@ export function AdminLayoutSettings() {
         return <PostListGrid posts={posts} />;
     }
   };
+
   return (
     <Fade in timeout={400}>
     <Box>
@@ -91,7 +97,8 @@ export function AdminLayoutSettings() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         选择首页文章列表的展示风格，实时预览效果。
       </Typography>
-      {}
+
+      {/* 布局选择 */}
       <Paper
         elevation={0}
         sx={{
@@ -186,7 +193,8 @@ export function AdminLayoutSettings() {
           </ToggleButtonGroup>
         )}
       </Paper>
-      {}
+
+      {/* 预览 */}
       <Paper
         elevation={0}
         sx={{
@@ -222,7 +230,8 @@ export function AdminLayoutSettings() {
           {renderPreview()}
         </Box>
       </Paper>
-      {}
+
+      {/* 操作按钮 */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', minWidth: 0 }}>
         <Button
           variant="outlined"

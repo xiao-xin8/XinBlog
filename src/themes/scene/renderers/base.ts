@@ -1,8 +1,18 @@
 import type { ComponentType } from 'react';
 import type { ThemeParamSchema } from '@/types';
+
+
+
+
+
 export interface SceneRenderContext {
   themeColor?: string;
 }
+
+
+
+
+
 export interface SceneThemeRenderer<P extends Record<string, unknown> = Record<string, unknown>> {
   id: string;
   name: string;
@@ -12,6 +22,10 @@ export interface SceneThemeRenderer<P extends Record<string, unknown> = Record<s
   schema: ThemeParamSchema[];
   component: ComponentType<{ params: P }>;
 }
+
+
+
+
 export function resolveSceneColor(value: string | undefined, fallback: string): string {
   if (!value) return fallback;
   const s = value.trim().toLowerCase();

@@ -1,10 +1,12 @@
 import { Grid } from '@mui/material';
 import { PostCard } from '@/components/Common/PostCard';
 import type { Post } from '@/types';
+
 interface PostListGridProps {
   posts: Post[];
   theme?: import('@/types').PostCardThemeConfig;
 }
+
 export function PostListGrid({ posts, theme }: PostListGridProps) {
   return (
     <Grid container spacing={3}>
