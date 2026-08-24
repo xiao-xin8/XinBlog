@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { registerSmoothScroll, type SmoothScrollApi } from '@/utils/smoothScrollController';
 
 interface SmoothScrollOptions {
   
@@ -108,6 +109,18 @@ export function useSmoothScroll(
       }
     }
 
+    
+    
+    const relaxedApi: SmoothScrollApi = {
+      scrollTo: (target: number) => {
+        updateBounds();
+        state.target = clamp(target);
+        startRender();
+      },
+      updateBounds,
+    };
+    registerSmoothScroll(relaxedApi);
+
     function onWheel(e: WheelEvent) {
       updateBounds();
 
@@ -179,6 +192,7 @@ export function useSmoothScroll(
     return () => {
       cancelAnimationFrame(state.rafId);
       state.active = false;
+      registerSmoothScroll(null);
       container.removeEventListener('wheel', onWheel);
       container.removeEventListener('touchstart', onTouchStart);
       container.removeEventListener('touchmove', onTouchMove);

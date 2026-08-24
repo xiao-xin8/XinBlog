@@ -7,10 +7,10 @@ export function getComments(slug: string, page = 1, limit = 20) {
   );
 }
 
-export function createComment(slug: string, content: string) {
-  return apiPost<{ id: number | null; status: string }>(
+export function createComment(slug: string, content: string, parentId?: number | null) {
+  return apiPost<{ id: number | null; status: string; notifyErrors?: string[] }>(
     `/api/v1/posts/${encodeURIComponent(slug)}/comments`,
-    { content }
+    { content, parentId }
   );
 }
 

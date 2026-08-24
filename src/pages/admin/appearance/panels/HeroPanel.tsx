@@ -56,8 +56,10 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             背景色
           </Typography>
+
           <ColorPicker value={heroBgColor} onChange={setHeroBgColor} />
         </Box>
+
         <ImageField
           label="背景图片"
           value={heroBgImage}
@@ -69,6 +71,8 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
           hint="建议上传后自动压缩到 500KB 以内，也可引用自定义 URL"
         />
       </Stack>
+
     </Paper>
+
   );
 }

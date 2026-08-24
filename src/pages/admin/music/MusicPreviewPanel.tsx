@@ -6,10 +6,6 @@ import { MusicPlayerWidget } from '@/components/MusicPlayer/MusicPlayerWidget';
 import { useMusicPlayer } from '@/components/MusicPlayer/useMusicPlayer';
 
 
-
-
-
-
 export function MusicPreviewPanel({ editor }: { editor: MusicEditor }) {
   const previewConfig = useMemo(() => editor.buildConfig(), [editor]);
 
@@ -31,15 +27,20 @@ export function MusicPreviewPanel({ editor }: { editor: MusicEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
           预览
         </Typography>
+
         <Fade in timeout={400}>
           <Box>
             <MusicPlayerCard config={previewConfig} player={player} />
           </Box>
+
         </Fade>
+
       </Paper>
 
-      {/* 侧边悬浮工具预览（真实 fixed 叠于页面侧边，禁用滚动拦截避免干扰管理后台） */}
+
+      {}
       <MusicPlayerWidget player={player} position={previewConfig.position} defaultExpanded disableScrollIntercept />
     </Stack>
+
   );
 }

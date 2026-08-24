@@ -39,6 +39,7 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
         >
           <Box component="img" src={post.cover} alt={post.title} loading="eager" />
         </Box>
+
       )}
 
       <Box
@@ -79,13 +80,16 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </Box>
+
           写作时间：{dayjs(post.createdAt).format('YYYY-MM-DD')}
         </Box>
+
 
         {post.tags.map((tag) => (
           <TagChip key={tag.id} tag={tag} />
         ))}
       </Box>
+
 
       <Typography
         variant="h1"
@@ -102,6 +106,8 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
       >
         {post.title}
       </Typography>
+
     </Box>
+
   );
 }

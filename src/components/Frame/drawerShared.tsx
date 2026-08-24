@@ -19,6 +19,8 @@ export interface NavItem {
   title: string;
   path: string;
   icon: ReactNode;
+  
+  superOnly?: boolean;
 }
 
 interface StyledNavButtonProps extends ButtonBaseProps {

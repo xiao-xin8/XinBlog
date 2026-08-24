@@ -47,6 +47,9 @@ export default function TimeTunnelStyle() {
 
     const state = { target: el.scrollLeft, current: el.scrollLeft, rafId: 0 };
 
+    const clampTarget = (v: number) =>
+      Math.max(0, Math.min(v, el.scrollWidth - el.clientWidth));
+
     const render = () => {
       const diff = state.target - state.current;
       if (Math.abs(diff) < 0.5) {
@@ -73,13 +76,59 @@ export default function TimeTunnelStyle() {
       e.preventDefault();
       e.stopPropagation();
       state.target += e.deltaY || e.deltaX;
-      state.target = Math.max(0, Math.min(state.target, el.scrollWidth - el.clientWidth));
+      state.target = clampTarget(state.target);
       startRender();
     };
 
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchAnchor = state.target;
+    let draggingX = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchAnchor = state.target;
+      draggingX = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      
+      if (!draggingX) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          draggingX = true;
+          e.preventDefault();
+          e.stopPropagation();
+        } else {
+          return;
+        }
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      state.target = clampTarget(touchAnchor - dx);
+      startRender();
+    };
+
+    const endDrag = () => {
+      draggingX = false;
+    };
+
     el.addEventListener('wheel', handleWheel, { passive: false });
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', endDrag);
+    el.addEventListener('touchcancel', endDrag);
     return () => {
       el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', endDrag);
+      el.removeEventListener('touchcancel', endDrag);
       cancelAnimationFrame(state.rafId);
     };
   }, []);
@@ -117,7 +166,7 @@ export default function TimeTunnelStyle() {
         overflow: 'hidden',
       }}
     >
-      {/* 时间轴指示器 */}
+      {}
       <Box
         sx={{
           position: 'absolute',
@@ -167,7 +216,9 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               加载中...
             </Typography>
+
           </Box>
+
         ) : groups.length === 0 ? (
           <Box
             sx={{
@@ -181,7 +232,9 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               暂无留言
             </Typography>
+
           </Box>
+
         ) : (
           groups.map(([date, msgs], i) => (
             <Box
@@ -194,7 +247,7 @@ export default function TimeTunnelStyle() {
                 animationDelay: `${Math.min(i, 8) * 70}ms`,
               }}
             >
-              {/* 时间轴节点 */}
+              {}
               <Box
                 sx={{
                   position: 'relative',
@@ -225,6 +278,7 @@ export default function TimeTunnelStyle() {
                 >
                   {date}
                 </Typography>
+
                 <Typography
                   variant="caption"
                   color="text.disabled"
@@ -232,9 +286,11 @@ export default function TimeTunnelStyle() {
                 >
                   {msgs.length} 条留言
                 </Typography>
+
               </Box>
 
-              {/* 当天留言卡片 */}
+
+              {}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {msgs.map((msg) => (
                   <Box
@@ -256,6 +312,7 @@ export default function TimeTunnelStyle() {
                         <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                           {msg.username || '用户'}
                         </Typography>
+
                       ) : (
                         <>
                           <Chip
@@ -274,8 +331,10 @@ export default function TimeTunnelStyle() {
                             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                               {msg.nickname}
                             </Typography>
+
                           )}
                         </>
+
                       )}
                       <Typography
                         variant="caption"
@@ -284,7 +343,9 @@ export default function TimeTunnelStyle() {
                       >
                         {formatTime(msg.createdAt)}
                       </Typography>
+
                     </Box>
+
                     <Typography
                       variant="body2"
                       sx={{
@@ -300,14 +361,18 @@ export default function TimeTunnelStyle() {
                     >
                       {msg.content}
                     </Typography>
+
                   </Box>
+
                 ))}
               </Box>
+
             </Box>
+
           ))
         )}
 
-        {/* 尾部加载动画 */}
+        {}
         {!loading && groups.length > 0 && (
           <Box
             sx={{
@@ -325,14 +390,18 @@ export default function TimeTunnelStyle() {
               <Typography variant="caption" color="text.disabled">
                 已到尽头
               </Typography>
+
             ) : (
               <Typography variant="caption" color="text.disabled">
                 继续滚动...
               </Typography>
+
             )}
           </Box>
+
         )}
       </Box>
+
 
       <Box
         sx={{
@@ -343,9 +412,12 @@ export default function TimeTunnelStyle() {
         }}
       >
         <Typography variant="caption" color="text.disabled">
-          滚动鼠标滚轮浏览时间轴
+          滚动或滑动浏览时间轴
         </Typography>
+
       </Box>
+
     </Box>
+
   );
 }

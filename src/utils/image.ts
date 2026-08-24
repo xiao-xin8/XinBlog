@@ -1,3 +1,5 @@
+
+
 export function getBase64Size(base64: string): number {
   const head = base64.indexOf(',');
   const len = base64.length - (head + 1);

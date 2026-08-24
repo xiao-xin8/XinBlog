@@ -79,11 +79,14 @@ export function ClockWidget({ config }: { config: HeroWidgetConfig }) {
       >
         {formatTime(now, format, displaySeconds)}
       </Typography>
+
       {displayDate && (
         <Typography variant={isCompact ? 'caption' : 'body2'} color="text.secondary" noWrap>
           {isCompact ? formatShortDate(now) : formatDate(now)}
         </Typography>
+
       )}
     </Box>
+
   );
 }

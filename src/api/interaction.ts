@@ -30,7 +30,7 @@ function writeLocalCache(data: InteractionSettings) {
   try {
     localStorage.setItem(INTERACTION_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 
@@ -39,7 +39,7 @@ function clearLocalCache() {
   try {
     localStorage.removeItem(INTERACTION_CACHE_KEY);
   } catch {
-    // ignore
+    
   }
 }
 

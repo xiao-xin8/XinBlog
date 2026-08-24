@@ -195,6 +195,38 @@ export interface MusicPlayerConfig {
   imageProxy: boolean;
 }
 
+
+export interface SpacingValue {
+  mobile: number;
+  desktop: number;
+}
+
+
+export interface SpacingConfig {
+  
+  mainPaddingX: SpacingValue;
+  
+  navPaddingX: SpacingValue;
+  
+  navGap: SpacingValue;
+  
+  footerPaddingY: SpacingValue;
+  
+  footerLinkGap: SpacingValue;
+  
+  articleHeadingGap: SpacingValue;
+  
+  articleParagraphGap: SpacingValue;
+  
+  postListGap: SpacingValue;
+  
+  heroPaddingY: SpacingValue;
+  
+  heroBottomGap: SpacingValue;
+  
+  cardPaddingY: SpacingValue;
+}
+
 export interface SiteConfig {
   title?: string;
   subtitle?: string;
@@ -220,6 +252,12 @@ export interface SiteConfig {
   postLayout?: 'grid' | 'list' | 'magazine';
   footerText?: string;
   lazyLoadMedia?: boolean;
+  enableLatex?: boolean;
+  disableSmoothScroll?: boolean;
+  
+  imageDisplayMode?: 'fixed' | 'natural';
+  
+  enableDashboardStats?: boolean;
   backgroundImage?: string;
   backgroundOpacity?: number;
   backgroundBlur?: number;
@@ -231,6 +269,7 @@ export interface SiteConfig {
   nav?: NavConfig;
   termsAgreement?: string;
   termsPrivacy?: string;
+  spacing?: SpacingConfig;
 }
 
 export interface FriendLink {
@@ -252,6 +291,23 @@ export interface FriendsConfig {
   cardColor: string;
   avatarShape: 'circle' | 'rounded';
   showDescription: boolean;
+  
+  applyEnabled?: boolean;
+  
+  applyNeedsAudit?: boolean;
+}
+
+export interface FriendApplication {
+  id: number;
+  name: string;
+  url: string;
+  description?: string;
+  email?: string;
+  avatar?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  remark?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface NavItemConfig {

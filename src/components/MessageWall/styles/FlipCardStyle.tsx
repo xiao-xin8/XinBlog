@@ -41,7 +41,7 @@ function FlipCard({ message }: { message: Message }) {
           transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
         }}
       >
-        {/* 卡片背面（未翻牌） */}
+        {}
         <Box
           sx={{
             position: 'absolute',
@@ -61,12 +61,15 @@ function FlipCard({ message }: { message: Message }) {
           <Typography variant="h4" sx={{ opacity: 0.4, userSelect: 'none' }}>
             ?
           </Typography>
+
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             点击翻开
           </Typography>
+
         </Box>
 
-        {/* 卡片正面（翻牌后） */}
+
+        {}
         <Box
           sx={{
             position: 'absolute',
@@ -87,6 +90,7 @@ function FlipCard({ message }: { message: Message }) {
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 {message.username || '用户'}
               </Typography>
+
             ) : (
               <>
                 <Chip
@@ -105,10 +109,13 @@ function FlipCard({ message }: { message: Message }) {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                     {message.nickname}
                   </Typography>
+
                 )}
               </>
+
             )}
           </Box>
+
           <Typography
             variant="body2"
             sx={{
@@ -122,12 +129,17 @@ function FlipCard({ message }: { message: Message }) {
           >
             {message.content}
           </Typography>
+
           <Typography variant="caption" color="text.disabled" sx={{ mt: 1, fontSize: '0.65rem' }}>
             {new Date(message.createdAt).toLocaleDateString('zh-CN')}
           </Typography>
+
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }
 
@@ -203,7 +215,9 @@ export default function FlipCardStyle() {
           <RefreshIcon sx={{ fontSize: 16 }} />
           换一批
         </Box>
+
       </Box>
+
       <Box
         key={batch}
         sx={{
@@ -231,6 +245,7 @@ export default function FlipCardStyle() {
           <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
             暂无留言
           </Typography>
+
         ) : (
           shuffled.map((msg, i) => (
             <Box
@@ -242,9 +257,12 @@ export default function FlipCardStyle() {
             >
               <FlipCard message={msg} />
             </Box>
+
           ))
         )}
       </Box>
+
     </Box>
+
   );
 }

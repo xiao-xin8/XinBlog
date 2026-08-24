@@ -69,10 +69,12 @@ export function SceneThemeCard({
             />
           )}
         </Box>
+
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle2" fontWeight={700} noWrap>
             {theme.name}
           </Typography>
+
           <Typography
             variant="caption"
             color="text.secondary"
@@ -80,8 +82,11 @@ export function SceneThemeCard({
           >
             {theme.description || theme.author || '场景主题'}
           </Typography>
+
         </Box>
+
       </Box>
+
       <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
         <Button
           variant={isSelected ? 'outlined' : 'contained'}
@@ -96,6 +101,7 @@ export function SceneThemeCard({
         >
           {isSelected ? (isActive ? '正在使用' : '已选中') : '应用'}
         </Button>
+
         {isSelected && (
           <Button
             variant="outlined"
@@ -109,8 +115,11 @@ export function SceneThemeCard({
           >
             恢复默认
           </Button>
+
         )}
       </Box>
+
     </Paper>
+
   );
 }

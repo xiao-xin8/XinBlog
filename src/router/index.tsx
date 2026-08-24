@@ -1,3 +1,6 @@
+
+
+
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { MainLayout } from '@/components/Frame/MainLayout';
@@ -5,6 +8,7 @@ import { AdminLayout } from '@/components/Admin/AdminLayout';
 import { PageLoading } from '@/components/Common/Loading';
 import { RouteErrorBoundary } from '@/components/Common/RouteErrorBoundary';
 import { useAuthStore } from '@/stores/authStore';
+import { isContentAdmin, isSuperAdmin } from '@/utils/permission';
 
 const Home = lazy(() => import('@/pages/Home').then((m) => ({ default: m.Home })));
 const PostDetail = lazy(() => import('@/pages/PostDetail').then((m) => ({ default: m.PostDetail })));
@@ -12,6 +16,7 @@ const TagPage = lazy(() => import('@/pages/TagPage').then((m) => ({ default: m.T
 const About = lazy(() => import('@/pages/About').then((m) => ({ default: m.About })));
 const NotFound = lazy(() => import('@/pages/NotFound').then((m) => ({ default: m.NotFound })));
 const AdminLogin = lazy(() => import('@/pages/admin/Login').then((m) => ({ default: m.AdminLogin })));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword').then((m) => ({ default: m.ForgotPassword })));
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard').then((m) => ({ default: m.AdminDashboard })));
 const AdminAppearance = lazy(() => import('@/pages/admin/Appearance').then((m) => ({ default: m.AdminAppearance })));
 const AdminForbidden = lazy(() => import('@/pages/admin/Forbidden').then((m) => ({ default: m.AdminForbidden })));
@@ -36,6 +41,7 @@ const MessageWall = lazy(() => import('@/pages/MessageWall').then((m) => ({ defa
 
 function SuspensePage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoading />}>{children}</Suspense>;
+
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -63,7 +69,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       }
 
       
-      if (user.role !== 'super_admin') {
+      if (!isContentAdmin(user.role)) {
         if (!cancelled) {
           setForbidden(true);
           setValid(false);
@@ -118,6 +124,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       <SuspensePage>
         <AdminForbidden />
       </SuspensePage>
+
     );
   }
 
@@ -126,6 +133,22 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+
+}
+
+
+function RequireSuper({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+  if (!user || !isSuperAdmin(user.role)) {
+    return (
+      <SuspensePage>
+        <AdminForbidden />
+      </SuspensePage>
+
+    );
+  }
+  return <>{children}</>;
+
 }
 
 export const router = createBrowserRouter([
@@ -135,26 +158,45 @@ export const router = createBrowserRouter([
       <MainLayout>
         <Outlet />
       </MainLayout>
+
     ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuspensePage><Home /></SuspensePage> },
+
       { path: 'post/:slug', element: <SuspensePage><PostDetail /></SuspensePage> },
+
       { path: 'tag/:slug', element: <SuspensePage><TagPage /></SuspensePage> },
+
       { path: 'about', element: <SuspensePage><About /></SuspensePage> },
+
       { path: 'friends', element: <SuspensePage><Friends /></SuspensePage> },
+
       { path: 'profile', element: <SuspensePage><Profile /></SuspensePage> },
+
       { path: 'music', element: <SuspensePage><MusicPage /></SuspensePage> },
+
       { path: 'message-wall', element: <SuspensePage><MessageWall /></SuspensePage> },
+
       { path: 'agreement', element: <SuspensePage><Terms /></SuspensePage> },
+
       { path: 'privacy', element: <SuspensePage><Terms /></SuspensePage> },
+
       { path: '404', element: <SuspensePage><NotFound /></SuspensePage> },
+
       { path: '*', element: <Navigate to="/404" replace /> },
     ],
   },
   {
     path: '/admin/login',
     element: <SuspensePage><AdminLogin /></SuspensePage>,
+
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/forgot-password',
+    element: <SuspensePage><ForgotPassword /></SuspensePage>,
+
     errorElement: <RouteErrorBoundary />,
   },
   {
@@ -163,24 +205,32 @@ export const router = createBrowserRouter([
       <RequireAuth>
         <AdminLayout />
       </RequireAuth>
+
     ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuspensePage><AdminDashboard /></SuspensePage> },
+
       { path: 'posts', element: <SuspensePage><AdminPosts /></SuspensePage> },
+
       { path: 'tags', element: <SuspensePage><AdminTags /></SuspensePage> },
+
       { path: 'media', element: <SuspensePage><AdminMedia /></SuspensePage> },
-      { path: 'appearance', element: <SuspensePage><AdminAppearance /></SuspensePage> },
-      { path: 'live2d', element: <SuspensePage><AdminLive2d /></SuspensePage> },
-      { path: 'music', element: <SuspensePage><AdminMusic /></SuspensePage> },
-      { path: 'advanced', element: <SuspensePage><AdminAdvancedSettings /></SuspensePage> },
+
+      { path: 'appearance', element: <SuspensePage><RequireSuper><AdminAppearance /></RequireSuper></SuspensePage> },
+      { path: 'live2d', element: <SuspensePage><RequireSuper><AdminLive2d /></RequireSuper></SuspensePage> },
+      { path: 'music', element: <SuspensePage><RequireSuper><AdminMusic /></RequireSuper></SuspensePage> },
+      { path: 'advanced', element: <SuspensePage><RequireSuper><AdminAdvancedSettings /></RequireSuper></SuspensePage> },
       { path: 'comments', element: <SuspensePage><AdminComments /></SuspensePage> },
+
       { path: 'message-wall', element: <SuspensePage><AdminMessageWall /></SuspensePage> },
+
       { path: 'friends', element: <SuspensePage><AdminFriends /></SuspensePage> },
-      { path: 'ai', element: <SuspensePage><AdminAi /></SuspensePage> },
-      { path: 'themes', element: <SuspensePage><AdminThemeSettings /></SuspensePage> },
-      { path: 'terms', element: <SuspensePage><TermsEditor /></SuspensePage> },
-      { path: 'users', element: <SuspensePage><AdminSettings /></SuspensePage> },
+
+      { path: 'ai', element: <SuspensePage><RequireSuper><AdminAi /></RequireSuper></SuspensePage> },
+      { path: 'themes', element: <SuspensePage><RequireSuper><AdminThemeSettings /></RequireSuper></SuspensePage> },
+      { path: 'terms', element: <SuspensePage><RequireSuper><TermsEditor /></RequireSuper></SuspensePage> },
+      { path: 'users', element: <SuspensePage><RequireSuper><AdminSettings /></RequireSuper></SuspensePage> },
       { path: '*', element: <Navigate to="/admin" replace /> },
     ],
   },

@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { MenuBook, Close } from '@mui/icons-material';
+import { smoothScrollTo } from '@/utils/smoothScrollController';
 
 export interface HeadingItem {
   id: string;
@@ -106,18 +107,30 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
 
     setOpen(false);
 
-    
-    const doScroll = () => {
-      const top = getHeadingTop(id);
-      if (top === null) return;
-      container.scrollTo({ top: Math.max(0, top - 24), behavior: 'smooth' });
+    const computeTarget = (): number | null => {
+      const el = document.getElementById(id);
+      if (!container || !el) return null;
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const top = container.scrollTop + (elRect.top - containerRect.top);
+      return Math.max(0, top - 24);
     };
 
+    const target = computeTarget();
+    if (target === null) return;
+
     
-    requestAnimationFrame(() => {
-      doScroll();
-      setTimeout(doScroll, 80);
-    });
+    if (smoothScrollTo(target)) return;
+
+    
+    
+    
+    window.setTimeout(() => {
+      const finalTarget = computeTarget();
+      if (finalTarget !== null) {
+        container.scrollTop = finalTarget;
+      }
+    }, 260);
   };
 
   if (!hasHeadings) return null;
@@ -158,7 +171,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         >
           <MenuBook />
         </Fab>
+
       </Tooltip>
+
 
       <Drawer
         anchor="right"
@@ -193,6 +208,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           <Typography variant="subtitle1" fontWeight={700}>
             目录
           </Typography>
+
           <Box
             component="button"
             onClick={() => setOpen(false)}
@@ -220,7 +236,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           >
             <Close fontSize="small" />
           </Box>
+
         </Box>
+
 
         <Box
           ref={listRef}
@@ -277,11 +295,16 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                 >
                   {h.text}
                 </Typography>
+
               </Box>
+
             );
           })}
         </Box>
+
       </Drawer>
+
     </>
+
   );
 }

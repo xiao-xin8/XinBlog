@@ -10,12 +10,6 @@ interface FloatingSaveButtonProps {
 }
 
 
-
-
-
-
-
-
 export function FloatingSaveButton({ show, saving, onClick, label = '保存' }: FloatingSaveButtonProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [leftOffset, setLeftOffset] = useState(284);
@@ -66,7 +60,10 @@ export function FloatingSaveButton({ show, saving, onClick, label = '保存' }: 
         >
           {saving ? '保存中...' : label}
         </Button>
+
       </Fade>
+
     </Box>
+
   );
 }

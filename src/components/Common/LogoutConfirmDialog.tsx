@@ -33,11 +33,14 @@ export function LogoutConfirmDialog({ open, onClose, onConfirm }: LogoutConfirmD
       }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>确认退出登录？</DialogTitle>
+
       <DialogContent>
         <DialogContentText color="text.secondary">
           退出后需要重新登录，是否继续？
         </DialogContentText>
+
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', gap: 1.5, width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column-reverse' : 'row', justifyContent: 'flex-end' }}>
           <Button
@@ -48,6 +51,7 @@ export function LogoutConfirmDialog({ open, onClose, onConfirm }: LogoutConfirmD
           >
             取消
           </Button>
+
           <Button
             onClick={onConfirm}
             variant="contained"
@@ -57,8 +61,12 @@ export function LogoutConfirmDialog({ open, onClose, onConfirm }: LogoutConfirmD
           >
             确认退出
           </Button>
+
         </Box>
+
       </DialogActions>
+
     </Dialog>
+
   );
 }

@@ -12,6 +12,7 @@ import {
   PostDetailGlassLayout,
 } from '@/components/PostDetail';
 import { useSiteStore } from '@/stores/siteStore';
+import { smoothScrollTo } from '@/utils/smoothScrollController';
 import type { Post } from '@/types';
 
 function getScrollContainer(): HTMLElement | null {
@@ -92,12 +93,15 @@ export function PostDetail() {
               />
             )}
           </Suspense>
+
         )}
 
         {(!isGlassTheme || isMobile) && <TableOfContents headings={headings} />}
         <ReadingProgressButton />
       </Box>
+
     </Fade>
+
   );
 }
 
@@ -128,10 +132,12 @@ function ReadingProgressButton() {
     <Box
       onClick={() => {
         const container = getScrollContainer();
-        if (container) {
-          container.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (!smoothScrollTo(0)) {
+          if (container) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }
       }}
       aria-label="回到顶部"
@@ -196,7 +202,9 @@ function ReadingProgressButton() {
           strokeDashoffset={progressCircumference * (1 - readingProgress)}
         />
       </svg>
+
       <KeyboardArrowUp sx={{ color: 'primary.main', position: 'relative', zIndex: 1 }} />
     </Box>
+
   );
 }

@@ -8,11 +8,6 @@ export interface ScrollDirectionState {
 }
 
 
-
-
-
-
-
 export function useScrollDirection(threshold = 64, targetRef?: RefObject<HTMLElement | null>): ScrollDirectionState {
   const [hidden, setHidden] = useState(false);
   const [scrollY, setScrollY] = useState(0);

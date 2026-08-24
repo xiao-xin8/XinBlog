@@ -27,10 +27,12 @@ import { TagChip } from '@/components/Common/TagChip';
 import { Loading } from '@/components/Common/Loading';
 import { HeroBento } from '@/components/Hero/HeroBento';
 import { searchPosts } from '@/utils/search';
+import { resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { Post, Tag, PaginationMode } from '@/types';
 
 export function Home() {
   const { config } = useSiteStore();
+  const spacing = resolveSpacingConfig(config.spacing);
   const paginationMode: PaginationMode = config.paginationMode || 'load-more';
   const pageSize = Math.max(1, config.pageSize ?? 9);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -150,8 +152,8 @@ export function Home() {
           <Box
             sx={{
               background: config.hero?.backgroundColor || ((theme) => theme.palette.gradient.hero),
-              py: { xs: 6, md: 10 },
-              mb: { xs: 4, md: 6 },
+              py: { xs: `${spacing.heroPaddingY.mobile}px`, md: `${spacing.heroPaddingY.desktop}px` },
+              mb: { xs: `${spacing.heroBottomGap.mobile}px`, md: `${spacing.heroBottomGap.desktop}px` },
               borderRadius: (theme) => `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px`,
               position: 'relative',
               overflow: 'hidden',
@@ -196,6 +198,7 @@ export function Home() {
                   }}
                 />
               </>
+
             )}
             <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
               <Box sx={{ textAlign: 'center', maxWidth: 720, mx: 'auto' }}>
@@ -230,6 +233,7 @@ export function Home() {
                   >
                     {config.hero.title}
                   </Typography>
+
                 )}
                 {config.hero?.subtitle && (
                   <Typography
@@ -239,9 +243,10 @@ export function Home() {
                   >
                     {config.hero.subtitle}
                   </Typography>
+
                 )}
 
-                {/* 首页搜索 */}
+                {}
                 <Box
                   component="form"
                   onSubmit={handleSearchSubmit}
@@ -300,8 +305,10 @@ export function Home() {
                     >
                       <Clear fontSize="small" />
                     </IconButton>
+
                   )}
                 </Box>
+
 
                 <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {tags.slice(0, 5).map((tag) => (
@@ -313,9 +320,13 @@ export function Home() {
                     />
                   ))}
                 </Box>
+
               </Box>
+
             </Container>
+
           </Box>
+
         )}
 
         <Container maxWidth="lg" sx={{ pb: 8 }}>
@@ -324,6 +335,7 @@ export function Home() {
               <Typography variant="h4" component="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
                 {queryFromUrl ? '搜索结果' : '最新文章'}
               </Typography>
+
               {queryFromUrl && (
                 <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
                   “{queryFromUrl}” 共 {filteredPosts.length} 篇
@@ -344,9 +356,12 @@ export function Home() {
                   >
                     清除
                   </Box>
+
                 </Typography>
+
               )}
             </Box>
+
 
             {loading ? (
               <Loading />
@@ -358,10 +373,13 @@ export function Home() {
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         没有找到相关文章
                       </Typography>
+
                       <Typography variant="body2" color="text.secondary">
                         换个关键词试试，或上传一篇把
                       </Typography>
+
                     </Box>
+
                   ) : (
                     <PostList posts={filteredPosts} />
                   )}
@@ -385,6 +403,7 @@ export function Home() {
                         >
                           {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                         </Button>
+
                       ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <Button
@@ -399,6 +418,7 @@ export function Home() {
                           >
                             上一页
                           </Button>
+
                           <Box
                             sx={{
                               px: 2,
@@ -413,6 +433,7 @@ export function Home() {
                           >
                             {page}
                           </Box>
+
                           <Button
                             variant="outlined"
                             onClick={handleNextPage}
@@ -425,20 +446,27 @@ export function Home() {
                           >
                             下一页
                           </Button>
+
                         </Box>
+
                       )}
                     </Box>
+
                   )}
                 </Box>
+
               </Fade>
+
             )}
           </Box>
+
 
           {!queryFromUrl && !loading && (
             <Box sx={{ mt: 6 }}>
               <Typography variant="h5" component="h3" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 标签
               </Typography>
+
               <Box
                 sx={{
                   display: 'flex',
@@ -452,10 +480,15 @@ export function Home() {
                   <TagChip key={tag.id} tag={tag} size="medium" onClick={() => handleTagClick(tag.name)} />
                 ))}
               </Box>
+
             </Box>
+
           )}
         </Container>
+
       </Box>
+
     </Fade>
+
   );
 }

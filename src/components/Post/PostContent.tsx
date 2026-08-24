@@ -3,13 +3,17 @@ import { ContentCopy, Check } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import 'highlight.js/styles/github.css';
-import React, { useEffect, useRef, useState } from 'react';
+import 'katex/dist/katex.min.css';
+import React, { Children, isValidElement, useEffect, useMemo, useRef, useState } from 'react';
 import type { Components } from 'react-markdown';
 import { useThemeStore } from '@/stores/themeStore';
-import { LazyImage } from '@/components/Common/LazyImage';
+import { useSiteStore } from '@/stores/siteStore';
+import { resolveSpacingConfig } from '@/utils/spacingConfig';
+
 import { ImageLightbox } from '@/components/Common/ImageLightbox';
+import { LazyImage } from '@/components/Common/LazyImage';
 import type { HeadingItem } from './TableOfContents';
 
 interface PostContentProps {
@@ -19,21 +23,45 @@ interface PostContentProps {
 
 const headingLevels = [1, 2, 3, 4, 5, 6] as const;
 
-function useHeadingIds(content: string) {
-  const counterRef = useRef(0);
-  const idsRef = useRef<Map<number, string>>(new Map());
 
-  useEffect(() => {
-    counterRef.current = 0;
-    idsRef.current.clear();
-  }, [content]);
+function flattenText(
+  children: React.ReactNode,
+  out: string[] = []
+): string[] {
+  Children.forEach(children, (child) => {
+    if (child == null || typeof child === 'boolean') return;
+    if (typeof child === 'string' || typeof child === 'number') {
+      out.push(String(child).trim());
+    } else if (isValidElement<{ children?: React.ReactNode }>(child)) {
+      flattenText(child.props?.children, out);
+    }
+  });
+  return out;
+}
+
+
+function slugify(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'heading'
+  );
+}
+
+
+function useHeadingIds() {
+  const seenRef = useRef<Record<string, number>>({});
+
+  
+  seenRef.current = {};
 
   return {
-    getId: (level: number) => {
-      const index = counterRef.current++;
-      const id = `toc-heading-${level}-${index}`;
-      idsRef.current.set(index, id);
-      return id;
+    getId: (text: string, level: number) => {
+      const base = `toc-heading-${level}-${slugify(text)}`;
+      const count = seenRef.current[base] || 0;
+      seenRef.current[base] = count + 1;
+      return count === 0 ? base : `${base}-${count}`;
     },
   };
 }
@@ -83,7 +111,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // 复制失败静默处理
+      
     }
   };
 
@@ -109,16 +137,103 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
         >
           {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
         </IconButton>
+
       </Tooltip>
+
       <pre ref={preRef} style={{ margin: 0 }}>{children}</pre>
+
     </Box>
+
   );
 }
 
 export function PostContent({ content, onHeadingsExtracted }: PostContentProps) {
   useHighlightTheme();
-  const { getId } = useHeadingIds(content);
+  const { getId } = useHeadingIds();
   const rootRef = useRef<HTMLDivElement>(null);
+  const enableLatex = useSiteStore((s) => s.config.enableLatex ?? false);
+  const imageDisplayMode = useSiteStore((s) => s.config.imageDisplayMode ?? 'fixed');
+  const spacing = resolveSpacingConfig(useSiteStore((s) => s.config.spacing));
+  const [latexPlugins, setLatexPlugins] = useState<{
+    remarkMath: unknown;
+    rehypeKatex: unknown;
+  } | null>(null);
+
+  
+  useEffect(() => {
+    if (!enableLatex) {
+      setLatexPlugins(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      import('remark-math'),
+      import('rehype-katex'),
+    ]).then(([rm, rk]) => {
+      if (!cancelled) {
+        setLatexPlugins({ remarkMath: rm.default, rehypeKatex: rk.default });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [enableLatex]);
+
+  const sanitizeSchema = useMemo(() => {
+    if (!enableLatex) return undefined;
+    return {
+      ...defaultSchema,
+      tagNames: [
+        ...(defaultSchema.tagNames || []),
+        'math', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mroot',
+        'mrow', 'mtable', 'mtr', 'mtd', 'merror', 'mpadded', 'mphantom',
+        'menclose', 'annotation', 'semantics', 'mprescripts', 'none', 'mtext',
+      ],
+      attributes: {
+        ...defaultSchema.attributes,
+        
+        span: [...((defaultSchema.attributes && defaultSchema.attributes['*']) || []), 'className', 'style', 'ariaHidden'],
+        
+        math: ['xmlns', 'display', 'className'],
+        annotation: ['encoding', 'className'],
+        mrow: ['className'],
+        mi: ['className'],
+        mo: ['className'],
+        mn: ['className'],
+        msup: ['className'],
+        msub: ['className'],
+        mfrac: ['className'],
+        msqrt: ['className'],
+        mroot: ['className'],
+        mtext: ['className'],
+      },
+    };
+  }, [enableLatex]);
+
+  const remarkPlugins = useMemo(() => {
+    const plugins = [remarkGfm];
+    if (latexPlugins?.remarkMath) {
+      
+      plugins.push([latexPlugins.remarkMath, {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }] as any);
+    }
+    return plugins;
+  }, [latexPlugins]);
+
+  const rehypePlugins = useMemo(() => {
+    const plugins: any[] = [];
+    if (latexPlugins?.rehypeKatex) {
+      plugins.push([latexPlugins.rehypeKatex, { output: 'html' }]);
+    }
+    if (sanitizeSchema) {
+      plugins.push([rehypeSanitize, sanitizeSchema]);
+    } else {
+      plugins.push(rehypeSanitize);
+    }
+    plugins.push(rehypeHighlight);
+    return plugins;
+  }, [latexPlugins, sanitizeSchema]);
+
   const [lightbox, setLightbox] = useState<{ open: boolean; src: string; alt: string }>({
     open: false,
     src: '',
@@ -127,10 +242,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
 
   useEffect(() => {
     
+    if (!rootRef.current) return;
     const headings = extractHeadings(rootRef.current);
     onHeadingsExtracted?.(headings);
-  }, [content, onHeadingsExtracted]);
-
+    
+    
+  }, [content, onHeadingsExtracted, latexPlugins]);
   const headingComponents: Components = {};
   headingLevels.forEach((level) => {
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
@@ -138,9 +255,10 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       children,
       ...props
     }: { children?: React.ReactNode; [key: string]: unknown }) => (
-      <Tag id={getId(level)} {...props}>
+      <Tag id={getId(flattenText(children).join(' '), level)} {...props}>
         {children}
       </Tag>
+
     );
     
     (headingComponents as any)[Tag] = Heading;
@@ -156,7 +274,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         lineHeight: 1.8,
         fontSize: { xs: '1rem', md: '1.05rem' },
         '& h1, & h2, & h3, & h4, & h5, & h6': {
-          mt: 4,
+          mt: { xs: `${spacing.articleHeadingGap.mobile}px`, md: `${spacing.articleHeadingGap.desktop}px` },
           mb: 2,
           fontWeight: 700,
           color: 'text.primary',
@@ -166,7 +284,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         '& h2': { fontSize: { xs: '1.25rem', md: '1.6rem' } },
         '& h3': { fontSize: { xs: '1.125rem', md: '1.3rem' } },
         '& p': {
-          mb: 2,
+          mb: { xs: `${spacing.articleParagraphGap.mobile}px`, md: `${spacing.articleParagraphGap.desktop}px` },
           overflowWrap: 'break-word',
           whiteSpace: 'pre-wrap',
         },
@@ -281,46 +399,146 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
             fontWeight: 700,
           },
         },
+        
+        
+        '& .katex-display': {
+          overflow: 'auto hidden',
+          overflowWrap: 'normal',
+          my: 2.5,
+          py: 2,
+          px: 2.5,
+          backgroundColor: (theme) =>
+            alpha(theme.palette.background.default, theme.palette.mode === 'light' ? 0.4 : 0.3),
+          borderRadius: 1,
+          borderLeft: '3px solid',
+          borderColor: 'primary.main',
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': {
+            height: 6,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: (theme) => alpha(theme.palette.divider, 0.5),
+            borderRadius: 3,
+          },
+        },
+        
+        '& p:has(.katex)': {
+          lineHeight: 2.2,
+        },
+        
+        
+        '& .katex': {
+          fontFeatureSettings: '"kern"',
+          color: 'inherit',
+          verticalAlign: '-0.2em',
+        },
       }}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
         components={{
           ...headingComponents,
           pre: PreBlock,
+          a: ({ href, node, children, ...props }) => {
+            
+            
+            const openInNewTab = /^(https?:|mailto:|tel:|#)/i.test(href || '');
+            return (
+              <a
+                href={href}
+                target={openInNewTab ? '_blank' : undefined}
+                rel={openInNewTab ? 'noopener noreferrer' : undefined}
+                {...props}
+              >
+                {children}
+              </a>
+
+            );
+          },
           table: ({ children }) => (
             <Box
               className="table-wrapper"
               onTouchMove={(e) => e.stopPropagation()}
             >
               <table>{children}</table>
+
             </Box>
+
           ),
-          img: ({ src, alt }) => (
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-block',
-                maxWidth: '100%',
-                cursor: 'zoom-in',
-                '& img': { my: 0 },
-              }}
-              onClick={() => src && setLightbox({ open: true, src, alt: alt || '' })}
-            >
-              <LazyImage
-                src={src}
-                alt={alt || ''}
-                objectFit="contain"
-                placeholder="color"
-                style={{ maxWidth: '100%', borderRadius: 8 }}
-              />
-            </Box>
-          ),
+          img: ({ src, alt }) =>
+            imageDisplayMode === 'natural' ? (
+              
+              
+              <Box
+                component="span"
+                sx={{ display: 'block', width: '100%', cursor: 'zoom-in' }}
+                onClick={() => src && setLightbox({ open: true, src, alt: alt || '' })}
+              >
+                <LazyImage
+                  src={src}
+                  alt={alt || ''}
+                  objectFit="contain"
+                  placeholder="color"
+                  style={{
+                    display: 'block',
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: '100%',
+                    maxHeight: '80vh',
+                    margin: '0 auto',
+                    borderRadius: 1,
+                  }}
+                />
+              </Box>
+
+            ) : (
+              
+              
+              
+              
+              <Box
+                component="span"
+                sx={{
+                  display: 'block',
+                  width: '100%',
+                  paddingTop: '75%',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: 1,
+                  bgcolor: (theme) => alpha(theme.palette.background.paper, 0.05),
+                  cursor: 'zoom-in',
+                }}
+                onClick={() => src && setLightbox({ open: true, src, alt: alt || '' })}
+              >
+                {}
+                <Box
+                  component="img"
+                  src={src}
+                  alt={alt || ''}
+                  loading="lazy"
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                  }}
+                />
+              </Box>
+
+            ),
         }}
       >
         {content}
       </ReactMarkdown>
+
       <ImageLightbox
         open={lightbox.open}
         src={lightbox.src}
@@ -328,6 +546,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         onClose={() => setLightbox((prev) => ({ ...prev, open: false }))}
       />
     </Box>
+
     </Fade>
+
   );
 }

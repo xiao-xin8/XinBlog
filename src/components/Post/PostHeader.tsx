@@ -42,6 +42,7 @@ export function PostHeader({ post }: PostHeaderProps) {
         ))}
       </Box>
 
+
       <Typography
         variant="h2"
         component="h1"
@@ -49,6 +50,7 @@ export function PostHeader({ post }: PostHeaderProps) {
       >
         {post.title}
       </Typography>
+
 
       <Box
         sx={{
@@ -85,34 +87,46 @@ export function PostHeader({ post }: PostHeaderProps) {
             >
               {authorName.charAt(0)}
             </Avatar>
+
           )}
           <Typography variant="body2" fontWeight={600} sx={{ overflowWrap: 'break-word' }}>
             {authorName}
           </Typography>
+
         </Box>
+
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <AccessTime sx={{ fontSize: 18 }} />
           <Typography variant="body2">
             发布于 {dayjs(post.createdAt).format('YYYY-MM-DD')}
           </Typography>
+
         </Box>
+
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <AccessTime sx={{ fontSize: 18 }} />
           <Typography variant="body2">
             {post.readingTime} 分钟阅读
           </Typography>
+
         </Box>
+
 
         {post.views !== undefined && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Visibility sx={{ fontSize: 18 }} />
             <Typography variant="body2">{post.views}</Typography>
+
           </Box>
+
         )}
       </Box>
+
     </Box>
+
     </Fade>
+
   );
 }

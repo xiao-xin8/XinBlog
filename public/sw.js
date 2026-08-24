@@ -1,3 +1,6 @@
+
+
+
 const CACHE_NAME = 'xinblog-shell-v2';
 const SHELL_ASSETS = ['/', '/index.html'];
 

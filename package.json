@@ -1,7 +1,7 @@
 {
-  "name": "xinblog",
+  "name": "my-blog",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,14 +16,18 @@
     "@mui/icons-material": "^6.5.0",
     "@mui/material": "^6.5.0",
     "dayjs": "^1.11.21",
+    "katex": "^0.18.4",
     "notistack": "^3.0.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.1",
+    "recharts": "^3.10.1",
     "rehype-highlight": "^7.0.2",
+    "rehype-katex": "^7.0.1",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

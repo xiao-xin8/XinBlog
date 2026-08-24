@@ -116,31 +116,37 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
 
   return (
     <Stack spacing={3}>
-      {/* 开关 */}
+      {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, bgcolor: (t) => alpha(t.palette.primary.main, 0.04), border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               音乐播放器
             </Typography>
+
           </Box>
+
           <FormControlLabel
             control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
             label={enabled ? '已开启' : '已关闭'}
           />
         </Stack>
+
       </Paper>
 
-      {/* 歌单设置 */}
+
+      {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <QueueMusic sx={{ color: 'primary.main' }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             网易云歌单
           </Typography>
+
         </Stack>
 
-        {/* 来源选择：预设 / 自定义 */}
+
+        {}
         <Box
           sx={{
             position: 'relative',
@@ -192,9 +198,11 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 {mode === 'preset' ? '预设歌单' : '自定义歌单'}
               </ButtonBase>
+
             );
           })}
         </Box>
+
 
         {sourceMode === 'preset' ? (
           
@@ -254,11 +262,15 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                     >
                       {preset.name}
                     </Typography>
+
                   </ButtonBase>
+
                 </Tooltip>
+
               );
             })}
           </Box>
+
         ) : (
           
           <Stack spacing={1.5}>
@@ -276,6 +288,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                     <br />
                     获取方法：打开网易云歌单 → 分享 → 复制链接 → 粘贴到此处
                   </Box>
+
                 )
               }
               slotProps={{
@@ -293,7 +306,9 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                           >
                             {resolving ? <CircularProgress size={14} /> : '解析'}
                           </Button>
+
                         </Tooltip>
+
                       ) : (
                         <Tooltip title="解析链接中的歌单 ID">
                           <Button
@@ -304,9 +319,12 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                           >
                             解析
                           </Button>
+
                         </Tooltip>
+
                       )}
                     </InputAdornment>
+
                   ) : undefined,
                 },
               }}
@@ -315,23 +333,29 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 已识别歌单 ID：{playlistId}
               </Typography>
+
             )}
           </Stack>
+
         )}
       </Paper>
 
-      {/* 播放器配置 */}
+
+      {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <MusicNote sx={{ color: 'primary.main' }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             播放器配置
           </Typography>
+
         </Stack>
+
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           默认音量（{Math.round((isFinite(volume) ? volume : 0) * 100)}%）
         </Typography>
+
         <Slider
           size="small"
           min={0}
@@ -346,6 +370,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
           播放模式
         </Typography>
+
         <Box
           sx={{
             position: 'relative',
@@ -396,14 +421,17 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 {opt.label}
               </ButtonBase>
+
             );
           })}
         </Box>
 
-        {/* 悬浮位置 */}
+
+        {}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
           悬浮小工具位置
         </Typography>
+
         <Box
           sx={{
             position: 'relative',
@@ -454,9 +482,11 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 贴在{pos === 'left' ? '左侧' : '右侧'}
               </ButtonBase>
+
             );
           })}
         </Box>
+
 
         <Stack spacing={1} sx={{ mt: 2 }}>
           <FormControlLabel
@@ -480,16 +510,20 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
             label="启用独立音乐播放页面"
           />
         </Stack>
+
       </Paper>
 
-      {/* 图片代理设置 */}
+
+      {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <MusicNote sx={{ color: 'primary.main' }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             图片代理
           </Typography>
+
         </Stack>
+
 
         <Stack spacing={1.5}>
           <FormControlLabel
@@ -511,30 +545,47 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.main', display: 'block', mb: 0.5 }}>
                     ? 当前已开启中转代理
                   </Typography>
+
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>好处：</b>封面图片走同域名加载，手机 PWA 顶部不会显示网易云 CDN 地址（如 p1.music.126.net）
+
                   </Box>
+
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>缺点：</b>图片加载速度可能变慢（取决于 Cloudflare Worker 响应速度），且消耗 Worker 免费额度
+
                   </Box>
+
                 </>
+
               ) : (
                 <>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'info.main', display: 'block', mb: 0.5 }}>
                     ? 当前关闭中转代理（默认推荐）
                   </Typography>
+
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>好处：</b>封面图片直接从网易云 CDN 加载，速度最快，不消耗额外额度
+
                   </Box>
+
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>缺点：</b>手机 PWA 顶部可能会显示外部 CDN 地址（如 p1.music.126.net），仅影响美观不影响使用
+
                   </Box>
+
                 </>
+
               )}
             </Typography>
+
           </Box>
+
         </Stack>
+
       </Paper>
+
     </Stack>
+
   );
 }

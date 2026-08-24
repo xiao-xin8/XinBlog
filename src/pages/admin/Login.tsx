@@ -43,6 +43,7 @@ export function AdminLogin() {
   const [sendingCode, setSendingCode] = useState(false);
   const [allowRegister, setAllowRegister] = useState(true);
   const [emailVerification, setEmailVerification] = useState(false);
+  const [enableForgot, setEnableForgot] = useState(false);
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [captchaValue, setCaptchaValue] = useState(0);
   const [agreed, setAgreed] = useState(false);
@@ -63,6 +64,7 @@ export function AdminLogin() {
       if (settings) {
         setAllowRegister(settings.allowRegister);
         setEmailVerification(settings.emailVerification);
+        setEnableForgot(settings.enableForgotPassword);
       }
     };
     load();
@@ -240,9 +242,11 @@ export function AdminLogin() {
           >
             登录
           </Typography>
+
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
             {tab === 0 ? '欢迎回来，请登录您的账号' : '创建新账号，加入站点'}
           </Typography>
+
 
           {allowRegister ? (
             <Box
@@ -291,6 +295,7 @@ export function AdminLogin() {
               >
                 登录
               </Button>
+
               <Button
                 onClick={() => setTab(1)}
                 sx={{
@@ -309,25 +314,31 @@ export function AdminLogin() {
               >
                 注册
               </Button>
+
             </Box>
+
           ) : (
             <Box sx={{ mb: 3, textAlign: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 登录
               </Typography>
+
             </Box>
+
           )}
 
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {error}
             </Alert>
+
           )}
 
           {success && (
             <Alert severity="success" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {success}
             </Alert>
+
           )}
 
           <Fade in timeout={200} key={tab}>
@@ -350,6 +361,7 @@ export function AdminLogin() {
                     <InputAdornment position="start">
                       <Person color="action" />
                     </InputAdornment>
+
                   ),
                 }}
               />
@@ -368,6 +380,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <Email color="action" />
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -386,6 +399,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <VpnKey color="action" />
                       </InputAdornment>
+
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
@@ -398,7 +412,9 @@ export function AdminLogin() {
                         >
                           {sendingCode ? '发送中' : '获取验证码'}
                         </Button>
+
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -417,6 +433,7 @@ export function AdminLogin() {
                     <InputAdornment position="start">
                       <Lock color="action" />
                     </InputAdornment>
+
                   ),
                   endAdornment: (
                     <InputAdornment position="end">
@@ -427,7 +444,9 @@ export function AdminLogin() {
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
+
                     </InputAdornment>
+
                   ),
                 }}
               />
@@ -446,6 +465,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <Lock color="action" />
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -483,6 +503,7 @@ export function AdminLogin() {
                       >
                         用户协议
                       </Typography>
+
                       {' 和 '}
                       <Typography
                         component={Link}
@@ -499,10 +520,31 @@ export function AdminLogin() {
                       >
                         隐私政策
                       </Typography>
+
                     </Typography>
+
                   }
                   sx={{ m: 0 }}
                 />
+              )}
+              {tab === 0 && enableForgot && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
+                  <Typography
+                    component={Link}
+                    to="/forgot-password"
+                    variant="body2"
+                    sx={{
+                      color: 'primary.main',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                      '&:hover': { opacity: 0.75, textDecoration: 'underline' },
+                    }}
+                  >
+                    忘记密码？
+                  </Typography>
+
+                </Box>
+
               )}
               <Button
                 type="submit"
@@ -527,8 +569,11 @@ export function AdminLogin() {
               >
                 {loading ? (tab === 0 ? '登录中...' : '注册中...') : tab === 0 ? '登录' : '注册'}
               </Button>
+
             </Box>
+
           </Fade>
+
 
           <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
@@ -546,8 +591,11 @@ export function AdminLogin() {
             >
               返回博客首页
             </Button>
+
           </Box>
+
         </Paper>
+
 
         <Dialog
           open={captchaOpen}
@@ -566,9 +614,11 @@ export function AdminLogin() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, textAlign: 'center' }}>
               安全验证
             </Typography>
+
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
               请拖动滑块到最右侧以发送验证码
             </Typography>
+
             <Box
               sx={{
                 position: 'relative',
@@ -594,7 +644,9 @@ export function AdminLogin() {
                 <Typography variant="body2" color="text.secondary">
                   {captchaValue === 100 ? '验证通过' : '向右滑动验证'}
                 </Typography>
+
               </Box>
+
               <Slider
                 value={captchaValue}
                 onChange={handleCaptchaChange}
@@ -631,9 +683,14 @@ export function AdminLogin() {
                 }}
               />
             </Box>
+
           </DialogContent>
+
         </Dialog>
+
       </Box>
+
     </Fade>
+
   );
 }

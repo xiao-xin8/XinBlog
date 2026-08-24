@@ -19,8 +19,8 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      // 项目中的数据获取统一采用 useEffect 内设置 loading 状态的模式，
-      // 该规则会导致大量无意义的级联渲染警告且改动风险高，因此关闭。
+      
+      
       'react-hooks/set-state-in-effect': 'off',
     },
   },

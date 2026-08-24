@@ -22,6 +22,7 @@ interface AuthResult {
   ok: boolean;
   msg?: string;
   needCode?: boolean;
+  debug?: Record<string, unknown>;
 }
 
 interface AuthState {
@@ -31,6 +32,8 @@ interface AuthState {
   refreshToken: string | null;
   login: (username: string, password: string, code?: string) => Promise<AuthResult>;
   register: (username: string, password: string, email: string, code?: string) => Promise<AuthResult>;
+  sendForgotCode: (username: string, email: string) => Promise<AuthResult>;
+  resetPassword: (username: string, email: string, code: string, password: string) => Promise<AuthResult>;
   logout: () => void;
   checkAuth: () => boolean;
   refresh: () => Promise<boolean>;
@@ -80,6 +83,24 @@ export const useAuthStore = create<AuthState>()(
           return { ok: false, msg: res.msg || (res.code >= 500 ? '服务器内部错误' : '注册失败') };
         }
         return { ok: true };
+      },
+
+      sendForgotCode: async (username: string, email: string) => {
+        const res = await apiPost<{ sent?: boolean }>('/api/v1/auth/forgot-code', { username, email });
+        const debug = (res as { data?: { _debug?: Record<string, unknown> } }).data?._debug;
+        
+        if (res.code !== 0) {
+          return { ok: false, msg: res.msg || (res.code >= 500 ? '服务器内部错误' : '发送失败'), debug };
+        }
+        return { ok: true, msg: res.msg || '验证码已发送', debug };
+      },
+
+      resetPassword: async (username: string, email: string, code: string, password: string) => {
+        const res = await apiPost('/api/v1/auth/reset-password', { username, email, code, password });
+        if (res.code !== 0) {
+          return { ok: false, msg: res.msg || (res.code >= 500 ? '服务器内部错误' : '重置失败') };
+        }
+        return { ok: true, msg: res.msg || '密码已重置，请使用新密码登录' };
       },
 
       logout: () => {
@@ -176,7 +197,7 @@ if (typeof window !== 'undefined') {
         refreshToken: state.refreshToken,
       });
     } catch {
-      // 忽略异常数据
+      
     }
   });
 }

@@ -3,10 +3,6 @@ import { useSharedMusicPlayer, useSidebarVisible } from './MusicPlayerContext';
 import { MusicPlayerWidget } from './MusicPlayerWidget';
 
 
-
-
-
-
 export function GlobalMusicPlayer() {
   const music = useSiteStore((s) => s.config.music);
   const player = useSharedMusicPlayer();

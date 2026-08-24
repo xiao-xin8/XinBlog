@@ -56,20 +56,27 @@ function CursorStoreDialog({ editor }: { editor: AppearanceEditor }) {
           <IconButton onClick={() => handleOpenCursorStore(true)} disabled={cursorStoreLoading}>
             <Refresh />
           </IconButton>
+
           <IconButton onClick={() => setCursorStoreOpen(false)}>
             <Close />
           </IconButton>
+
         </Box>
+
       </DialogTitle>
+
       <DialogContent dividers sx={{ flex: 1, overflowY: 'auto' }}>
         {cursorStoreLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
           </Box>
+
         ) : storeCursors.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
             <Typography>暂无可用鼠标</Typography>
+
           </Box>
+
         ) : (
           <Box
             sx={{
@@ -121,12 +128,15 @@ function CursorStoreDialog({ editor }: { editor: AppearanceEditor }) {
                   >
                     <Mouse sx={{ fontSize: 40, color: 'text.secondary' }} />
                   </Box>
+
                   <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
                     {cursor.name}
                   </Typography>
+
                   <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5 }}>
                     {cursor.files.length} 个光标文件
                   </Typography>
+
                   <Box sx={{ flex: 1 }} />
                   <Button
                     variant={added ? 'outlined' : 'contained'}
@@ -139,18 +149,25 @@ function CursorStoreDialog({ editor }: { editor: AppearanceEditor }) {
                   >
                     {added ? '已添加' : '添加'}
                   </Button>
+
                 </Paper>
+
               );
             })}
           </Box>
+
         )}
       </DialogContent>
+
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={() => setCursorStoreOpen(false)} sx={{ borderRadius: 1 }}>
           关闭
         </Button>
+
       </DialogActions>
+
     </Dialog>
+
   );
 }
 
@@ -243,6 +260,7 @@ function CursorCard({
           >
             <Check sx={{ fontSize: 14 }} />
           </Box>
+
         )}
         <IconButton
           size="small"
@@ -263,6 +281,7 @@ function CursorCard({
         >
           <DeleteOutlined sx={{ fontSize: 16, color: 'error.main' }} />
         </IconButton>
+
         <Box
           sx={{
             width: '100%',
@@ -279,14 +298,19 @@ function CursorCard({
         >
           <Mouse sx={{ fontSize: 40, color: 'text.secondary' }} />
         </Box>
+
         <Typography variant="subtitle2" fontWeight={700}>
           {cursor.name}
         </Typography>
+
         <Typography variant="caption" color="text.secondary">
           {selected ? '当前使用' : '点击启用'}
         </Typography>
+
       </Paper>
+
     </ButtonBase>
+
   );
 }
 
@@ -323,6 +347,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             我的鼠标
           </Typography>
+
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             {activeCursorId && (
               <Button
@@ -335,6 +360,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
               >
                 恢复系统默认
               </Button>
+
             )}
             <Button
               variant="contained"
@@ -347,12 +373,16 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             >
               进入鼠标商店
             </Button>
+
           </Box>
+
         </Box>
+
 
         <Alert severity="info" sx={{ borderRadius: 1 }}>
           鼠标资源下载需要一定时间，若更新有延时请稍等片刻。
         </Alert>
+
 
         {userCursors.length === 0 ? (
           <Box
@@ -367,9 +397,11 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             <Typography variant="body1" sx={{ mb: 1 }}>
               还没有添加鼠标
             </Typography>
+
             <Typography variant="body2" sx={{ mb: 2 }}>
               去鼠标商店挑选一款喜欢的鼠标吧
             </Typography>
+
             <Button
               variant="outlined"
               size="small"
@@ -381,7 +413,9 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             >
               进入鼠标商店
             </Button>
+
           </Box>
+
         ) : (
           <Box
             sx={{
@@ -407,6 +441,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
               );
             })}
           </Box>
+
         )}
 
         <Box>
@@ -414,10 +449,13 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               光标大小
             </Typography>
+
             <Typography variant="body2" color="text.secondary">
               {cursorSize}px
             </Typography>
+
           </Box>
+
           <Slider
             value={cursorSize}
             onChange={(_, v) => setCursorSize(v as number)}
@@ -434,6 +472,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
           />
         </Box>
 
+
         <Box
           sx={{
             p: 2,
@@ -444,6 +483,7 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             实时预览
           </Typography>
+
           <Box
             sx={{
               width: '100%',
@@ -461,12 +501,17 @@ export function CursorPanel({ editor }: { editor: AppearanceEditor }) {
             <Typography variant="body2" color="text.secondary">
               将鼠标移入此区域查看效果
             </Typography>
+
           </Box>
+
         </Box>
+
       </Stack>
+
 
       <CursorStoreDialog editor={editor} />
       <CursorConfirmDialog editor={editor} />
     </Paper>
+
   );
 }

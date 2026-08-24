@@ -12,6 +12,7 @@ export function BasicSettings() {
   const [settings, setSettings] = useState<AuthSettings>({
     allowRegister: true,
     emailVerification: false,
+    enableForgotPassword: false,
   });
   const [initialSettings, setInitialSettings] = useState<AuthSettings>(settings);
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
@@ -64,6 +65,7 @@ export function BasicSettings() {
         基础设置
       </Typography>
 
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControlLabel
           control={
@@ -83,10 +85,22 @@ export function BasicSettings() {
           }
           label="注册时启用邮箱验证码"
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.enableForgotPassword}
+              onChange={(e) => setSettings((s) => ({ ...s, enableForgotPassword: e.target.checked }))}
+            />
+          }
+          label="开启找回密码"
+        />
       </Box>
+
 
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
     </Paper>
+
     </Fade>
+
   );
 }

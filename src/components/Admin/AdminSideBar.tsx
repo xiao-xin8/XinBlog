@@ -37,6 +37,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { isSuperAdmin } from '@/utils/permission';
 import { Logo } from '@/components/Common/Logo';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
 
@@ -59,14 +60,14 @@ const adminNavItems: NavItem[] = [
   { title: '评论管理', path: '/admin/comments', icon: <Chat fontSize="small" /> },
   { title: '留言墙管理', path: '/admin/message-wall', icon: <Forum fontSize="small" /> },
   { title: '友链管理', path: '/admin/friends', icon: <Diversity3 fontSize="small" /> },
-  { title: 'AI', path: '/admin/ai', icon: <AutoAwesome fontSize="small" /> },
-  { title: '外观设置', path: '/admin/appearance', icon: <Palette fontSize="small" /> },
-  { title: '看板娘', path: '/admin/live2d', icon: <SmartToy fontSize="small" /> },
-  { title: '音乐播放器', path: '/admin/music', icon: <MusicNote fontSize="small" /> },
-  { title: '主题设置', path: '/admin/themes', icon: <Style fontSize="small" /> },
-  { title: '协议管理', path: '/admin/terms', icon: <Description fontSize="small" /> },
-  { title: '高级设置', path: '/admin/advanced', icon: <Settings fontSize="small" /> },
-  { title: '用户管理', path: '/admin/users', icon: <Group fontSize="small" /> },
+  { title: 'AI', path: '/admin/ai', icon: <AutoAwesome fontSize="small" />, superOnly: true },
+  { title: '外观设置', path: '/admin/appearance', icon: <Palette fontSize="small" />, superOnly: true },
+  { title: '看板娘', path: '/admin/live2d', icon: <SmartToy fontSize="small" />, superOnly: true },
+  { title: '音乐播放器', path: '/admin/music', icon: <MusicNote fontSize="small" />, superOnly: true },
+  { title: '主题设置', path: '/admin/themes', icon: <Style fontSize="small" />, superOnly: true },
+  { title: '协议管理', path: '/admin/terms', icon: <Description fontSize="small" />, superOnly: true },
+  { title: '高级设置', path: '/admin/advanced', icon: <Settings fontSize="small" />, superOnly: true },
+  { title: '用户管理', path: '/admin/users', icon: <Group fontSize="small" />, superOnly: true },
 ];
 
 export function AdminSideBar({
@@ -79,6 +80,10 @@ export function AdminSideBar({
   const { isAuthenticated, user, logout } = useAuthStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+
+  
+  const isSuper = isSuperAdmin(user?.role);
+  const navItems = isSuper ? adminNavItems : adminNavItems.filter((item) => !item.superOnly);
 
   const handleToggle = () => {
     setIsAnimating(true);
@@ -114,7 +119,7 @@ export function AdminSideBar({
             px: 1,
           }}
         >
-          {/* Expand button on top */}
+          {}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -133,7 +138,8 @@ export function AdminSideBar({
             <ChevronRight />
           </IconButton>
 
-          {/* Mini Navigation */}
+
+          {}
           <Stack
             sx={{
               flexGrow: 1,
@@ -144,7 +150,7 @@ export function AdminSideBar({
               width: '100%',
             }}
           >
-            {adminNavItems.map((item) => {
+            {navItems.map((item) => {
               const active =
                 item.path === '/admin'
                   ? location.pathname === '/admin'
@@ -174,7 +180,9 @@ export function AdminSideBar({
                   >
                     {item.icon}
                   </IconButton>
+
                 </Tooltip>
+
               );
             })}
 
@@ -202,9 +210,13 @@ export function AdminSideBar({
               >
                 <Home fontSize="small" />
               </IconButton>
+
             </Tooltip>
+
           </Stack>
+
         </Box>
+
       );
     }
 
@@ -218,11 +230,12 @@ export function AdminSideBar({
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
+        {}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
+
           <Box>
             <IconButton
               onClick={() => {
@@ -235,10 +248,13 @@ export function AdminSideBar({
             >
               <ChevronLeft />
             </IconButton>
+
           </Box>
+
         </DrawerHeaderContainer>
 
-        {/* Navigation - 独立滚动区域 */}
+
+        {}
         <Stack
           sx={{
             flexGrow: 1,
@@ -248,7 +264,7 @@ export function AdminSideBar({
             gap: 0.5,
           }}
         >
-          {adminNavItems.map((item) => {
+          {navItems.map((item) => {
             const active =
               item.path === '/admin'
                 ? location.pathname === '/admin'
@@ -276,14 +292,17 @@ export function AdminSideBar({
                 >
                   {item.icon}
                 </Box>
+
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
+
               </StyledNavButton>
+
             );
           })}
 
-          {/* Back to home */}
+          {}
           <StyledNavButton
             component={Link}
             to="/"
@@ -304,13 +323,17 @@ export function AdminSideBar({
             >
               <Home fontSize="small" />
             </Box>
+
             <Typography variant="body2" fontWeight={600} noWrap>
               返回首页
             </Typography>
+
           </StyledNavButton>
+
         </Stack>
 
-        {/* Footer */}
+
+        {}
         <Box
           sx={{
             px: 1.5,
@@ -340,12 +363,17 @@ export function AdminSideBar({
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
+
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
+
           </StyledNavButton>
+
         </Box>
+
       </Box>
+
     );
   };
 
@@ -353,7 +381,7 @@ export function AdminSideBar({
 
   return (
     <>
-      {/* 移动端抽屉 */}
+      {}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -373,7 +401,8 @@ export function AdminSideBar({
         {drawerContent(false)}
       </Drawer>
 
-      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
+
+      {}
       <Drawer
         variant="persistent"
         anchor="left"
@@ -390,12 +419,12 @@ export function AdminSideBar({
             }),
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
-            width: { xs: `${adminMobileDrawerWidth}px`, lg: currentWidth },
-            bgcolor: { xs: 'transparent', lg: 'background.default' },
+            width: { xs: `${adminMobileDrawerWidth}px`, md: currentWidth },
+            bgcolor: { xs: 'transparent', md: 'background.default' },
             borderRight: 'none',
             overflow: 'hidden',
-            opacity: { xs: 0, lg: 1 },
-            pointerEvents: { xs: 'none', lg: 'auto' },
+            opacity: { xs: 0, md: 1 },
+            pointerEvents: { xs: 'none', md: 'auto' },
             transition: (theme) =>
               theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
@@ -404,7 +433,7 @@ export function AdminSideBar({
           },
         }}
       >
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, height: '100%' }}>
+        <Box sx={{ display: { xs: 'none', md: 'block' }, height: '100%' }}>
           {isAnimating ? (
             <Box
               sx={{
@@ -417,7 +446,9 @@ export function AdminSideBar({
             drawerContent(collapsed)
           )}
         </Box>
+
       </Drawer>
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -427,6 +458,7 @@ export function AdminSideBar({
         }}
       />
     </>
+
   );
 }
 
@@ -466,11 +498,16 @@ export function AdminNavBar({ onMenuClick }: { onMenuClick: () => void }) {
           >
             <MenuIcon />
           </IconButton>
+
           <Box sx={{ flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
             <Logo />
           </Box>
+
         </Box>
+
       </Toolbar>
+
     </Box>
+
   );
 }

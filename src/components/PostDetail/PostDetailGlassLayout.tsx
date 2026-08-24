@@ -74,7 +74,9 @@ export function PostDetailGlassLayout({
           <PostDetailFooter post={post} siblings={siblings} />
           <CommentSection slug={post.slug} />
         </Box>
+
       </Box>
+
 
       {showSidebar && (
         <Box
@@ -91,7 +93,9 @@ export function PostDetailGlassLayout({
           {showRecentPosts && <PostDetailRecentPosts posts={siblings} currentSlug={post.slug} />}
           {showTOC && <PostDetailTOC headings={headings} />}
         </Box>
+
       )}
     </Box>
+
   );
 }

@@ -4,9 +4,6 @@ import { useSiteStore } from '@/stores/siteStore';
 import { getSceneThemeRenderer } from '@/themes/scene/renderers';
 
 
-
-
-
 export const SceneThemeEffects = memo(function SceneThemeEffects() {
   const { config } = useSiteStore();
   const sceneTheme = config.sceneTheme;
@@ -34,5 +31,6 @@ export const SceneThemeEffects = memo(function SceneThemeEffects() {
     >
       <EffectComponent params={params} />
     </Box>
+
   );
 });

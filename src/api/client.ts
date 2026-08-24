@@ -21,15 +21,15 @@ const memoryCache = new Map<string, CacheEntry<unknown>>();
 
 
 const CACHE_TTL: Record<string, number> = {
-  '/api/v1/site': 3 * 60 * 60 * 1000, // 站点配置 3 小时
-  '/api/v1/tags': 60 * 60 * 1000, // 标签列表 1 小时
-  '/api/v1/posts': 30 * 60 * 1000, // 文章列表 30 分钟
-  '/api/v1/user/settings': 30 * 60 * 1000, // 用户设置 30 分钟
-  '/api/v1/settings/interaction': 0, // 互动开关由业务层自行缓存，不走内存缓存
-  '/api/v1/admin/posts': 10 * 60 * 1000, // 管理后台文章列表 10 分钟
-  '/api/v1/admin/tags': 10 * 60 * 1000, // 管理后台标签列表 10 分钟
-  '/api/v1/admin/media': 5 * 60 * 1000, // 管理后台媒体列表 5 分钟
-  '/api/v1/admin/dashboard': 5 * 60 * 1000, // 仪表盘 5 分钟
+  '/api/v1/site': 3 * 60 * 60 * 1000, 
+  '/api/v1/tags': 60 * 60 * 1000, 
+  '/api/v1/posts': 30 * 60 * 1000, 
+  '/api/v1/user/settings': 30 * 60 * 1000, 
+  '/api/v1/settings/interaction': 0, 
+  '/api/v1/admin/posts': 10 * 60 * 1000, 
+  '/api/v1/admin/tags': 10 * 60 * 1000, 
+  '/api/v1/admin/media': 5 * 60 * 1000, 
+  '/api/v1/admin/dashboard': 5 * 60 * 1000, 
 };
 
 const DEFAULT_TTL = 5 * 60 * 1000; 

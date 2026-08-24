@@ -23,6 +23,7 @@ export const BUILTIN_THEMES: ThemePackage[] = [
           backgroundColor: '#f0f4ff',
           textPosition: 'bottom-left',
           titleSize: 'large',
+          fillSolidBg: true,
         },
         schema: [
           { key: 'borderWidth', label: '边框宽度', type: 'number', min: 0, max: 12, step: 1 },
@@ -42,6 +43,7 @@ export const BUILTIN_THEMES: ThemePackage[] = [
           { key: 'showExcerpt', label: '显示摘要', type: 'boolean' },
           { key: 'showTags', label: '显示标签', type: 'boolean' },
           { key: 'showMeta', label: '显示阅读时间等元信息', type: 'boolean' },
+          { key: 'fillSolidBg', label: '无封面时填充纯色背景', type: 'boolean' },
         ],
       },
     },

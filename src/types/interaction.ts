@@ -20,6 +20,8 @@ export interface Comment {
   updatedAt: string;
   username?: string;
   avatar?: string;
+  parentId?: number | null;
+  replyToUsername?: string | null;
 }
 
 export interface CommentListResponse {
@@ -55,6 +57,13 @@ export interface MessageWallSettings {
   allowAnonymous: boolean;
   auditEnabled: boolean;
   defaultStyle: MessageWallStyle;
+  
+  danmakuRepeatSec?: number;      
+  danmakuTrackCount?: number;     
+  danmakuSpeedMin?: number;       
+  danmakuSpeedMax?: number;       
+  danmakuIntervalMin?: number;    
+  danmakuIntervalMax?: number;    
 }
 
 export interface Message {
@@ -74,4 +83,16 @@ export interface MessageListResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+
+
+export interface CommentNotifySettings {
+  enabled: boolean;
+  notifyEmail: string;
+  dailyLimit: number;
+  reserveForRegister: number;
+  notifyAdminOnNew: boolean;
+  notifyAdminReply: boolean;
+  notifyUserReply: boolean;
 }

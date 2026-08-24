@@ -41,7 +41,9 @@ export function Logo({ collapsed = false }: LogoProps) {
         >
           {siteName}
         </Typography>
+
       )}
     </Box>
+
   );
 }

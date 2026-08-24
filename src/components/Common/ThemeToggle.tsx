@@ -28,6 +28,8 @@ export function ThemeToggle() {
       >
         {mode === 'light' ? <DarkMode sx={{ fontSize: 20 }} /> : <LightMode sx={{ fontSize: 20 }} />}
       </IconButton>
+
     </Tooltip>
+
   );
 }

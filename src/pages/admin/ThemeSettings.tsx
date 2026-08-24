@@ -114,6 +114,7 @@ const ThemePreviewThumb = ({ bordered }: { bordered?: boolean }) => {
       <rect x="9" y="36" width="48" height="4" rx="2" fill={line} />
       <rect x="9" y="46" width="32" height="4" rx="2" fill={line2} />
     </svg>
+
   );
 };
 
@@ -200,7 +201,7 @@ export function AdminThemeSettings() {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   useEffect(() => {
@@ -367,7 +368,9 @@ export function AdminThemeSettings() {
       return (
         <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
           <Typography>暂无文章可供预览</Typography>
+
         </Box>
+
       );
     }
     return (
@@ -376,6 +379,7 @@ export function AdminThemeSettings() {
         {previewLayout === 'magazine' && <PostListMagazine posts={previewPosts.slice(0, 3)} theme={editingCardTheme} />}
         {previewLayout === 'grid' && <PostListGrid posts={previewPosts} theme={editingCardTheme} />}
       </Box>
+
     );
   };
 
@@ -395,11 +399,13 @@ export function AdminThemeSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           所有主题
         </Typography>
+
         {displayThemes.length === 0 ? (
           <Box>
             <Typography color="text.secondary" sx={{ mb: 2 }}>
               暂无可用主题。
             </Typography>
+
             <Button
               variant="outlined"
               size="small"
@@ -409,7 +415,9 @@ export function AdminThemeSettings() {
             >
               恢复默认主题
             </Button>
+
           </Box>
+
         ) : (
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
@@ -444,15 +452,20 @@ export function AdminThemeSettings() {
                   >
                     <ThemePreviewThumb />
                   </Box>
+
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="subtitle2" fontWeight={700} noWrap>
                       默认主题
                     </Typography>
+
                     <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                       恢复为系统内置默认卡片样式
                     </Typography>
+
                   </Box>
+
                 </Box>
+
                 <Box sx={{ mt: 1.5 }}>
                   <Button
                     variant={pendingActiveThemeId === '' ? 'outlined' : 'contained'}
@@ -467,9 +480,13 @@ export function AdminThemeSettings() {
                   >
                     {pendingActiveThemeId === '' ? '已选中' : '恢复默认'}
                   </Button>
+
                 </Box>
+
               </Paper>
+
             </Grid>
+
             {displayThemes.map((t) => (
               <Grid item xs={12} sm={6} md={4} key={t.id} sx={{ display: 'flex' }}>
                 <Paper
@@ -503,10 +520,12 @@ export function AdminThemeSettings() {
                     >
                       <ThemePreviewThumb bordered={builtinThemeById(t.id)?.components?.postCard?.variant === 'border-image'} />
                     </Box>
+
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="subtitle2" fontWeight={700} noWrap>
                         {t.name}
                       </Typography>
+
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -514,8 +533,11 @@ export function AdminThemeSettings() {
                       >
                         {t.description || t.author || '主题包'}
                       </Typography>
+
                     </Box>
+
                   </Box>
+
                   <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
                     <Button
                       variant={pendingActiveThemeId === t.id ? 'outlined' : 'contained'}
@@ -530,6 +552,7 @@ export function AdminThemeSettings() {
                     >
                       {pendingActiveThemeId === t.id ? '已选中' : '应用'}
                     </Button>
+
                     {pendingActiveThemeId === t.id && (
                       <Button
                         variant="outlined"
@@ -543,14 +566,20 @@ export function AdminThemeSettings() {
                       >
                         恢复默认
                       </Button>
+
                     )}
                   </Box>
+
                 </Paper>
+
               </Grid>
+
             ))}
           </Grid>
+
         )}
       </Paper>
+
 
       {editingTheme && isEditingThemeActive && (
         <Fade in timeout={400} key={editingThemeId || 'none'}>
@@ -572,8 +601,10 @@ export function AdminThemeSettings() {
                     <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: (t) => alpha(t.palette.primary.main, 0.1), color: 'primary.main', typography: 'caption', fontWeight: 600, verticalAlign: 'middle' }}>
                       正在使用
                     </Box>
+
                   )}
                 </Typography>
+
                 <Button
                   variant="outlined"
                   size="small"
@@ -583,10 +614,13 @@ export function AdminThemeSettings() {
                 >
                   恢复默认
                 </Button>
+
               </Box>
+
               <Stack spacing={3}>
                 {activeSchema.length === 0 ? (
                   <Typography color="text.secondary">该主题无可调参数。</Typography>
+
                 ) : (
                   activeSchema.map((item) => {
                     const value = editingCardTheme[item.key as keyof PostCardThemeConfig];
@@ -597,6 +631,7 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label} {numeric}px
                           </Typography>
+
                           <Slider
                             value={numeric}
                             onChange={(_, v) => updateEditingCardTheme({ [item.key]: v as number } as Partial<PostCardThemeConfig>)}
@@ -606,6 +641,7 @@ export function AdminThemeSettings() {
                             valueLabelDisplay="auto"
                           />
                         </Box>
+
                       );
                     }
                     if (item.type === 'boolean') {
@@ -628,6 +664,7 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label}
                           </Typography>
+
                           <ToggleButtonGroup
                             value={String(value ?? '')}
                             exclusive
@@ -657,9 +694,12 @@ export function AdminThemeSettings() {
                               <ToggleButton key={opt.value} value={opt.value}>
                                 {opt.label}
                               </ToggleButton>
+
                             ))}
                           </ToggleButtonGroup>
+
                         </Box>
+
                       );
                     }
                     if (item.type === 'color') {
@@ -668,6 +708,7 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label}
                           </Typography>
+
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                             <ColorPicker
                               value={String(value || '#000000')}
@@ -681,15 +722,20 @@ export function AdminThemeSettings() {
                             >
                               使用主题色
                             </Button>
+
                           </Box>
+
                         </Box>
+
                       );
                     }
                     return null;
                   })
                 )}
               </Stack>
+
             </Paper>
+
 
             <Paper
               elevation={0}
@@ -706,6 +752,7 @@ export function AdminThemeSettings() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   实时预览
                 </Typography>
+
                 <ToggleButtonGroup
                   value={previewLayout}
                   exclusive
@@ -737,14 +784,21 @@ export function AdminThemeSettings() {
                       <Box component="span" sx={{ ml: 0.75 }}>
                         {layout.name}
                       </Box>
+
                     </ToggleButton>
+
                   ))}
                 </ToggleButtonGroup>
+
               </Box>
+
               {renderCardPreview()}
             </Paper>
+
           </Box>
+
         </Fade>
+
       )}
 
       <FloatingSaveButton
@@ -754,6 +808,7 @@ export function AdminThemeSettings() {
         label="保存主题"
       />
     </Stack>
+
   );
 
   const renderPostDetailPanel = () => <PostDetailThemePanel />;
@@ -774,11 +829,15 @@ export function AdminThemeSettings() {
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
               主题设置
             </Typography>
+
             <Typography variant="body2" color="text.secondary">
               管理站点主题，自定义文章卡片、场景特效、英雄区布局与顶部导航等视觉风格。
             </Typography>
+
           </Box>
+
         </Box>
+
 
         <Box ref={tabContainerRef} sx={{ mt: 3, mb: 3 }}>
           {isMobileAdmin || tabsCompact ? (
@@ -802,9 +861,12 @@ export function AdminThemeSettings() {
                   <MenuItem key={item.value} value={item.value}>
                     {item.label}
                   </MenuItem>
+
                 ))}
               </Select>
+
             </FormControl>
+
           ) : (
             <Box
               onWheel={(e) => {
@@ -872,12 +934,16 @@ export function AdminThemeSettings() {
                     >
                       {item.label}
                     </Button>
+
                   );
                 })}
               </Box>
+
             </Box>
+
           )}
         </Box>
+
 
         <Fade in timeout={300} key={tab}>
           <Box>
@@ -887,8 +953,12 @@ export function AdminThemeSettings() {
             {tab === 'hero' && renderHeroPanel()}
             {tab === 'nav' && renderNavPanel()}
           </Box>
+
         </Fade>
+
       </Box>
+
     </Fade>
+
   );
 }

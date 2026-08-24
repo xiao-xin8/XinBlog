@@ -88,7 +88,7 @@ async function resolveCdnPath(modelSource: 'local' | 'cdn', customCdn?: string):
     });
     if (res.ok) return LOCAL_MODEL_PATH;
   } catch {
-    // ignore
+    
   }
   return fallback;
 }
@@ -256,7 +256,7 @@ export function Live2DWidget() {
           }
         }, INIT_CHECK_INTERVAL);
       } catch {
-        // 静态资源加载失败时静默失败，不影响页面主体功能
+        
       }
     };
 

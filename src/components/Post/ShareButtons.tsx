@@ -83,6 +83,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       >
         复制链接
       </Button>
+
     );
   }
 
@@ -110,6 +111,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       >
         分享
       </Button>
+
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -150,11 +152,15 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
             >
               <ShareIcon fontSize="small" />
             </Box>
+
           </ListItemIcon>
+
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             系统分享
           </Typography>
+
         </MenuItem>
+
         <MenuItem
           onClick={handleCopy}
           sx={{ py: 1, borderRadius: 0.5, mx: 0.5, my: 0.25 }}
@@ -175,12 +181,18 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
             >
               <LinkIcon fontSize="small" />
             </Box>
+
           </ListItemIcon>
+
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             复制链接
           </Typography>
+
         </MenuItem>
+
       </Menu>
+
     </>
+
   );
 }

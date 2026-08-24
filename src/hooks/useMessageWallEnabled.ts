@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import { getMessageWallSettings } from '@/api/messages';
 
 
-
-
-
 export function useMessageWallEnabled() {
   const [enabled, setEnabled] = useState(false);
 

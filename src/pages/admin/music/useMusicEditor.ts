@@ -14,9 +14,6 @@ export const tabList: { value: MusicTab; label: string }[] = [
 export type MusicEditor = ReturnType<typeof useMusicEditor>;
 
 
-
-
-
 export function useMusicEditor() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();

@@ -97,6 +97,7 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             首页文章分页方式
           </Typography>
+
           <ToggleButtonGroup
             value={paginationMode}
             exclusive
@@ -104,13 +105,17 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
             size="small"
           >
             <ToggleButton value="load-more">加载更多</ToggleButton>
+
             <ToggleButton value="page-number">上一页 / 下一页</ToggleButton>
           </ToggleButtonGroup>
+
         </Box>
+
         <Box>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             每页文章数量 {pageSize} 篇
           </Typography>
+
           <Slider
             value={pageSize}
             onChange={(_, value) => setPageSize(value as number)}
@@ -129,6 +134,7 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
             valueLabelDisplay="auto"
           />
         </Box>
+
         <ImageField
           label="Logo（侧边栏左上角）"
           value={logo}
@@ -165,6 +171,7 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             背景透明度 {Math.round(backgroundOpacity * 100)}%
           </Typography>
+
           <Slider
             value={backgroundOpacity}
             onChange={(_, value) => setBackgroundOpacity(value as number)}
@@ -179,10 +186,12 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
             valueLabelDisplay="auto"
           />
         </Box>
+
         <Box>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             磨砂模糊 {backgroundBlur}px
           </Typography>
+
           <Slider
             value={backgroundBlur}
             onChange={(_, value) => setBackgroundBlur(value as number)}
@@ -197,7 +206,10 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
             valueLabelDisplay="auto"
           />
         </Box>
+
       </Stack>
+
     </Paper>
+
   );
 }

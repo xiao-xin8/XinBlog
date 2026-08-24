@@ -6,5 +6,6 @@ export default function MessageWall() {
     <Box sx={{ mx: { xs: -2, md: 0 }, px: { xs: 0.5, sm: '7px' }, py: { xs: 1, sm: 1.5 } }}>
       <MessageWallSection />
     </Box>
+
   );
 }

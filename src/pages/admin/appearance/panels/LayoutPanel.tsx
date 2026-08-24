@@ -42,6 +42,7 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           选择布局
         </Typography>
+
         <ToggleButtonGroup
           value={postLayout}
           exclusive
@@ -86,14 +87,20 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
                 <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                   {layout.name}
                 </Typography>
+
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                   {layout.desc}
                 </Typography>
+
               </Box>
+
             </ToggleButton>
+
           ))}
         </ToggleButtonGroup>
+
       </Paper>
+
 
       <Paper
         elevation={0}
@@ -112,6 +119,7 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             实时预览
           </Typography>
+
           <Box
             sx={{
               px: 1.5,
@@ -125,9 +133,14 @@ export function LayoutPanel({ editor }: { editor: AppearanceEditor }) {
           >
             {layouts.find((l) => l.id === postLayout)?.name}
           </Box>
+
         </Box>
+
         <Box sx={{ pointerEvents: 'none', maxWidth: '100%', overflow: 'hidden' }}>{renderPreview()}</Box>
+
       </Paper>
+
     </>
+
   );
 }

@@ -194,7 +194,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
     if (isPlaying) {
       audio.play().catch(() => setIsPlaying(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [currentSong?.src]);
 
   const togglePlay = () => {
@@ -265,7 +265,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         overflow: 'hidden',
       }}
     >
-      {/* 玻璃态光晕背景 */}
+      {}
       <Box
         sx={{
           position: 'absolute',
@@ -326,6 +326,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
             >
               <MusicNote />
             </Box>
+
           )}
           <Box
             sx={{
@@ -342,22 +343,28 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
           />
         </Box>
 
+
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="subtitle2" fontWeight={700} noWrap>
             {currentSong?.title || '未配置音乐'}
           </Typography>
+
           <Typography variant="caption" color="text.secondary" noWrap>
             {currentSong?.artist || (mode === 'netease' ? '请填写网易云音乐 ID' : '请在编辑中填写音频地址')}
           </Typography>
+
           {hasMultiple && (
             <Typography variant="caption" color="primary" sx={{ display: 'block' }}>
               {currentIndex + 1} / {playlist.length}
             </Typography>
+
           )}
         </Box>
+
       </Box>
 
-      {/* 歌词/状态行 */}
+
+      {}
       {showLyric && (
         <Typography
           variant="caption"
@@ -374,13 +381,15 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           {loading ? '加载歌单中...' : currentLyric}
         </Typography>
+
       )}
 
-      {/* 控制区 */}
+      {}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, position: 'relative', zIndex: 1 }}>
         <IconButton size="small" onClick={prevSong} disabled={!hasMultiple || loading} sx={{ color: 'text.primary' }}>
           <SkipPrevious fontSize="small" />
         </IconButton>
+
         <IconButton
           size="medium"
           onClick={togglePlay}
@@ -397,16 +406,20 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           {isPlaying ? <Pause fontSize={isCompact ? 'small' : 'medium'} /> : <PlayArrow fontSize={isCompact ? 'small' : 'medium'} />}
         </IconButton>
+
         <IconButton size="small" onClick={nextSong} disabled={!hasMultiple || loading} sx={{ color: 'text.primary' }}>
           <SkipNext fontSize="small" />
         </IconButton>
+
       </Box>
 
-      {/* 进度条 */}
+
+      {}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, position: 'relative', zIndex: 1 }}>
         <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
           {formatTime(currentTime)}
         </Typography>
+
         <Slider
           size="small"
           value={duration ? (currentTime / duration) * 100 : 0}
@@ -425,7 +438,9 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32, fontVariantNumeric: 'tabular-nums' }}>
           {formatTime(duration)}
         </Typography>
+
       </Box>
+
 
       {loading && (
         <Box
@@ -442,6 +457,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           <CircularProgress size={24} />
         </Box>
+
       )}
 
       <audio
@@ -451,5 +467,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         onEnded={nextSong}
       />
     </Box>
+
   );
 }

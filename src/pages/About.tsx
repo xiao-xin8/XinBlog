@@ -42,19 +42,23 @@ export function About() {
                 style={{ borderRadius: '50%' }}
               />
             </Box>
+
           ) : null}
           <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }, overflowWrap: 'break-word' }}>
             {config.author}
           </Typography>
+
           {config.about?.subtitle && (
             <Typography variant="h6" color="primary.main" sx={{ mb: 3, fontWeight: 500, fontSize: { xs: '1rem', sm: '1.25rem' }, overflowWrap: 'break-word' }}>
               {config.about.subtitle}
             </Typography>
+
           )}
           {config.about?.bio && (
             <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, maxWidth: { xs: '100%', sm: 600 }, mx: 'auto', fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word' }}>
               {config.about.bio}
             </Typography>
+
           )}
 
           {config.about?.tags && config.about.tags.length > 0 && (
@@ -77,11 +81,16 @@ export function About() {
                 >
                   {tag}
                 </Typography>
+
               ))}
             </Box>
+
           )}
         </Paper>
+
       </Container>
+
     </Fade>
+
   );
 }

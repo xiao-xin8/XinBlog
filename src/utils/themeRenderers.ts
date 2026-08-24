@@ -58,7 +58,6 @@ function isEmptyColor(v?: string): boolean {
 }
 
 function resolveColor(value: string | undefined, fallback: string): string {
-  
   return isEmptyColor(value) ? fallback : (value as string);
 }
 
@@ -131,7 +130,7 @@ export function buildPostCardOutput(
   };
   let output: PostCardRenderOutput;
   if (renderer) {
-    const params = { ...(theme.params || {}), ...theme };
+    const params = { ...renderer.defaultParams, ...(theme.params || {}), ...theme };
     output = renderer.render(params, context);
     if (theme.styles) {
       output = {
@@ -158,6 +157,7 @@ export const overlayCardRenderer: PostCardRenderer<{
   showExcerpt: boolean;
   showTags: boolean;
   showMeta: boolean;
+  fillSolidBg: boolean;
 }> = {
   id: 'overlay-card',
   name: '叠加画报',
@@ -174,6 +174,7 @@ export const overlayCardRenderer: PostCardRenderer<{
     showExcerpt: true,
     showTags: true,
     showMeta: true,
+    fillSolidBg: true,
   },
   schema: [
     { key: 'borderWidth', label: '边框宽度', type: 'number', min: 0, max: 12, step: 1 },
@@ -182,6 +183,7 @@ export const overlayCardRenderer: PostCardRenderer<{
     { key: 'showExcerpt', label: '显示摘要', type: 'boolean' },
     { key: 'showTags', label: '显示标签', type: 'boolean' },
     { key: 'showMeta', label: '显示阅读时间等元信息', type: 'boolean' },
+    { key: 'fillSolidBg', label: '无封面时填充纯色背景', type: 'boolean' },
   ],
   render: (params, { post, config, themeColor }) => {
     const borderColor = resolveBorderColor(params, themeColor);
@@ -198,6 +200,13 @@ export const overlayCardRenderer: PostCardRenderer<{
         : params.textPosition === 'bottom-right'
           ? 'right'
           : 'left';
+    const hasCover = !!post.cover;
+    const fillSolidBg = params.fillSolidBg !== false;
+    const rootBg = hasCover
+      ? resolveColor(params.backgroundColor, alpha(themeColor, 0.1))
+      : fillSolidBg
+        ? themeColor
+        : resolveColor(params.backgroundColor, alpha(themeColor, 0.1));
 
     return {
       layout: 'overlay',
@@ -209,7 +218,7 @@ export const overlayCardRenderer: PostCardRenderer<{
         overflow: 'hidden',
         borderRadius: `${borderRadius}px`,
         border: `${params.borderWidth}px solid ${borderColor}`,
-        backgroundColor: resolveColor(params.backgroundColor, alpha(themeColor, 0.1)),
+        backgroundColor: rootBg,
         transition: 'box-shadow 0.2s ease',
         '@media (hover: hover) and (pointer: fine)': {
           '&:hover': {
@@ -573,7 +582,8 @@ const renderers: PostCardRenderer[] = [
 ];
 
 export function getPostCardRenderer(variant?: string): PostCardRenderer | undefined {
-  if (!variant || variant === 'default') return undefined;
+  if (!variant) return undefined;
+  if (variant === 'default') variant = 'overlay-card';
   return renderers.find((r) => r.id === variant || r.aliases?.includes(variant));
 }
 

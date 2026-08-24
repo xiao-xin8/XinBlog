@@ -67,6 +67,7 @@ export default function MessageWallSection() {
         <Skeleton variant="text" width="30%" height={32} />
         <Skeleton variant="rectangular" height={200} sx={{ mt: 2, borderRadius: 1 }} />
       </Box>
+
     );
   }
 
@@ -77,7 +78,7 @@ export default function MessageWallSection() {
   return (
     <Fade in timeout={400}>
       <Box>
-        {/* 整体背景容器 */}
+        {}
         <Box
           sx={{
             position: 'relative',
@@ -92,7 +93,7 @@ export default function MessageWallSection() {
               )} 45%, ${alpha(theme.palette.secondary.main, 0.05)})`,
           }}
         >
-          {/* 装饰圆 */}
+          {}
           <Box
             sx={{
               position: 'absolute',
@@ -121,15 +122,17 @@ export default function MessageWallSection() {
           />
 
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            {/* 标题 */}
+            {}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
               <ChatBubbleOutlineIcon color="primary" sx={{ fontSize: 22 }} />
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 留言墙
               </Typography>
+
             </Box>
 
-            {/* 样式切换 */}
+
+            {}
             <Box
               sx={{
                 display: 'flex',
@@ -171,20 +174,35 @@ export default function MessageWallSection() {
                     {STYLE_ICONS[key]}
                     {!isMobile && label}
                   </ToggleButton>
+
                 ))}
               </ToggleButtonGroup>
+
             </Box>
 
-            {/* 内容区域 */}
+
+            {}
             <Fade in timeout={300} key={style}>
               <Box>
-                {style === 'danmaku' && <DanmakuStyle key={`danmaku-${refreshKey}`} />}
+                {style === 'danmaku' && (
+                  <DanmakuStyle
+                    key={`danmaku-${refreshKey}-${settings.danmakuRepeatSec}`}
+                    trackCount={settings.danmakuTrackCount ?? 12}
+                    speedMin={settings.danmakuSpeedMin ?? 8}
+                    speedMax={settings.danmakuSpeedMax ?? 11}
+                    intervalMin={settings.danmakuIntervalMin ?? 6}
+                    intervalMax={settings.danmakuIntervalMax ?? 10}
+                    repeatSec={settings.danmakuRepeatSec ?? 45}
+                  />
+                )}
                 {style === 'flipcard' && <FlipCardStyle key={`flipcard-${refreshKey}`} />}
                 {style === 'timetunnel' && <TimeTunnelStyle key={`timetunnel-${refreshKey}`} />}
               </Box>
+
             </Fade>
 
-            {/* 底部操作栏 */}
+
+            {}
             <Box
               sx={{
                 display: 'flex',
@@ -212,6 +230,7 @@ export default function MessageWallSection() {
                 >
                   我的留言
                 </Button>
+
               )}
               <Button
                 variant="contained"
@@ -227,11 +246,15 @@ export default function MessageWallSection() {
               >
                 新增留言
               </Button>
+
             </Box>
+
           </Box>
+
         </Box>
 
-        {/* 新增留言弹窗 */}
+
+        {}
         <MessageWallEditor
           open={editorOpen}
           allowAnonymous={settings.allowAnonymous}
@@ -240,7 +263,7 @@ export default function MessageWallSection() {
           onSuccess={handleRefresh}
         />
 
-        {/* 我的留言弹窗（仅登录用户） */}
+        {}
         {isAuthenticated && (
           <MessageWallManager
             open={managerOpen}
@@ -249,6 +272,8 @@ export default function MessageWallSection() {
           />
         )}
       </Box>
+
     </Fade>
+
   );
 }

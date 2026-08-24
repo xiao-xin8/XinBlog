@@ -46,9 +46,11 @@ CREATE TABLE IF NOT EXISTS comments (
   post_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   content TEXT NOT NULL,
+  parent_id INTEGER DEFAULT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_comments_post_status ON comments(post_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id);

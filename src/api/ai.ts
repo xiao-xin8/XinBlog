@@ -131,6 +131,24 @@ export async function formatOptimize(
   return res.data;
 }
 
+export async function generateAiSummary(
+  title: string,
+  content: string,
+  options: { model?: string; temperature?: number; maxTokens?: number } = {}
+): Promise<{ excerpt: string; model: string }> {
+  const res = await apiPost<{ excerpt: string; model: string }>('/api/v1/admin/ai/summary', {
+    title,
+    content,
+    model: options.model,
+    temperature: options.temperature,
+    maxTokens: options.maxTokens,
+  });
+  if (res.code !== 0 || !res.data) {
+    throw new Error(res.msg || 'AI 摘要生成失败，请稍后重试');
+  }
+  return res.data;
+}
+
 export async function chatWithAi(
   messages: { role: string; content: string }[],
   options: { model?: string; stream?: boolean; temperature?: number; max_tokens?: number } = {}

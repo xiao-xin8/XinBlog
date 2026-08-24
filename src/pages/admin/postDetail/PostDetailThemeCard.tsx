@@ -66,20 +66,25 @@ export function PostDetailThemeCard({
                 <Box sx={{ height: 3, width: '90%', bgcolor: alpha(accent, 0.25), borderRadius: 0.5 }} />
                 <Box sx={{ height: 3, width: '60%', bgcolor: alpha(accent, 0.25), borderRadius: 0.5 }} />
               </Box>
+
               <Box sx={{ width: 18, height: 32, bgcolor: alpha(accent, 0.2), borderRadius: 0.5 }} />
             </Box>
+
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '70%' }}>
               <Box sx={{ height: 4, width: '80%', bgcolor: alpha(accent, 0.5), borderRadius: 0.5 }} />
               <Box sx={{ height: 3, width: '100%', bgcolor: alpha(accent, 0.25), borderRadius: 0.5 }} />
               <Box sx={{ height: 3, width: '75%', bgcolor: alpha(accent, 0.25), borderRadius: 0.5 }} />
             </Box>
+
           )}
         </Box>
+
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle2" fontWeight={700} noWrap>
             {theme.name}
           </Typography>
+
           <Typography
             variant="caption"
             color="text.secondary"
@@ -87,8 +92,11 @@ export function PostDetailThemeCard({
           >
             {theme.description || theme.author || '文章详情主题'}
           </Typography>
+
         </Box>
+
       </Box>
+
       <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
         <Button
           variant={isSelected ? 'outlined' : 'contained'}
@@ -103,6 +111,7 @@ export function PostDetailThemeCard({
         >
           {isSelected ? (isActive ? '正在使用' : '已选中') : '应用'}
         </Button>
+
         {isSelected && (
           <Button
             variant="outlined"
@@ -116,8 +125,11 @@ export function PostDetailThemeCard({
           >
             恢复默认
           </Button>
+
         )}
       </Box>
+
     </Paper>
+
   );
 }

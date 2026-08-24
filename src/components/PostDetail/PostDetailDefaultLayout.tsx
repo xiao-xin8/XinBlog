@@ -26,6 +26,8 @@ export function PostDetailDefaultLayout({
         <PostDetailFooter post={post} siblings={siblings} />
         <CommentSection slug={post.slug} />
       </Container>
+
     </Fade>
+
   );
 }

@@ -47,10 +47,6 @@ export function searchPosts(posts: Post[], query: string): SearchResult[] {
 }
 
 
-
-
-
-
 export function highlightText(text: string, query: string, highlightColor?: string): ReactNode[] {
   const q = normalize(query);
   if (!q) return [text];
@@ -77,6 +73,7 @@ export function highlightText(text: string, query: string, highlightColor?: stri
         >
           {part}
         </mark>
+
       );
     }
     return part;

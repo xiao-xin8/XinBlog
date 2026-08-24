@@ -6,10 +6,6 @@ import { useSharedMusicPlayer, useSidebarVisible } from '@/components/MusicPlaye
 import { MusicPlayerCard } from '@/components/MusicPlayer/MusicPlayerCard';
 
 
-
-
-
-
 export function MusicPage() {
   const music = useSiteStore((s) => s.config.music);
   const player = useSharedMusicPlayer();
@@ -28,7 +24,9 @@ export function MusicPage() {
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
             音乐播放器
           </Typography>
+
         </Box>
+
 
         {!music?.enabled ? (
           <Box
@@ -45,14 +43,19 @@ export function MusicPage() {
             <Typography variant="body1" color="text.secondary">
               音乐播放器未启用
             </Typography>
+
             <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
               请在管理后台 → 音乐播放器中开启并配置
             </Typography>
+
           </Box>
+
         ) : (
           <MusicPlayerCard config={music} player={player} />
         )}
       </Container>
+
     </Fade>
+
   );
 }

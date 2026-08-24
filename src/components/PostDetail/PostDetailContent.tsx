@@ -1,5 +1,7 @@
 import { Box, alpha } from '@mui/material';
 import { PostContent } from '@/components/Post/PostContent';
+import { useSiteStore } from '@/stores/siteStore';
+import { resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { HeadingItem } from '@/components/Post/TableOfContents';
 
 interface PostDetailContentProps {
@@ -8,6 +10,7 @@ interface PostDetailContentProps {
 }
 
 export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailContentProps) {
+  const spacing = resolveSpacingConfig(useSiteStore((s) => s.config.spacing));
   return (
     <Box
       className="post-detail-prose"
@@ -17,7 +20,7 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
           lineHeight: 1.8,
           fontSize: { xs: '1rem', md: '1.05rem' },
           '& h1, & h2, & h3, & h4, & h5, & h6': {
-            mt: 4,
+            mt: { xs: `${spacing.articleHeadingGap.mobile}px`, md: `${spacing.articleHeadingGap.desktop}px` },
             mb: 2,
             fontWeight: 800,
             color: 'text.primary',
@@ -28,7 +31,7 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
           '& h2': { fontSize: { xs: '1.5rem', md: '1.85rem' } },
           '& h3': { fontSize: { xs: '1.25rem', md: '1.5rem' } },
           '& p': {
-            mb: 2,
+            mb: { xs: `${spacing.articleParagraphGap.mobile}px`, md: `${spacing.articleParagraphGap.desktop}px` },
             overflowWrap: 'break-word',
             whiteSpace: 'pre-wrap',
           },
@@ -119,5 +122,6 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
     >
       <PostContent content={content} onHeadingsExtracted={onHeadingsExtracted} />
     </Box>
+
   );
 }

@@ -37,8 +37,6 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 
-
-
 export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
   const {
     isPlaying,
@@ -123,10 +121,11 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
         >
           {error}
         </Typography>
+
       )}
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 2, sm: 3 }} alignItems="center">
-        {/* 封面 */}
+        {}
         <Box sx={{ position: 'relative', width: { xs: 120, sm: 140, md: 160 }, height: { xs: 120, sm: 140, md: 160 }, flexShrink: 0 }}>
           <Box
             sx={{
@@ -158,6 +157,7 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
               <MusicNote sx={{ fontSize: 48, color: 'text.secondary' }} />
             )}
           </Box>
+
           <Tooltip title={isPlaying ? '暂停' : '播放'}>
             <IconButton
               onClick={togglePlay}
@@ -175,10 +175,13 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
             >
               {isPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
+
           </Tooltip>
+
         </Box>
 
-        {/* 歌曲信息与控制 */}
+
+        {}
         <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
           <Typography
             variant="h6"
@@ -186,15 +189,18 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
           >
             {loading ? '加载中...' : currentSong?.name || '未播放'}
           </Typography>
+
           <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {currentSong?.artist || '请在下方选择歌曲或配置歌单'}
           </Typography>
 
-          {/* 进度条 */}
+
+          {}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
             <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
               {formatTime(currentTime)}
             </Typography>
+
             <Slider
               size="small"
               min={0}
@@ -208,20 +214,26 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
             <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
               {formatTime(duration)}
             </Typography>
+
           </Box>
 
-          {/* 控制按钮 */}
+
+          {}
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5} sx={{ mt: 0.5 }}>
             <Tooltip title={MODE_LABELS[playMode]}>
               <IconButton size="small" onClick={togglePlayMode}>
                 {MODE_ICONS[playMode]}
               </IconButton>
+
             </Tooltip>
+
             <Tooltip title="上一首">
               <IconButton onClick={prev}>
                 <SkipPrevious />
               </IconButton>
+
             </Tooltip>
+
             <IconButton
               onClick={togglePlay}
               sx={{
@@ -234,23 +246,30 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
             >
               {isPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
+
             <Tooltip title="下一首">
               <IconButton onClick={next}>
                 <SkipNext />
               </IconButton>
+
             </Tooltip>
+
             <Tooltip title="播放列表">
               <IconButton size="small" onClick={() => setShowPlaylist((s) => !s)}>
                 <QueueMusic />
               </IconButton>
+
             </Tooltip>
+
           </Stack>
 
-          {/* 音量 */}
+
+          {}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <IconButton size="small" onClick={toggleMute} aria-label="静音">
               {isMuted || volume === 0 ? <VolumeOff fontSize="small" /> : volume < 0.5 ? <VolumeDown fontSize="small" /> : <VolumeUp fontSize="small" />}
             </IconButton>
+
             <Slider
               size="small"
               min={0}
@@ -262,10 +281,13 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
               sx={{ flex: 1 }}
             />
           </Box>
+
         </Box>
+
       </Stack>
 
-      {/* 播放列表（带展开/收起动画） */}
+
+      {}
       <Collapse in={showPlaylist} timeout={300}>
         <Box
           ref={playlistRef}
@@ -283,6 +305,7 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
             <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
               暂无歌曲，请先配置网易云歌单
             </Typography>
+
           ) : (
             playlist.map((song, index) => {
               const active = index === player.currentIndex;
@@ -305,25 +328,33 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
                   <Typography variant="caption" sx={{ width: 20, flexShrink: 0, textAlign: 'right', opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
                     {index + 1}
                   </Typography>
+
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="body2" noWrap sx={{ fontWeight: active ? 700 : 500 }}>
                       {song.name}
                     </Typography>
+
                     <Typography variant="caption" color="text.secondary" noWrap>
                       {song.artist}
                     </Typography>
+
                   </Box>
+
                   <Typography variant="caption" sx={{ flexShrink: 0, opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
                     {formatTime(song.duration)}
                   </Typography>
+
                 </Box>
+
               );
             })
           )}
         </Box>
+
       </Collapse>
 
-      {/* 展开/收起歌单按钮 */}
+
+      {}
       {playlist.length > 0 && (
         <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
           <Typography
@@ -340,10 +371,12 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
             />
             {showPlaylist ? '收起播放列表' : `展开播放列表（${playlist.length} 首）`}
           </Typography>
+
         </Box>
+
       )}
 
-      {/* 歌词 */}
+      {}
       {config.showLyric && lyrics.length > 0 && (
         <Box
           ref={lyricWrapperRef}
@@ -384,10 +417,13 @@ export function MusicPlayerCard({ config, player }: MusicPlayerCardProps) {
               >
                 {line.text}
               </Typography>
+
             );
           })}
         </Box>
+
       )}
     </Paper>
+
   );
 }

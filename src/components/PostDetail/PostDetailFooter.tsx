@@ -31,6 +31,7 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
         <ShareButtons title={post.title} />
       </Box>
 
+
       <Divider sx={{ my: 4, borderColor: (t) => alpha(t.palette.divider, 0.5) }} />
 
       <Box
@@ -68,6 +69,7 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
               <Typography variant="caption" color="text.secondary" display="block">
                 上一篇
               </Typography>
+
               <Typography
                 variant="body2"
                 fontWeight={700}
@@ -80,8 +82,11 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
               >
                 {prevPost.title}
               </Typography>
+
             </Box>
+
           </Button>
+
         ) : (
           <Box flex={1} />
         )}
@@ -113,6 +118,7 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
               <Typography variant="caption" color="text.secondary" display="block">
                 下一篇
               </Typography>
+
               <Typography
                 variant="body2"
                 fontWeight={700}
@@ -125,12 +131,17 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
               >
                 {nextPost.title}
               </Typography>
+
             </Box>
+
           </Button>
+
         ) : (
           <Box flex={1} />
         )}
       </Box>
+
     </Box>
+
   );
 }

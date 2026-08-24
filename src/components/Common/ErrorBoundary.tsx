@@ -80,6 +80,7 @@ export function ErrorFallback({ error, onReload }: ErrorFallbackProps) {
             <SentimentDissatisfied sx={{ fontSize: { xs: 52, md: 64 } }} />
           </Box>
 
+
           <Typography
             variant="h1"
             sx={{
@@ -97,13 +98,16 @@ export function ErrorFallback({ error, onReload }: ErrorFallbackProps) {
             Oops
           </Typography>
 
+
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
             页面出了点小问题
           </Typography>
 
+
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 420, mx: 'auto' }}>
             应用遇到了意外错误，就像笔尖突然断墨。你可以刷新页面再试一次，或者返回首页重新开始。
           </Typography>
+
 
           {error && (
             <Typography
@@ -124,6 +128,7 @@ export function ErrorFallback({ error, onReload }: ErrorFallbackProps) {
             >
               {error.message}
             </Typography>
+
           )}
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -140,6 +145,7 @@ export function ErrorFallback({ error, onReload }: ErrorFallbackProps) {
             >
               刷新页面
             </Button>
+
             <Button
               component={Link}
               to="/"
@@ -153,9 +159,14 @@ export function ErrorFallback({ error, onReload }: ErrorFallbackProps) {
             >
               返回首页
             </Button>
+
           </Box>
+
         </Box>
+
       </Container>
+
     </Fade>
+
   );
 }

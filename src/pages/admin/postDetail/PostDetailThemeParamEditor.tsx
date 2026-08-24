@@ -19,6 +19,7 @@ export function PostDetailThemeParamEditor({ schema, config, onChange }: PostDet
 
   if (schema.length === 0) {
     return <Typography color="text.secondary">该主题暂无可调参数。</Typography>;
+
   }
 
   return (
@@ -36,6 +37,7 @@ export function PostDetailThemeParamEditor({ schema, config, onChange }: PostDet
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label} {numeric}{unit}
               </Typography>
+
               <Slider
                 value={numeric}
                 onChange={(_, v) => updateParam(item.key, v as number)}
@@ -45,6 +47,7 @@ export function PostDetailThemeParamEditor({ schema, config, onChange }: PostDet
                 valueLabelDisplay="auto"
               />
             </Box>
+
           );
         }
 
@@ -66,5 +69,6 @@ export function PostDetailThemeParamEditor({ schema, config, onChange }: PostDet
         return null;
       })}
     </Stack>
+
   );
 }

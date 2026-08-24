@@ -22,12 +22,15 @@ export function NotFound() {
         >
           404
         </Typography>
+
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
           页面未找到
         </Typography>
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           你访问的页面不存在，也许它去了远方。
         </Typography>
+
         <Button
           component={Link}
           to="/"
@@ -42,7 +45,10 @@ export function NotFound() {
         >
           返回首页
         </Button>
+
       </Container>
+
     </Fade>
+
   );
 }

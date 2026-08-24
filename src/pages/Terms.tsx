@@ -234,6 +234,7 @@ function SectionContent({
         >
           {section.title}
         </Typography>
+
       )}
       {section.content && (
         <Typography
@@ -247,6 +248,7 @@ function SectionContent({
         >
           {section.content}
         </Typography>
+
       )}
       {section.items && (
         <Box component="ul" sx={{ m: 0, pl: { xs: 2.5, sm: 3 }, '& li': { mb: 1 } }}>
@@ -266,10 +268,13 @@ function SectionContent({
             >
               {item}
             </Typography>
+
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }
 
@@ -312,7 +317,7 @@ export function Terms() {
                 : `0 8px 40px ${alpha(theme.palette.common.black, 0.3)}`,
           }}
         >
-          {/* 头部图标 + 标题 */}
+          {}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Box
               sx={{
@@ -329,6 +334,7 @@ export function Terms() {
             >
               <Icon sx={{ fontSize: { xs: 28, sm: 36 } }} />
             </Box>
+
             <Typography
               variant="h3"
               component="h1"
@@ -345,16 +351,19 @@ export function Terms() {
             >
               {title}
             </Typography>
+
             <Typography variant="body2" color="text.secondary">
               更新日期：{updateDate}
             </Typography>
+
           </Box>
+
 
           <Divider sx={{ mb: 4 }} />
 
-          {/* 协议 / 政策正文 */}
+          {}
           <Box sx={{ maxWidth: 720, mx: 'auto' }}>
-            {/* 前置声明 - 仅协议有 */}
+            {}
             {isAgreement && (
               <Box
                 sx={{
@@ -373,10 +382,12 @@ export function Terms() {
                 >
                   您访问、注册、登录并使用本站相关服务，即代表您已认真阅读、充分理解，并自愿遵守本协议的全部约定。
                 </Typography>
+
               </Box>
+
             )}
 
-            {/* 隐私政策声明 */}
+            {}
             {!isAgreement && (
               <Box
                 sx={{
@@ -395,10 +406,12 @@ export function Terms() {
                 >
                   本站遵循《中华人民共和国个人信息保护法》《网络数据安全管理条例》合规要求，清晰、透明地向大家公示本站的个人信息处理规则。
                 </Typography>
+
               </Box>
+
             )}
 
-            {/* 正文：自定义内容 → Markdown 渲染；无自定义内容 → 硬编码兜底 */}
+            {}
             {hasCustomContent ? (
               <Box
                 className="terms-markdown"
@@ -449,15 +462,21 @@ export function Terms() {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {customContent}
                 </ReactMarkdown>
+
               </Box>
+
             ) : (
               sections.map((section, index) => (
                 <SectionContent key={index} section={section} index={index} />
               ))
             )}
           </Box>
+
         </Paper>
+
       </Container>
+
     </Fade>
+
   );
 }

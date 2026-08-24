@@ -12,9 +12,6 @@ interface MusicPlayerContextValue {
 const MusicPlayerContext = createContext<MusicPlayerContextValue | null>(null);
 
 
-
-
-
 export function MusicPlayerProvider({ config, children }: { config?: MusicPlayerConfig; children: ReactNode }) {
   const player = useMusicPlayer(config);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -22,11 +19,9 @@ export function MusicPlayerProvider({ config, children }: { config?: MusicPlayer
     <MusicPlayerContext.Provider value={{ player, showSidebar, setShowSidebar }}>
       {children}
     </MusicPlayerContext.Provider>
+
   );
 }
-
-
-
 
 
 export function useSharedMusicPlayer(): MusicPlayerApi {
@@ -34,8 +29,6 @@ export function useSharedMusicPlayer(): MusicPlayerApi {
   if (!ctx) throw new Error('useSharedMusicPlayer must be used within MusicPlayerProvider');
   return ctx.player;
 }
-
-
 
 
 export function useSidebarVisible() {

@@ -67,16 +67,10 @@ export const PRESET_PLAYLISTS: { id: string; name: string; desc: string }[] = [
 ];
 
 
-
-
-
 export function extractUrlFromText(text: string): string | null {
   const match = text.match(/https?:\/\/[^\s<>"'{}\[\]]+/);
   return match ? match[0].replace(/[`'"’‘“”]+$/, '') : null;
 }
-
-
-
 
 
 export async function resolveShortUrl(url: string): Promise<string | null> {
@@ -94,22 +88,9 @@ export async function resolveShortUrl(url: string): Promise<string | null> {
 }
 
 
-
-
 export function isValidPlaylistId(id: string): boolean {
   return /^\d{5,}$/.test(id.trim());
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 export function parsePlaylistId(input: string): string {
@@ -188,12 +169,9 @@ export function saveMusicMemory(memory: MusicMemory) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
   } catch {
-    // ignore
+    
   }
 }
-
-
-
 
 
 export function getProxyImageUrl(url: string): string {

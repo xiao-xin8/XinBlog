@@ -6,6 +6,7 @@ export interface DashboardCounts {
   tags: number;
   media: number;
   users: number;
+  views: number;
 }
 
 export interface LatestPost {
@@ -16,9 +17,20 @@ export interface LatestPost {
   created_at: string;
 }
 
+export interface DashboardTrends {
+  days: number;
+  dates: string[];
+  posts: number[];
+  comments: number[];
+  likes: number[];
+  users: number[];
+  media: number[];
+}
+
 export interface DashboardResponse {
   counts: DashboardCounts;
   latestPosts: LatestPost[];
+  trends: DashboardTrends;
 }
 
 export interface DatabaseBinding {
@@ -41,8 +53,8 @@ export interface DatabasesResponse {
   version: string;
 }
 
-export async function fetchDashboard(): Promise<DashboardResponse | null> {
-  const res = await apiGet<DashboardResponse>('/api/v1/admin/dashboard');
+export async function fetchDashboard(days = 30): Promise<DashboardResponse | null> {
+  const res = await apiGet<DashboardResponse>(`/api/v1/admin/dashboard?days=${days}`);
   if (res.code !== 0 || !res.data) return null;
   return res.data;
 }
@@ -237,6 +249,7 @@ export async function deleteAdminTag(id: number): Promise<{ msg?: string }> {
 export interface AuthSettings {
   allowRegister: boolean;
   emailVerification: boolean;
+  enableForgotPassword: boolean;
 }
 
 export async function fetchAuthSettings(): Promise<AuthSettings | null> {
@@ -283,8 +296,12 @@ export interface EmailTemplateSettings {
   text: string;
 }
 
-export async function fetchEmailTemplateSettings(): Promise<EmailTemplateSettings> {
-  const res = await apiGet<EmailTemplateSettings & { _debug?: unknown }>('/api/v1/admin/settings/email-template');
+export type EmailTemplateKind = 'register' | 'reset';
+
+export async function fetchEmailTemplateSettings(kind: EmailTemplateKind = 'register'): Promise<EmailTemplateSettings> {
+  const res = await apiGet<EmailTemplateSettings & { _debug?: unknown }>(
+    `/api/v1/settings/email-template?kind=${kind}`
+  );
   if (res.code !== 0) {
     throw new Error(res.msg || '加载邮件模板失败');
   }
@@ -295,11 +312,40 @@ export async function fetchEmailTemplateSettings(): Promise<EmailTemplateSetting
   return { subject, html, text };
 }
 
-export async function updateEmailTemplateSettings(settings: Partial<EmailTemplateSettings>): Promise<EmailTemplateSettings | null> {
-  const res = await apiPatch<EmailTemplateSettings & { _debug?: unknown }>('/api/v1/admin/settings/email-template', settings);
+export async function updateEmailTemplateSettings(
+  settings: Partial<EmailTemplateSettings>,
+  kind: EmailTemplateKind = 'register'
+): Promise<EmailTemplateSettings | null> {
+  const res = await apiPatch<EmailTemplateSettings & { _debug?: unknown }>(
+    '/api/v1/admin/settings/email-template',
+    { ...settings, kind }
+  );
   if (res.code !== 0 || !res.data) return null;
   const { subject, html, text } = res.data;
   return { subject, html, text };
+}
+
+
+
+export interface CommentNotifySettings {
+  enabled: boolean;
+  notifyEmail: string;
+  dailyLimit: number;
+  reserveForRegister: number;
+  notifyAdminOnNew: boolean;
+  notifyAdminReply: boolean;
+  notifyUserReply: boolean;
+}
+
+export async function fetchCommentNotifySettings(): Promise<CommentNotifySettings | null> {
+  const res = await apiGet<CommentNotifySettings>('/api/v1/admin/settings/comment-notify');
+  if (res.code !== 0 || !res.data) return null;
+  return res.data;
+}
+
+export async function updateCommentNotifySettings(settings: Partial<CommentNotifySettings>): Promise<boolean> {
+  const res = await apiPatch('/api/v1/admin/settings/comment-notify', settings);
+  return res.code === 0;
 }
 
 

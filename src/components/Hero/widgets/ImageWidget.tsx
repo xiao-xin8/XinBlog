@@ -64,7 +64,9 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
           }}
         >
           <Typography variant="body2">请配置图片地址</Typography>
+
         </Box>
+
       )}
       {showTitle && (
         <Box
@@ -81,9 +83,12 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
           <Typography variant={titleVariant as 'body2' | 'caption' | 'h6'} sx={{ color: '#fff', fontWeight: 700, overflowWrap: 'break-word' }}>
             {title}
           </Typography>
+
         </Box>
+
       )}
     </Box>
+
   );
 
   if (url && !editable) {
@@ -91,6 +96,7 @@ export function ImageWidget({ config }: { config: HeroWidgetConfig }) {
       <Box component="a" href={url} target="_blank" rel="noopener noreferrer" sx={{ display: 'block', width: '100%', height: '100%', textDecoration: 'none' }}>
         {content}
       </Box>
+
     );
   }
 

@@ -34,15 +34,6 @@ export interface MusicPlayerApi {
 }
 
 
-
-
-
-
-
-
-
-
-
 export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayerApi {
   const effective: MusicPlayerConfig = { ...DEFAULT_MUSIC_CONFIG, ...(config || {}) };
   const [isPlaying, setIsPlaying] = useState(false);
@@ -159,7 +150,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       document.body.removeChild(audio);
       audioRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   

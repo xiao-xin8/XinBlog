@@ -7,11 +7,15 @@ import { createComment } from '@/api/comments';
 interface CommentEditorProps {
   slug: string;
   onSuccess: () => void;
+  parentId?: number | null;
+  placeholder?: string;
+  autoFocus?: boolean;
+  compact?: boolean;
 }
 
 const MAX_LENGTH = 2000;
 
-export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
+export default function CommentEditor({ slug, onSuccess, parentId, placeholder, autoFocus, compact }: CommentEditorProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,13 +33,26 @@ export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
     }
     setLoading(true);
     try {
-      const res = await createComment(slug, text);
+      const res = await createComment(slug, text, parentId);
       if (res.code === 0) {
         setContent('');
         const status = res.data?.status;
         enqueueSnackbar(status === 'approved' ? '评论发布成功' : '评论已提交，等待审核', {
           variant: 'success',
         });
+        const notifyErrors = res.data?.notifyErrors;
+        if (notifyErrors && notifyErrors.length) {
+          
+          const failures = notifyErrors.filter(
+            (e) => e && !e.startsWith('通知') && !e.startsWith('无通知邮件')
+          );
+          if (failures.length) {
+            enqueueSnackbar(`[邮件推送] ${failures.join('；')}`, {
+              variant: 'error',
+              autoHideDuration: 10000,
+            });
+          }
+        }
         onSuccess();
       } else {
         enqueueSnackbar(res.msg || '评论失败', { variant: 'error' });
@@ -66,14 +83,15 @@ export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
         <TextField
         fullWidth
         multiline
-        minRows={3}
-        maxRows={6}
-        placeholder="写下你的想法，与大家交流..."
+        minRows={compact ? 2 : 3}
+        maxRows={compact ? 4 : 6}
+        placeholder={placeholder || "写下你的想法，与大家交流..."}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         disabled={loading}
+        autoFocus={autoFocus}
         sx={{
           '& .MuiOutlinedInput-root': {
             borderRadius: 1.5,
@@ -107,6 +125,7 @@ export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
         >
           {content.length}/{MAX_LENGTH}
         </Typography>
+
         <Button
           variant="contained"
           size="small"
@@ -123,8 +142,12 @@ export default function CommentEditor({ slug, onSuccess }: CommentEditorProps) {
         >
           {loading ? '发布中' : '发布'}
         </Button>
+
       </Box>
+
     </Paper>
+
     </Fade>
+
   );
 }

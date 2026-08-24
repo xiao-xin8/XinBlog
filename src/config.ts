@@ -1,3 +1,5 @@
+
+
 export const CLOUD_BASE_URL = 'https://blogserve.pages.dev';
 
 export function toAbsoluteCloudUrl(relative: string): string {
@@ -7,7 +9,7 @@ export function toAbsoluteCloudUrl(relative: string): string {
 }
 
 
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.3.0';
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.4.0';
 export const SITE_NAME = import.meta.env.VITE_SITE_NAME || 'XinBlog';
 export const SITE_HOMEPAGE_URL = import.meta.env.VITE_SITE_URL || 'https://xinblog.zhyhome.top';
 

@@ -1,3 +1,7 @@
+
+
+
+
 import { connect } from 'cloudflare:sockets';
 
 const VERSION = '1.0.0';
@@ -276,10 +280,11 @@ async function requireAuth(request, env, handler) {
 
 async function requireAdmin(request, env, handler) {
   
+  
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
-  if (user.role !== 'super_admin') {
-    return jsonResponse(403, null, 'Forbidden: super_admin only', 403);
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
+    return jsonResponse(403, null, 'Forbidden', 403);
   }
   return handler(request, env, user);
 }
@@ -617,6 +622,60 @@ async function listPostsByTag(env, path) {
   return listPosts(env, new URL(`https://x.com/api/v1/posts?tag=${encodeURIComponent(slug)}`));
 }
 
+
+
+let rateLimitTableReady = false;
+
+async function ensureRateLimitTable(env) {
+  if (rateLimitTableReady) return;
+  await env.DB_USERS.prepare(
+    'CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_start INTEGER NOT NULL)'
+  ).run();
+  rateLimitTableReady = true;
+}
+
+function getClientIp(request) {
+  return (
+    request.headers.get('CF-Connecting-IP') ||
+    (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+    'unknown'
+  );
+}
+
+
+async function checkRateLimit(env, key, limit, windowSec) {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const bucket = Math.floor(nowSec / windowSec);
+  const bucketKey = `rl:${key}:${bucket}`;
+  const db = env.DB_USERS;
+  try {
+    await db.prepare(
+      'INSERT INTO rate_limits (key, count, window_start) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = rate_limits.count + 1'
+    )
+      .bind(bucketKey, bucket)
+      .run();
+  } catch (e) {
+    
+    if (e.message && e.message.includes('no such table')) {
+      await ensureRateLimitTable(env);
+      return true;
+    }
+    throw e;
+  }
+  const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(bucketKey).first();
+  if (!row) return true;
+  
+  if (row.window_start !== bucket) {
+    await db.prepare('UPDATE rate_limits SET count = 1, window_start = ? WHERE key = ?').bind(bucket, bucketKey).run();
+    return true;
+  }
+  
+  if (Math.random() < 0.02) {
+    await db.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(bucket - 3).run();
+  }
+  return row.count <= limit;
+}
+
 async function register(request, env) {
   const body = await request.json();
   const username = String(body.username || '').trim();
@@ -634,6 +693,15 @@ async function register(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
+  
+  const regIp = getClientIp(request);
+  if (!(await checkRateLimit(env, `reg:ip:${regIp}`, 5, 3600))) {
+    return jsonResponse(429, null, '注册过于频繁，请稍后再试', 429);
+  }
+  if (!(await checkRateLimit(env, `reg:email:${email.toLowerCase()}`, 3, 3600))) {
+    return jsonResponse(429, null, '该邮箱注册过于频繁，请稍后再试', 429);
+  }
+
   if (authSettings.emailVerification === true) {
     if (!code) return jsonResponse(403, null, '请输入邮箱验证码');
     const record = await env.DB_USERS.prepare(
@@ -642,7 +710,13 @@ async function register(request, env) {
       .bind(email)
       .first();
     if (!record) return jsonResponse(403, null, '请先获取邮箱验证码');
-    if (record.code !== code) return jsonResponse(403, null, '验证码错误');
+    if (record.code !== code) {
+      
+      if (!(await checkRateLimit(env, `vc-check:${email.toLowerCase()}`, 5, 600))) {
+        return jsonResponse(429, null, '验证码错误次数过多，请重新获取', 429);
+      }
+      return jsonResponse(403, null, '验证码错误');
+    }
     const nowTime = new Date().toISOString();
     if (record.expires_at < nowTime) return jsonResponse(403, null, '验证码已过期');
     await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email).run();
@@ -674,6 +748,16 @@ async function login(request, env) {
   const body = await request.json();
   const account = String(body.username || '').trim();
   const password = String(body.password || '');
+
+  
+  const loginIp = getClientIp(request);
+  if (!(await checkRateLimit(env, `login:ip:${loginIp}`, 10, 600))) {
+    return jsonResponse(429, null, '尝试次数过多，请 10 分钟后再试', 429);
+  }
+  const accountKey = account.toLowerCase();
+  if (!(await checkRateLimit(env, `login:acc:${accountKey}`, 5, 600))) {
+    return jsonResponse(429, null, '该账号尝试次数过多，请 10 分钟后再试', 429);
+  }
 
   let user = await env.DB_USERS.prepare(
     'SELECT id, username, email, email_verified, avatar_base64, role, status, password_hash, password_salt FROM users WHERE username = ?'
@@ -788,7 +872,7 @@ async function logout(request, env) {
     const body = await request.json();
     token = String(body?.refreshToken || body?.refresh_token || '');
   } catch {
-    // 请求体为空或解析失败时忽略
+    
   }
 
   if (!token) {
@@ -809,7 +893,7 @@ async function logout(request, env) {
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(payload.sub).run();
       }
     } catch {
-      // ignore
+      
     }
   }
   return jsonResponse(0, null, 'Logged out');
@@ -865,18 +949,51 @@ async function updateUserSettings(request, env, user) {
 }
 
 async function getDashboard(request, env, user) {
-  const [postCount, tagCount, mediaCount, userCount] = await Promise.all([
-    env.DB_POSTS.prepare("SELECT COUNT(*) as c FROM posts").first().then((r) => r.c),
-    env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM tags').first().then((r) => r.c),
-    env.DB_MEDIA.prepare('SELECT COUNT(*) as c FROM media').first().then((r) => r.c),
-    env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first().then((r) => r.c),
-  ]);
+  
+  let days = 30;
+  try {
+    const p = new URL(request.url).searchParams.get('days');
+    if (p) days = parseInt(p, 10);
+  } catch {}
+  if (![7, 30, 90].includes(days)) days = 30;
+  const sinceIso = new Date(Date.now() - days * 86400000).toISOString();
+
+  const dayList = [];
+  for (let i = days - 1; i >= 0; i--) {
+    dayList.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  }
+  const fill = (rows) => {
+    const map = Object.fromEntries((rows || []).map((r) => [r.day, r.c]));
+    return dayList.map((d) => map[d] || 0);
+  };
+  const countByDay = (db, table) =>
+    db
+      .prepare(`SELECT substr(created_at,1,10) AS day, COUNT(*) AS c FROM ${table} WHERE created_at >= ? GROUP BY day`)
+      .bind(sinceIso)
+      .all()
+      .then((r) => fill(r.results));
+
+  const [postCount, tagCount, mediaCount, userCount, postsTrend, commentsTrend, likesTrend, usersTrend, mediaTrend, viewsRow] =
+    await Promise.all([
+      env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM posts').first().then((r) => r.c),
+      env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM tags').first().then((r) => r.c),
+      env.DB_MEDIA.prepare('SELECT COUNT(*) as c FROM media').first().then((r) => r.c),
+      env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first().then((r) => r.c),
+      countByDay(env.DB_POSTS, 'posts'),
+      countByDay(env.DB_POSTS, 'comments'),
+      countByDay(env.DB_POSTS, 'likes'),
+      countByDay(env.DB_USERS, 'users'),
+      countByDay(env.DB_MEDIA, 'media'),
+      env.DB_POSTS.prepare('SELECT COALESCE(SUM(views),0) AS v FROM posts').first(),
+    ]);
+
   const latestPosts = await env.DB_POSTS.prepare(
     'SELECT id, title, slug, status, created_at FROM posts ORDER BY created_at DESC LIMIT 5'
   ).all();
   return jsonResponse(0, {
-    counts: { posts: postCount, tags: tagCount, media: mediaCount, users: userCount },
+    counts: { posts: postCount, tags: tagCount, media: mediaCount, users: userCount, views: viewsRow.v },
     latestPosts: latestPosts.results || [],
+    trends: { days, dates: dayList, posts: postsTrend, comments: commentsTrend, likes: likesTrend, users: usersTrend, media: mediaTrend },
   });
 }
 
@@ -1030,7 +1147,8 @@ async function updatePost(request, env, user) {
 async function deletePost(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
-  await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(id).run();
+  
+  await deleteCommentsByPost(env, id);
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ?').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
@@ -1125,7 +1243,7 @@ async function listAdminThemes(request, env, user) {
       description = content.description || '';
       author = content.author || '';
     } catch {
-      // ignore
+      
     }
     return {
       id: row.id,
@@ -1357,7 +1475,7 @@ async function getMedia(env, id, request, ctx) {
     response = await caches.default.match(cacheKey);
     if (response) return response;
   } catch {
-    // 缓存读取失败时继续回源
+    
   }
 
   const row = await env.DB_MEDIA.prepare(
@@ -1408,7 +1526,7 @@ async function getMedia(env, id, request, ctx) {
   try {
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
   } catch {
-    // 缓存写入失败不影响响应
+    
   }
   return response;
 }
@@ -1429,7 +1547,7 @@ async function deleteMedia(request, env, user) {
     const publicUrl = new URL(`/api/v1/media/${mediaId}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响删除结果
+    
   }
 
   return jsonResponse(0, null, '删除成功');
@@ -1493,7 +1611,7 @@ async function getMediaBindings(env, mediaId) {
     check('hero.backgroundImage', hero.backgroundImage);
     check('about.avatar', about.avatar);
   } catch {
-    // 配置读取失败不影响绑定结果
+    
   }
 
   return bindings;
@@ -1633,7 +1751,7 @@ async function updateAdminMedia(request, env, user) {
     const publicUrl = new URL(`/api/v1/media/${id}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响更新结果
+    
   }
 
   return jsonResponse(0, { id, url: `/api/v1/media/${id}`, size }, '替换成功');
@@ -1689,6 +1807,7 @@ async function getSystemStatus(request, env, user) {
 const defaultAuthSettings = {
   allowRegister: true,
   emailVerification: false,
+  enableForgotPassword: false,
 };
 
 async function getAuthSettings(request, env, user) {
@@ -1709,6 +1828,7 @@ async function updateAuthSettings(request, env, user) {
   const data = {
     allowRegister: body.allowRegister !== false,
     emailVerification: body.emailVerification === true,
+    enableForgotPassword: body.enableForgotPassword === true,
   };
   await setSetting(env, 'auth', data);
   return jsonResponse(0, data, '保存成功');
@@ -1731,8 +1851,12 @@ const defaultEmailSettings = {
 async function getEmailSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'email')) || {};
+    const result = { ...defaultEmailSettings, ...data };
     
-    return jsonResponse(0, { ...defaultEmailSettings, ...data }, 'ok');
+    
+    if (result.resendApiKey) result.resendApiKey = '****';
+    if (result.smtpPass) result.smtpPass = '****';
+    return jsonResponse(0, result, 'ok');
   } catch (err) {
     if (isBindingError(err)) {
       console.error('读取邮箱配置失败，返回默认配置:', err);
@@ -1744,19 +1868,85 @@ async function getEmailSettings(request, env, user) {
 
 async function updateEmailSettings(request, env, user) {
   const body = await request.json();
+  const existing = (await getSetting(env, 'email')) || {};
   const data = {
     provider: String(body.provider || 'resend'),
     from: String(body.from || ''),
     fromName: String(body.fromName || ''),
-    resendApiKey: String(body.resendApiKey || ''),
+    resendApiKey: body.resendApiKey === '****' ? existing.resendApiKey : String(body.resendApiKey || ''),
     smtpHost: String(body.smtpHost || ''),
     smtpPort: parseInt(body.smtpPort || '587', 10) || 587,
     smtpUser: String(body.smtpUser || ''),
-    smtpPass: String(body.smtpPass || ''),
+    smtpPass: body.smtpPass === '****' ? existing.smtpPass : String(body.smtpPass || ''),
     smtpSecure: body.smtpSecure === true,
   };
   await setSetting(env, 'email', data);
+  
+  const result = { ...data };
+  if (result.resendApiKey) result.resendApiKey = '****';
+  if (result.smtpPass) result.smtpPass = '****';
+  return jsonResponse(0, result, '保存成功');
+}
+
+
+
+const defaultCommentNotifySettings = {
+  enabled: false,
+  notifyEmail: '',
+  dailyLimit: 100,
+  reserveForRegister: 10,
+  notifyAdminOnNew: true,
+  notifyAdminReply: true,
+  notifyUserReply: false,
+};
+
+async function getCommentNotifySettings(request, env, user) {
+  try {
+    const data = (await getSetting(env, 'comment_notify')) || {};
+    const result = { ...defaultCommentNotifySettings, ...data };
+    return jsonResponse(0, result, 'ok');
+  } catch (err) {
+    if (isBindingError(err)) {
+      console.error('读取评论通知设置失败，返回默认配置:', err);
+      return jsonResponse(0, { ...defaultCommentNotifySettings, _debug: getBindingDebugInfo(env, err) }, 'ok');
+    }
+    throw err;
+  }
+}
+
+async function updateCommentNotifySettings(request, env, user) {
+  const body = await request.json();
+  const existing = (await getSetting(env, 'comment_notify')) || {};
+  const data = {
+    enabled: body.enabled === true,
+    notifyEmail: String(body.notifyEmail || existing.notifyEmail || ''),
+    dailyLimit: parseInt(body.dailyLimit, 10) || defaultCommentNotifySettings.dailyLimit,
+    reserveForRegister: parseInt(body.reserveForRegister, 10) || defaultCommentNotifySettings.reserveForRegister,
+    notifyAdminOnNew: body.notifyAdminOnNew !== false,
+    notifyAdminReply: body.notifyAdminReply !== false,
+    notifyUserReply: body.notifyUserReply === true,
+  };
+  await setSetting(env, 'comment_notify', data);
   return jsonResponse(0, data, '保存成功');
+}
+
+
+
+async function getEmailDailyCount(env) {
+  const data = await getSetting(env, 'email_daily_count');
+  const today = new Date().toISOString().slice(0, 10);
+  if (data && data.date === today) {
+    return data.count || 0;
+  }
+  return 0;
+}
+
+async function incrementEmailDailyCount(env) {
+  const today = new Date().toISOString().slice(0, 10);
+  const data = await getSetting(env, 'email_daily_count');
+  const count = (data && data.date === today ? (data.count || 0) : 0) + 1;
+  await setSetting(env, 'email_daily_count', { date: today, count });
+  return count;
 }
 
 const defaultEmailTemplate = {
@@ -1809,6 +1999,56 @@ const defaultEmailTemplate = {
   text: '您好，{{username}}：感谢您注册 {{siteName}}，验证码是 {{code}}，{{expireMinutes}} 分钟内有效。如非本人操作请忽略。',
 };
 
+const defaultResetEmailTemplate = {
+  subject: '您的密码重置验证码',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重置密码</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f7ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f7ff;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(91,124,250,0.12);">
+          <tr>
+            <td style="padding:40px 32px 32px;text-align:center;">
+              <h1 style="margin:0 0 8px;font-size:22px;color:#1a1a2e;font-weight:700;">{{siteName}}</h1>
+              <p style="margin:0;font-size:14px;color:#6b7280;">{{siteTitle}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 32px;">
+              <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">您好，<strong>{{username}}</strong>：</p>
+              <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">我们收到了您重置 {{siteName}} 密码的请求，请在 {{expireMinutes}} 分钟内使用以下验证码完成密码重置：</p>
+              <div style="text-align:center;padding:24px 0;">
+                <table cellpadding="0" cellspacing="0" border="0" bgcolor="#5b7cfa" style="background-color:#5b7cfa;border-radius:12px;display:inline-block;">
+                  <tr>
+                    <td style="padding:16px 32px;text-align:center;">
+                      <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#ffffff;line-height:1;">{{code}}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;line-height:1.5;">验证码仅用于密码重置，请勿泄露给他人。如果您没有申请重置密码，请忽略此邮件并尽快修改密码。</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;background-color:#f8fafc;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">本邮件由 {{siteName}} 自动发送</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  text: '您好，{{username}}：我们收到了重置 {{siteName}} 密码的请求，请在 {{expireMinutes}} 分钟内使用验证码 {{code}} 完成重置。如非本人操作请忽略此邮件。',
+};
+
 function applyEmailTemplate(template, variables) {
   let subject = template.subject || defaultEmailTemplate.subject;
   let html = template.html || defaultEmailTemplate.html;
@@ -1826,10 +2066,13 @@ async function getEmailTemplateSettings(request, env, user) {
   try {
     const db = getConfigDb(env);
     const usedSession = env.DB_CONFIG && typeof env.DB_CONFIG.withSession === 'function';
+    const isReset = new URL(request.url).searchParams.get('kind') === 'reset';
+    const prefix = isReset ? 'email_reset' : 'email';
+    const fallback = isReset ? defaultResetEmailTemplate : defaultEmailTemplate;
     const [subjectRow, htmlRow, textRow] = await Promise.all([
-      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_subject').first(),
-      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_html').first(),
-      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_text').first(),
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_subject`).first(),
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_html`).first(),
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_text`).first(),
     ]);
     const data = {
       subject: subjectRow?.value || null,
@@ -1840,10 +2083,11 @@ async function getEmailTemplateSettings(request, env, user) {
     return jsonResponse(
       0,
       {
-        subject: data.subject || defaultEmailTemplate.subject,
-        html: data.html || defaultEmailTemplate.html,
-        text: data.text || defaultEmailTemplate.text,
+        subject: data.subject || fallback.subject,
+        html: data.html || fallback.html,
+        text: data.text || fallback.text,
         _debug: {
+          kind: isReset ? 'reset' : 'register',
           source: hasAny ? 'split_fields' : 'default',
           hasSubject: !!data.subject,
           hasHtml: !!data.html,
@@ -1857,7 +2101,8 @@ async function getEmailTemplateSettings(request, env, user) {
     
     if (isBindingError(err)) {
       console.error('读取邮件模板失败，返回默认模板:', err);
-      return jsonResponse(0, { ...defaultEmailTemplate, _debug: getBindingDebugInfo(env, err) }, 'ok');
+      const fallback = new URL(request.url).searchParams.get('kind') === 'reset' ? defaultResetEmailTemplate : defaultEmailTemplate;
+      return jsonResponse(0, { ...fallback, _debug: getBindingDebugInfo(env, err) }, 'ok');
     }
     throw err;
   }
@@ -1867,22 +2112,25 @@ async function updateEmailTemplateSettings(request, env, user) {
   const body = await request.json();
   const db = getConfigDb(env);
   const ts = now();
+  const isReset = body.kind === 'reset';
+  const prefix = isReset ? 'email_reset' : 'email';
+  const fallback = isReset ? defaultResetEmailTemplate : defaultEmailTemplate;
   const data = {
-    subject: String(body.subject || defaultEmailTemplate.subject),
-    html: String(body.html || defaultEmailTemplate.html),
-    text: String(body.text || defaultEmailTemplate.text),
+    subject: String(body.subject || fallback.subject),
+    html: String(body.html || fallback.html),
+    text: String(body.text || fallback.text),
   };
   
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
-    .bind('email_subject', data.subject, ts).run();
+    .bind(`${prefix}_subject`, data.subject, ts).run();
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
-    .bind('email_html', data.html, ts).run();
+    .bind(`${prefix}_html`, data.html, ts).run();
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
-    .bind('email_text', data.text, ts).run();
+    .bind(`${prefix}_text`, data.text, ts).run();
   return jsonResponse(0, data, '保存成功');
 }
 
-async function sendEmailByProvider(env, to, subject, text, html) {
+async function sendEmailByProvider(env, to, subject, text, html, critical = false) {
   const settings = (await getSetting(env, 'email')) || {};
   const provider = settings.provider || 'resend';
 
@@ -1891,9 +2139,30 @@ async function sendEmailByProvider(env, to, subject, text, html) {
   }
 
   
+  if (!critical) {
+    const notifySettings = (await getSetting(env, 'comment_notify')) || {};
+    const dailyLimit = notifySettings.dailyLimit || 100;
+    const reserveForRegister = notifySettings.reserveForRegister || 10;
+    const maxNotify = dailyLimit - reserveForRegister;
+    console.log('[email-send] daily limit check:', { dailyLimit, reserveForRegister, maxNotify });
+    if (maxNotify <= 0) {
+      console.log('[email-send] maxNotify <= 0, skipping');
+      throw new Error('每日发件限额已全部预留给注册验证，无法发送通知邮件');
+    }
+    const currentCount = await getEmailDailyCount(env);
+    console.log('[email-send] currentCount:', currentCount, 'maxNotify:', maxNotify);
+    if (currentCount >= maxNotify) {
+      console.log('[email-send] daily limit reached, skipping');
+      throw new Error(`每日发件通知已达上限（${maxNotify} 封），超出部分已被限制`);
+    }
+  }
+
+  
   const sendPromise = (async () => {
     if (provider === 'smtp') {
-      return sendEmailBySMTP(settings, to, subject, text, html);
+      const ok = await sendEmailBySMTP(settings, to, subject, text, html);
+      await incrementEmailDailyCount(env);
+      return ok;
     }
 
     if (provider !== 'resend') {
@@ -1919,10 +2188,13 @@ async function sendEmailByProvider(env, to, subject, text, html) {
       },
       body: JSON.stringify(payload),
     });
+    console.log('[email-send] Resend response status:', res.status);
     if (!res.ok) {
       const err = await res.text();
+      console.log('[email-send] Resend error body:', err);
       throw new Error(`Resend error: ${err}`);
     }
+    await incrementEmailDailyCount(env);
     return true;
   })();
 
@@ -2183,6 +2455,19 @@ async function sendVerifyCode(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
+  
+  const vcIp = getClientIp(request);
+  if (!(await checkRateLimit(env, `vc:ip:${vcIp}`, 5, 600))) {
+    return jsonResponse(429, null, '发送过于频繁，请稍后再试', 429);
+  }
+  const vcEmail = email.toLowerCase();
+  if (!(await checkRateLimit(env, `vc:email:${vcEmail}`, 3, 600))) {
+    return jsonResponse(429, null, '该邮箱发送过于频繁，请 10 分钟后再试', 429);
+  }
+  if (!(await checkRateLimit(env, `vc:day:${vcEmail}`, 10, 86400))) {
+    return jsonResponse(429, null, '该邮箱今日发送次数已达上限', 429);
+  }
+
   const existingUser = await env.DB_USERS.prepare(
     'SELECT id FROM users WHERE username = ? OR email = ?'
   )
@@ -2235,16 +2520,203 @@ async function sendVerifyCode(request, env) {
       siteName: site.siteName || '站点',
       siteTitle: site.siteName || '站点',
     });
-    await sendEmailByProvider(env, email, subject, text, html);
+    await sendEmailByProvider(env, email, subject, text, html, true);
   } catch (e) {
     console.error(e);
     if (emailConfigured) {
       return jsonResponse(500, { sent: false }, `邮件发送失败：${e.message || '未知错误'}`);
     }
-    // 未配置邮件服务时，仅记录验证码，不阻止注册流程
+    
   }
 
   return jsonResponse(0, { sent: true }, '验证码已发送');
+}
+
+async function sendForgotCode(request, env) {
+  const body = await request.json();
+  const username = String(body.username || '').trim();
+  const email = String(body.email || '').trim();
+  const authSettings = (await getSetting(env, 'auth')) || {};
+
+  if (authSettings.enableForgotPassword !== true) {
+    return jsonResponse(403, null, '未开启找回密码功能');
+  }
+  if (!username || /[\u4e00-\u9fa5]/.test(username)) return jsonResponse(400, null, '用户名不合法');
+  if (!email) return jsonResponse(400, null, '邮箱必填');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
+
+  
+  const fpIp = getClientIp(request);
+  if (!(await checkRateLimit(env, `fp:ip:${fpIp}`, 5, 600))) {
+    return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
+  }
+  const fpEmail = email.toLowerCase();
+  if (!(await checkRateLimit(env, `fp:email:${fpEmail}`, 3, 600))) {
+    return jsonResponse(429, null, '该邮箱操作过于频繁，请 10 分钟后再试', 429);
+  }
+  if (!(await checkRateLimit(env, `fp:day:${fpEmail}`, 10, 86400))) {
+    return jsonResponse(429, null, '该邮箱今日操作次数已达上限', 429);
+  }
+
+  
+  const user = await env.DB_USERS.prepare(
+    'SELECT username, email FROM users WHERE username = ? OR email = ?'
+  )
+    .bind(username, fpEmail)
+    .first();
+  const matched =
+    !!user &&
+    user.username === username &&
+    String(user.email || '').toLowerCase() === fpEmail;
+  if (!matched) {
+    return jsonResponse(0, { sent: false, _debug: { matched: false, username, email } }, '验证码已发送');
+  }
+
+  const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  await env.DB_USERS.prepare(
+    'INSERT INTO verify_codes (email, code, expires_at, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at, created_at = excluded.created_at'
+  )
+    .bind(fpEmail, code, expiresAt, now())
+    .run();
+
+  const emailSettings = (await getSetting(env, 'email')) || {};
+  const provider = emailSettings.provider || 'resend';
+  const emailConfigured =
+    (provider === 'resend' && !!emailSettings.resendApiKey && !!emailSettings.from) ||
+    (provider === 'smtp' &&
+      !!emailSettings.from &&
+      !!emailSettings.smtpHost &&
+      !!emailSettings.smtpUser &&
+      !!emailSettings.smtpPass);
+
+  if (!emailConfigured) {
+    return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送重置邮件');
+  }
+
+  let sendStatus = 'not_attempted';
+  let sendError = '';
+  const debugBase = { matched: true, provider, emailConfigured, email };
+
+  try {
+    const db = getConfigDb(env);
+    const [subjectRow, htmlRow, textRow] = await Promise.all([
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_reset_subject').first(),
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_reset_html').first(),
+      db.prepare('SELECT value FROM settings WHERE key = ?').bind('email_reset_text').first(),
+    ]);
+    const template = {
+      subject: subjectRow?.value || defaultResetEmailTemplate.subject,
+      html: htmlRow?.value || defaultResetEmailTemplate.html,
+      text: textRow?.value || defaultResetEmailTemplate.text,
+    };
+    const site = (await getSetting(env, 'site')) || {};
+    const { subject, html, text } = applyEmailTemplate(template, {
+      username,
+      email,
+      code,
+      expireMinutes: 10,
+      siteName: site.siteName || '站点',
+      siteTitle: site.siteName || '站点',
+    });
+    try {
+      await sendEmailByProvider(env, email, subject, text, html, true);
+      sendStatus = 'sent';
+    } catch (sendErr) {
+      sendStatus = 'failed';
+      sendError = sendErr.message || String(sendErr);
+      console.error(sendErr);
+      return jsonResponse(500, { sent: false, _debug: { ...debugBase, sendStatus, sendError } }, `邮件发送失败：${sendError}`);
+    }
+  } catch (e) {
+    console.error(e);
+    if (emailConfigured) {
+      return jsonResponse(500, { sent: false, _debug: { ...debugBase, sendStatus, sendError, stage: e.message || 'template' } }, `邮件发送失败：${e.message || '未知错误'}`);
+    }
+  }
+
+  return jsonResponse(0, { sent: true, _debug: { ...debugBase, sendStatus, sendError } }, '验证码已发送');
+}
+
+async function resetPassword(request, env) {
+  const body = await request.json();
+  const username = String(body.username || '').trim();
+  const email = String(body.email || '').trim();
+  const code = String(body.code || '').trim().toUpperCase();
+  const password = String(body.password || '');
+  const authSettings = (await getSetting(env, 'auth')) || {};
+
+  if (authSettings.enableForgotPassword !== true) {
+    return jsonResponse(403, null, '未开启找回密码功能');
+  }
+  if (!username || !email) return jsonResponse(400, null, '用户名和邮箱必填');
+  if (password.length < 6) return jsonResponse(400, null, '密码至少 6 位');
+  if (!code) return jsonResponse(400, null, '请输入邮箱验证码');
+
+  const record = await env.DB_USERS.prepare(
+    'SELECT code, expires_at FROM verify_codes WHERE email = ?'
+  )
+    .bind(email.toLowerCase())
+    .first();
+  if (!record) return jsonResponse(403, null, '请先获取重置验证码');
+  if (record.code !== code) {
+    if (!(await checkRateLimit(env, `vc-check:${email.toLowerCase()}`, 5, 600))) {
+      return jsonResponse(429, null, '验证码错误次数过多，请重新获取', 429);
+    }
+    return jsonResponse(403, null, '验证码错误');
+  }
+  if (record.expires_at < new Date().toISOString()) return jsonResponse(403, null, '验证码已过期');
+
+  const user = await env.DB_USERS.prepare(
+    'SELECT id FROM users WHERE username = ? AND email = ?'
+  )
+    .bind(username, email.toLowerCase())
+    .first();
+  if (!user) return jsonResponse(403, null, '用户不存在');
+
+  const { salt, hash } = await hashPassword(password);
+  await env.DB_USERS.prepare(
+    'UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?'
+  )
+    .bind(hash, salt, now(), user.id)
+    .run();
+  await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email.toLowerCase()).run();
+  return jsonResponse(0, null, '密码已重置，请使用新密码登录');
+}
+
+async function changePassword(request, env, user) {
+  const body = await request.json();
+  const currentPassword = String(body.currentPassword || '');
+  const newPassword = String(body.newPassword || '');
+
+  if (!currentPassword) return jsonResponse(400, null, '请输入当前密码');
+  if (newPassword.length < 6) return jsonResponse(400, null, '新密码至少 6 位');
+  if (newPassword === currentPassword) return jsonResponse(400, null, '新密码不能与当前密码相同');
+
+  
+  if (!(await checkRateLimit(env, `cp:${user.id}`, 5, 600))) {
+    return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
+  }
+
+  const row = await env.DB_USERS.prepare(
+    'SELECT id, password_hash, password_salt, status FROM users WHERE id = ?'
+  )
+    .bind(user.id)
+    .first();
+  if (!row) return jsonResponse(404, null, '用户不存在');
+  if (row.status === 'banned') return jsonResponse(403, null, '账号已被禁用');
+
+  const valid = await verifyPassword(currentPassword, row.password_salt, row.password_hash);
+  if (!valid) return jsonResponse(403, null, '当前密码不正确');
+
+  const { salt, hash } = await hashPassword(newPassword);
+  await env.DB_USERS.prepare(
+    'UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?'
+  )
+    .bind(hash, salt, now(), user.id)
+    .run();
+  return jsonResponse(0, null, '密码已修改');
 }
 
 
@@ -2324,7 +2796,7 @@ async function listComments(env, url, path) {
   const offset = (page - 1) * limit;
 
   const comments = await env.DB_POSTS.prepare(
-    `SELECT id, post_id, user_id, content, status, created_at, updated_at
+    `SELECT id, post_id, user_id, content, parent_id, status, created_at, updated_at
      FROM comments
      WHERE post_id = ? AND status = 'approved'
      ORDER BY created_at DESC
@@ -2341,18 +2813,32 @@ async function listComments(env, url, path) {
 
   const list = comments.results || [];
   const userIds = [...new Set(list.map((c) => c.user_id).filter(Boolean))];
-  const userMap = await getUserMap(env, userIds);
+  const parentUserIds = [...new Set(list.map((c) => c.parent_id).filter(Boolean))];
+  
+  const parentCommentMap = {};
+  if (parentUserIds.length > 0) {
+    const parentComments = await env.DB_POSTS.prepare(
+      `SELECT id, user_id FROM comments WHERE id IN (${parentUserIds.join(',')})`
+    ).all();
+    (parentComments.results || []).forEach((pc) => {
+      parentCommentMap[pc.id] = pc.user_id;
+    });
+  }
+  const allUserIds = [...new Set([...userIds, ...Object.values(parentCommentMap).filter(Boolean)])];
+  const userMap = await getUserMap(env, allUserIds);
 
   const results = list.map((c) => ({
     id: c.id,
     postId: c.post_id,
     userId: c.user_id,
     content: c.content,
+    parentId: c.parent_id || null,
     status: c.status,
     createdAt: c.created_at,
     updatedAt: c.updated_at,
     username: userMap[c.user_id]?.username || '未知用户',
     avatar: userMap[c.user_id]?.avatar_base64 || null,
+    replyToUsername: c.parent_id ? (userMap[parentCommentMap[c.parent_id]]?.username || null) : null,
   }));
 
   return jsonResponse(0, { list: results, total: countRow.c, page, limit });
@@ -2372,16 +2858,175 @@ async function createComment(request, env, user) {
   if (!content) return jsonResponse(400, null, '评论内容不能为空');
   if (content.length > 2000) return jsonResponse(400, null, '评论内容不能超过 2000 字');
 
+  const parentId = parseInt(body.parentId, 10) || null;
+  if (parentId) {
+    const parentExists = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE id = ? AND post_id = ?')
+      .bind(parentId, postId)
+      .first();
+    if (!parentExists) return jsonResponse(400, null, '回复的评论不存在');
+  }
+
   const status = settings.commentAudit === false ? 'approved' : 'pending';
   const time = now();
 
   const result = await env.DB_POSTS.prepare(
-    'INSERT INTO comments (post_id, user_id, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO comments (post_id, user_id, content, parent_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
-    .bind(postId, user.id, content, status, time, time)
+    .bind(postId, user.id, content, parentId, status, time, time)
     .run();
 
-  return jsonResponse(0, { id: result.meta ? result.meta.last_row_id : null, status }, '评论成功');
+  const commentId = result.meta ? result.meta.last_row_id : null;
+
+  
+  
+  const notifyErrors = [];
+  if (commentId) {
+    const errs = await sendCommentNotifications(request, env, postId, slug, user, content, parentId, commentId, status);
+    notifyErrors.push(...(Array.isArray(errs) ? errs : []));
+  }
+
+  return jsonResponse(0, { id: commentId, status, notifyErrors }, '评论成功');
+}
+
+
+
+function buildEmailHtml(siteName, title, bodyLines, postTitle, postUrl, time) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 16px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+        <tr><td style="padding:32px 32px 0">
+          <h2 style="margin:0 0 8px;font-size:20px;color:#1a1a1a;font-weight:700">${title}</h2>
+          <p style="margin:0 0 24px;font-size:13px;color:#999">${time}</p>
+        </td></tr>
+        <tr><td style="padding:0 32px">
+          ${bodyLines.map((line) => `<p style="margin:0 0 12px;font-size:15px;color:#333;line-height:1.7">${line}</p>`).join('')}
+        </td></tr>
+        <tr><td style="padding:24px 32px 32px">
+          ${postUrl ? `<a href="${postUrl}" style="display:inline-block;padding:10px 28px;background:#1677ff;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">查看文章</a>` : ''}
+          <p style="margin:16px 0 0;font-size:12px;color:#bbb">来自 ${siteName}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+async function sendCommentNotifications(request, env, postId, slug, commenter, content, parentId, commentId, commentStatus = 'pending') {
+  const notifySettings = (await getSetting(env, 'comment_notify')) || {};
+  const errors = [];
+  console.log('[comment-notify] notifySettings:', JSON.stringify(notifySettings));
+  if (!notifySettings.enabled) {
+    const err = '评论邮件通知未开启（comment_notify.enabled 为 false）';
+    console.log('[comment-notify] disabled, skip');
+    return [err];
+  }
+  if (!notifySettings.notifyEmail) {
+    const err = '未配置通知邮箱（comment_notify.notifyEmail 为空）';
+    console.log('[comment-notify] notifyEmail empty, skip');
+    return [err];
+  }
+  console.log('[comment-notify] enabled, sending to:', notifySettings.notifyEmail);
+
+  const site = (await getSetting(env, 'site')) || {};
+  const siteName = site.siteName || 'XinBlog';
+  const post = await env.DB_POSTS.prepare('SELECT title FROM posts WHERE id = ?').bind(postId).first();
+  const postTitle = post ? post.title : '未知文章';
+  let reqOrigin = '';
+  try {
+    reqOrigin = request ? new URL(request.url).origin : '';
+  } catch (e) {
+    reqOrigin = '';
+  }
+  const baseUrl = site.siteUrl || reqOrigin || 'https://xingze.work';
+  const postUrl = `${baseUrl}/post/${slug}`;
+  const adminUrl = `${baseUrl}/admin`;
+  const time = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  const needAudit = commentStatus === 'pending' ? '（需审核后公开显示）' : '';
+
+  if (parentId) {
+    
+    const parentComment = await env.DB_POSTS.prepare('SELECT user_id FROM comments WHERE id = ?').bind(parentId).first();
+    if (!parentComment) return;
+
+    const parentUser = await env.DB_USERS.prepare('SELECT id, username, email, role FROM users WHERE id = ?')
+      .bind(parentComment.user_id)
+      .first();
+    if (!parentUser) return;
+
+    const isAdmin = commenter.role === 'super_admin';
+    const isParentAdmin = parentUser.role === 'super_admin';
+
+    
+    let shouldNotifyUser = false;
+    if (isAdmin) {
+      
+      shouldNotifyUser = notifySettings.notifyAdminReply;
+    } else if (!isParentAdmin) {
+      
+      shouldNotifyUser = notifySettings.notifyUserReply;
+    }
+
+    if (shouldNotifyUser && parentUser.email) {
+      const subject = `${commenter.username} 回复了您在「${postTitle}」中的评论${needAudit ? '（待审核）' : ''}`;
+      const text = `您收到了一条来自 ${commenter.username} 的回复：\n\n${content}\n\n文章：${postTitle}\n链接：${postUrl}`;
+      const html = buildEmailHtml(siteName, `您收到了一条回复`, [
+        `${commenter.username} 回复您在文章「${postTitle}」中的评论：`,
+        content,
+        needAudit && `提示：该回复需审核后才能公开显示。`,
+      ].filter(Boolean), postTitle, postUrl, time);
+      try {
+        await sendEmailByProvider(env, parentUser.email, subject, text, html);
+        errors.push('通知被回复用户成功(邮箱发送成功)');
+      } catch (e) {
+        console.error('发送回复通知给用户失败:', e.message);
+        errors.push(`回复用户邮件失败: ${e.message}`);
+      }
+    }
+
+    
+    if (notifySettings.notifyAdminOnNew && !isParentAdmin && notifySettings.notifyEmail) {
+      const subject = `[${siteName}] ${commenter.username} 回复了评论`;
+      const text = `用户 ${commenter.username} 回复了 ${parentUser.username} 在文章「${postTitle}」中的评论：\n\n${content}\n\n链接：${postUrl}`;
+      const html = buildEmailHtml(siteName, `${commenter.username} 回复了评论`, [
+        `用户 ${commenter.username} 回复了 ${parentUser.username} 在文章「${postTitle}」中的评论：`,
+        content,
+        needAudit && `提示：该回复需审核后才能公开显示。`,
+      ].filter(Boolean), postTitle, postUrl, time);
+      try {
+        await sendEmailByProvider(env, notifySettings.notifyEmail, subject, text, html);
+        errors.push('通知站长(新回复)邮件发送成功');
+      } catch (e) {
+        console.error('发送新回复通知给站长失败:', e.message);
+        errors.push(`站长(新回复)邮件失败: ${e.message}`);
+      }
+    }
+  } else {
+    
+    if (notifySettings.notifyAdminOnNew && notifySettings.notifyEmail) {
+      const subject = `[${siteName}] ${commenter.username} 发表了新评论`;
+      const text = `用户 ${commenter.username} 在文章「${postTitle}」中发表了评论：\n\n${content}\n\n链接：${postUrl}`;
+      const html = buildEmailHtml(siteName, `${commenter.username} 发表了新评论`, [
+        `用户 ${commenter.username} 在文章「${postTitle}」中发表了评论：`,
+        content,
+        needAudit && `提示：该评论需审核后才能公开显示。`,
+      ].filter(Boolean), postTitle, postUrl, time);
+      try {
+        await sendEmailByProvider(env, notifySettings.notifyEmail, subject, text, html);
+        errors.push('通知站长(新评论)邮件发送成功');
+      } catch (e) {
+        console.error('发送新评论通知给站长失败:', e.message);
+        errors.push(`站长(新评论)邮件失败: ${e.message}`);
+      }
+    }
+  }
+
+  if (!errors.length) errors.push('无通知邮件需发送（或无 email 收件人）');
+  return errors;
 }
 
 async function deleteComment(request, env, user) {
@@ -2403,8 +3048,46 @@ async function deleteComment(request, env, user) {
     return jsonResponse(403, null, '无权删除该评论');
   }
 
-  await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(commentId).run();
+  await deleteCommentTree(env, commentId);
   return jsonResponse(0, null, '删除成功');
+}
+
+
+
+
+async function deleteCommentTree(env, rootId) {
+  const ordered = [];
+  await collectCommentTree(env, rootId, ordered);
+  
+  ordered.push(rootId);
+  for (const id of ordered) {
+    await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
+  }
+}
+
+
+async function collectCommentTree(env, parentId, ordered) {
+  const rows = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE parent_id = ?')
+    .bind(parentId)
+    .all();
+  for (const row of rows.results || []) {
+    await collectCommentTree(env, row.id, ordered);
+    ordered.push(row.id);
+  }
+}
+
+
+async function deleteCommentsByPost(env, postId) {
+  await env.DB_POSTS.prepare('UPDATE comments SET parent_id = NULL WHERE post_id = ?').bind(postId).run();
+  await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(postId).run();
+}
+
+
+async function deleteCommentsByUser(env, userId) {
+  await env.DB_POSTS.prepare(
+    'UPDATE comments SET parent_id = NULL WHERE parent_id IN (SELECT id FROM comments WHERE user_id = ?)'
+  ).bind(userId).run();
+  await env.DB_POSTS.prepare('DELETE FROM comments WHERE user_id = ?').bind(userId).run();
 }
 
 async function getLikes(request, env, user) {
@@ -2551,7 +3234,7 @@ async function updateAdminComment(request, env, user) {
 
 async function deleteAdminComment(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
-  await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
+  await deleteCommentTree(env, id);
   return jsonResponse(0, null, '删除成功');
 }
 
@@ -2562,6 +3245,12 @@ const defaultMessageWallSettings = {
   allowAnonymous: true,
   auditEnabled: false,
   defaultStyle: 'danmaku',
+  danmakuRepeatSec: 45,
+  danmakuTrackCount: 12,
+  danmakuSpeedMin: 8,
+  danmakuSpeedMax: 11,
+  danmakuIntervalMin: 6,
+  danmakuIntervalMax: 10,
 };
 
 async function getMessageWallSettings(request, env, user) {
@@ -2584,11 +3273,26 @@ async function getMessageWallSettings(request, env, user) {
 
 async function updateMessageWallSettings(request, env, user) {
   const body = await request.json();
+  const clampNum = (v, min, max, def) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return def;
+    return Math.min(max, Math.max(min, Math.round(n)));
+  };
+  const intervalMin = clampNum(body.danmakuIntervalMin, 1, 60, defaultMessageWallSettings.danmakuIntervalMin);
+  const intervalMax = clampNum(body.danmakuIntervalMax, intervalMin, 120, defaultMessageWallSettings.danmakuIntervalMax);
+  const speedMin = clampNum(body.danmakuSpeedMin, 1, 60, defaultMessageWallSettings.danmakuSpeedMin);
+  const speedMax = clampNum(body.danmakuSpeedMax, speedMin, 120, defaultMessageWallSettings.danmakuSpeedMax);
   const data = {
     enabled: body.enabled !== false,
     allowAnonymous: body.allowAnonymous !== false,
     auditEnabled: body.auditEnabled === true,
     defaultStyle: body.defaultStyle || 'danmaku',
+    danmakuRepeatSec: clampNum(body.danmakuRepeatSec, 5, 600, defaultMessageWallSettings.danmakuRepeatSec),
+    danmakuTrackCount: clampNum(body.danmakuTrackCount, 2, 30, defaultMessageWallSettings.danmakuTrackCount),
+    danmakuSpeedMin: speedMin,
+    danmakuSpeedMax: speedMax,
+    danmakuIntervalMin: intervalMin,
+    danmakuIntervalMax: intervalMax,
   };
   await setSetting(env, 'message_wall', data);
   return jsonResponse(0, data, '保存成功');
@@ -2895,7 +3599,7 @@ async function deleteAdminUser(request, env, user) {
   await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id).run();
   await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email IN (SELECT email FROM users WHERE id = ?)').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE user_id = ?').bind(id).run();
-  await env.DB_POSTS.prepare('DELETE FROM comments WHERE user_id = ?').bind(id).run();
+  await deleteCommentsByUser(env, id);
   await env.DB_USERS.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
 
   return jsonResponse(0, null, '删除成功');
@@ -3003,6 +3707,139 @@ async function deleteFriend(request, env, user) {
   if (!id) return jsonResponse(400, null, '友链 ID 无效');
   await env.DB_CONFIG.prepare('DELETE FROM friends WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
+}
+
+
+
+
+async function readFriendApplications(env) {
+  const list = (await getSetting(env, 'friend_applications')) || [];
+  return Array.isArray(list) ? list : [];
+}
+
+async function writeFriendApplications(env, list) {
+  await setSetting(env, 'friend_applications', list);
+}
+
+async function applyFriend(request, env, user) {
+  
+  const body = await request.json();
+  const name = String(body.name || '').trim();
+  const url = String(body.url || '').trim();
+  const description = body.description ? String(body.description).trim() : '';
+  const email = body.email ? String(body.email).trim() : '';
+  const avatar = body.avatar ? String(body.avatar).trim() : '';
+
+  const friendsConfig = (await getSetting(env, 'friends')) || {};
+  if (friendsConfig.applyEnabled !== true) {
+    return jsonResponse(400, null, '暂未开放友链申请');
+  }
+
+  if (!name) return jsonResponse(400, null, '站点名称必填');
+  if (!url) return jsonResponse(400, null, '站点链接必填');
+
+  const time = now();
+  let id = 1;
+  const list = await readFriendApplications(env);
+  if (list.length > 0) {
+    const maxId = Math.max(...list.map((a) => Number(a.id) || 0));
+    id = maxId + 1;
+  }
+  
+  if (friendsConfig.applyNeedsAudit !== true) {
+    await env.DB_CONFIG.prepare(
+      'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    )
+      .bind(name, url, description, avatar, 0, time, time)
+      .run();
+    return jsonResponse(0, { id, status: 'approved', autoApproved: true }, '友链申请成功');
+  }
+
+  list.push({
+    id,
+    name,
+    url,
+    description,
+    email,
+    avatar,
+    status: 'pending',
+    remark: '',
+    applyUserId: user ? user.id : null,
+    applyUserName: user ? user.username : '',
+    createdAt: time,
+    updatedAt: time,
+  });
+  await writeFriendApplications(env, list);
+  return jsonResponse(0, { id, status: 'pending' }, '友链申请已提交，等待审核');
+}
+
+async function listMyFriendApplications(request, env, user) {
+  if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
+  const list = (await readFriendApplications(env)).filter((a) => a.applyUserId === user.id);
+  list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return jsonResponse(0, {
+    list: list.map((a) => ({
+      id: a.id,
+      name: a.name,
+      url: a.url,
+      description: a.description ?? '',
+      avatar: a.avatar ?? '',
+      status: a.status,
+      remark: a.remark ?? '',
+      createdAt: a.createdAt,
+    })),
+  });
+}
+
+async function listFriendApplications(request, env, user) {
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
+  const list = await readFriendApplications(env);
+  list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const total = list.length;
+  const start = (page - 1) * limit;
+  const pageList = list.slice(start, start + limit);
+  return jsonResponse(0, { list: pageList, total });
+}
+
+async function auditFriendApplication(request, env, user) {
+  const id = parseInt(request.url.split('/').pop(), 10);
+  if (!id) return jsonResponse(400, null, '申请 ID 无效');
+
+  const body = await request.json();
+  const status = body.status;
+  if (status !== 'approved' && status !== 'rejected') {
+    return jsonResponse(400, null, '审核状态无效');
+  }
+  const remark = body.remark ? String(body.remark).trim() : '';
+
+  const list = await readFriendApplications(env);
+  const idx = list.findIndex((a) => Number(a.id) === id);
+  if (idx === -1) return jsonResponse(404, null, '申请不存在', 404);
+  const app = list[idx];
+
+  if (status === 'approved') {
+    
+    const time = now();
+    await env.DB_CONFIG.prepare(
+      'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    )
+      .bind(app.name, app.url, app.description || '', app.avatar || '', 0, time, time)
+      .run();
+  }
+  list[idx] = { ...app, status, remark, updatedAt: now() };
+  await writeFriendApplications(env, list);
+  return jsonResponse(0, null, status === 'approved' ? '已通过并添加为友链' : '已驳回');
+}
+
+async function deleteFriendApplication(request, env, user) {
+  const id = parseInt(request.url.split('/').pop(), 10);
+  if (!id) return jsonResponse(400, null, '申请 ID 无效');
+  const list = await readFriendApplications(env);
+  const next = list.filter((a) => Number(a.id) !== id);
+  await writeFriendApplications(env, next);
+  return jsonResponse(0, null, '已删除');
 }
 
 
@@ -3252,7 +4089,7 @@ function extractJson(text) {
               return JSON.parse(trimmed.slice(start, i + 1));
             } catch {}
             break;
-            // 如果解析失败，尝试下一个 { 开头
+            
           }
         }
       }
@@ -3467,6 +4304,9 @@ async function loadPrompt(env, request, name) {
   if (name === 'format-optimization') {
     return '你是一位专业的文字编辑。请优化用户提供的 Markdown 文本，改善排版和表达，保持原意不变。只返回优化后的 Markdown 内容，不要包含任何解释。';
   }
+  if (name === 'article-summary') {
+    return '你是一位专业的文章摘要助手。请根据用户提供的文章标题和正文，生成一段简洁的中文摘要。要求：1. 160 字以内；2. 保留文章的核心观点和关键信息；3. 语言通顺、客观，避免使用第一人称；4. 只返回摘要文本本身，不要添加任何解释、引号、markdown 标记或"以下是摘要"之类的前缀。';
+  }
   return '';
 }
 
@@ -3506,9 +4346,6 @@ async function findOrCreateTags(env, tagNames) {
 }
 
 async function aiGeneratePost(request, env, user) {
-  if (!env.AI) {
-    return jsonResponse(503, null, 'AI 绑定未配置，请在 Cloudflare Dashboard 中绑定 AI 后重试', 503);
-  }
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
 
@@ -3558,6 +4395,9 @@ async function aiGeneratePost(request, env, user) {
       raw = res.content;
       actualModel = custom.modelId;
     } else {
+      if (!env.AI) {
+        return jsonResponse(503, null, 'AI 绑定未配置，请在 Cloudflare Dashboard 中绑定 AI 后重试', 503);
+      }
       const model = resolveAiModel(modelAlias);
       actualModel = model;
       try {
@@ -3631,9 +4471,6 @@ async function aiGeneratePost(request, env, user) {
 }
 
 async function aiChat(request, env, user) {
-  if (!env.AI) {
-    return jsonResponse(503, null, 'AI 绑定未配置', 503);
-  }
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
 
@@ -3737,6 +4574,10 @@ async function aiChat(request, env, user) {
     }
   }
 
+  if (!env.AI) {
+    return jsonResponse(503, null, 'AI 绑定未配置', 503);
+  }
+
   const model = resolveAiModel(modelAlias);
 
   let aiResult;
@@ -3822,9 +4663,6 @@ async function aiChat(request, env, user) {
 }
 
 async function aiFormatOptimize(request, env, user) {
-  if (!env.AI) {
-    return jsonResponse(503, null, 'AI 绑定未配置', 503);
-  }
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
 
@@ -3862,6 +4700,9 @@ async function aiFormatOptimize(request, env, user) {
       optimized = res.content;
       actualModel = custom.modelId;
     } else {
+      if (!env.AI) {
+        return jsonResponse(503, null, 'AI 绑定未配置', 503);
+      }
       const model = resolveAiModel(modelAlias);
       const aiResult = await env.AI.run(model, { messages, temperature, max_tokens: maxTokens });
       optimized = extractAiResponse(aiResult);
@@ -3877,6 +4718,68 @@ async function aiFormatOptimize(request, env, user) {
   optimized = optimized.replace(/^```markdown\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
 
   return jsonResponse(0, { content: optimized, model: modelAlias });
+}
+
+async function aiGenerateSummary(request, env, user) {
+  const enabled = await checkAiEnabled(env);
+  if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
+  const body = await request.json();
+  const title = String(body.title || '').trim();
+  const content = String(body.content || '').trim();
+  if (!content) {
+    return jsonResponse(400, null, '缺少 content 参数', 400);
+  }
+
+  const settings = (await getSetting(env, 'ai')) || {};
+  const modelAlias = body.model || settings.model || defaultAiSettings.model;
+  const temperature = body.temperature !== undefined
+    ? Number(body.temperature)
+    : (settings.temperature ?? defaultAiSettings.temperature);
+  const maxTokens = body.maxTokens !== undefined
+    ? Number(body.maxTokens)
+    : (settings.maxTokens ?? defaultAiSettings.maxTokens);
+
+  const systemPrompt = await loadPrompt(env, request, 'article-summary');
+  
+  const safeContent = content.length > 12000 ? content.slice(0, 12000) : content;
+  const userPrompt = `请为下面这篇文章生成摘要。\n标题：${title || '（无标题）'}\n正文：\n${safeContent}`;
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ];
+
+  let summary = '';
+  let actualModel = modelAlias;
+  try {
+    if (isCustomModel(modelAlias)) {
+      const customId = parseCustomModelId(modelAlias);
+      const custom = customId ? await getCustomModelById(env, customId) : null;
+      if (!custom || !custom.enabled) {
+        return jsonResponse(400, null, '自定义模型不存在或已禁用', 400);
+      }
+      const res = await callCustomModelNonStream(custom, { messages, temperature, max_tokens: maxTokens });
+      summary = res.content;
+      actualModel = custom.modelId;
+    } else {
+      if (!env.AI) {
+        return jsonResponse(503, null, 'AI 绑定未配置', 503);
+      }
+      const model = resolveAiModel(modelAlias);
+      const aiResult = await env.AI.run(model, { messages, temperature, max_tokens: maxTokens });
+      summary = extractAiResponse(aiResult);
+      actualModel = model;
+    }
+  } catch (err) {
+    console.error('AI summary error:', err);
+    return jsonResponse(502, { model: actualModel, error: err.message || String(err) }, `AI 摘要生成失败（模型：${actualModel}）：${err.message || String(err)}`, 502);
+  }
+
+  summary = stripThinkingTags(summary).trim();
+  
+  summary = summary.replace(/^```\s*/, '').replace(/\s*```$/, '').replace(/^["“'`]|["”'`]$/g, '').trim();
+
+  return jsonResponse(0, { excerpt: summary, model: modelAlias });
 }
 
 async function openaiModels(request, env) {
@@ -3914,9 +4817,6 @@ async function openaiChatCompletions(request, env) {
   const ok = await verifyAiApiKey(request, env);
   if (!ok) {
     return openaiJsonResponse({ error: { message: 'Invalid API key', type: 'authentication_error' } }, 401);
-  }
-  if (!env.AI) {
-    return openaiJsonResponse({ error: { message: 'AI binding not configured', type: 'ai_error' } }, 503);
   }
 
   const body = await request.json();
@@ -4008,6 +4908,10 @@ async function openaiChatCompletions(request, env) {
     } catch (err) {
       return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
     }
+  }
+
+  if (!env.AI) {
+    return openaiJsonResponse({ error: { message: 'AI binding not configured', type: 'ai_error' } }, 503);
   }
 
   const model = resolveAiModel(modelAlias);
@@ -4136,10 +5040,6 @@ function checkEnv(env) {
 
 
 
-
-
-
-
 async function resolveUrl(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
@@ -4171,9 +5071,6 @@ async function resolveUrl(request) {
     return jsonResponse(500, null, `解析失败：${err.message}`, 500);
   }
 }
-
-
-
 
 
 async function proxyImage(request) {
@@ -4270,6 +5167,10 @@ export default {
 
       
       if (method === 'GET' && path === '/api/v1/friends') return await listFriends(env);
+      
+      if (method === 'POST' && path === '/api/v1/friends/apply') return await requireAuth(request, env, applyFriend);
+      
+      if (method === 'GET' && path === '/api/v1/friends/applications/my') return await requireAuth(request, env, listMyFriendApplications);
 
       
       if (method === 'POST' && path === '/api/v1/auth/register') return await register(request, env);
@@ -4278,6 +5179,8 @@ export default {
       if (method === 'POST' && path === '/api/v1/auth/logout') return await logout(request, env);
       if (method === 'GET' && path === '/api/v1/auth/me') return await requireAuth(request, env, getMe);
       if (method === 'POST' && path === '/api/v1/auth/verify-code') return await sendVerifyCode(request, env);
+      if (method === 'POST' && path === '/api/v1/auth/forgot-code') return await sendForgotCode(request, env);
+      if (method === 'POST' && path === '/api/v1/auth/reset-password') return await resetPassword(request, env);
 
       
       if (method === 'GET' && path === '/api/v1/settings/auth') return await getAuthSettings(request, env);
@@ -4298,38 +5201,51 @@ export default {
       
       if (method === 'GET' && path === '/api/v1/user/settings') return await requireAuth(request, env, getUserSettings);
       if (method === 'PATCH' && path === '/api/v1/user/settings') return await requireAuth(request, env, updateUserSettings);
+      
+      if (method === 'POST' && path === '/api/v1/user/change-password') return await requireAuth(request, env, changePassword);
 
       
       if (method === 'GET' && path === '/api/v1/admin/dashboard') return await requireAdmin(request, env, getDashboard);
+      
       if (method === 'GET' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, listAdminPosts);
       if (method === 'GET' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, getAdminPost);
       if (method === 'POST' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, createPost);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, updatePost);
-      if (method === 'DELETE' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, deletePost);
+      if (method === 'DELETE' && path.startsWith('/api/v1/admin/posts/')) return await requireSuperAdmin(request, env, deletePost);
+      
       if (method === 'GET' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, listAdminTags);
       if (method === 'POST' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, createTag);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/tags/')) return await requireAdmin(request, env, updateTag);
-      if (method === 'DELETE' && path.startsWith('/api/v1/admin/tags/')) return await requireAdmin(request, env, deleteTag);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings') return await requireAdmin(request, env, updateSettings);
-      if (method === 'GET' && path === '/api/v1/admin/settings/auth') return await requireAdmin(request, env, getAuthSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/auth') return await requireAdmin(request, env, updateAuthSettings);
-      if (method === 'GET' && path === '/api/v1/admin/settings/email') return await requireAdmin(request, env, getEmailSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/email') return await requireAdmin(request, env, updateEmailSettings);
-      if (method === 'GET' && path === '/api/v1/admin/settings/email-template') return await requireAdmin(request, env, getEmailTemplateSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/email-template') return await requireAdmin(request, env, updateEmailTemplateSettings);
-      if (method === 'GET' && path === '/api/v1/admin/settings/interaction') return await requireAdmin(request, env, getInteractionSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/interaction') return await requireAdmin(request, env, updateInteractionSettings);
+      if (method === 'DELETE' && path.startsWith('/api/v1/admin/tags/')) return await requireSuperAdmin(request, env, deleteTag);
+      
+      if (method === 'PATCH' && path === '/api/v1/admin/settings') return await requireSuperAdmin(request, env, updateSettings);
+      if (method === 'GET' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, getAuthSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, updateAuthSettings);
+      if (method === 'GET' && path === '/api/v1/admin/settings/email') return await requireSuperAdmin(request, env, getEmailSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/email') return await requireSuperAdmin(request, env, updateEmailSettings);
+      if (method === 'GET' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, getEmailTemplateSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, updateEmailTemplateSettings);
+      
+      if (method === 'GET' && path === '/api/v1/admin/settings/comment-notify') return await requireAdmin(request, env, getCommentNotifySettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/comment-notify') return await requireSuperAdmin(request, env, updateCommentNotifySettings);
+      
+      if (method === 'GET' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, getInteractionSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, updateInteractionSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/message-wall') return await requireAdmin(request, env, getMessageWallSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/message-wall') return await requireAdmin(request, env, updateMessageWallSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/message-wall') return await requireSuperAdmin(request, env, updateMessageWallSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/messages') return await requireAdmin(request, env, listAdminMessages);
       if (method === 'PATCH' && path === '/api/v1/admin/messages/batch') return await requireAdmin(request, env, updateAdminMessagesBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireAdmin(request, env, updateAdminMessage);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireAdmin(request, env, deleteAdminMessage);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminMessage);
+      
       if (method === 'GET' && path === '/api/v1/admin/comments') return await requireAdmin(request, env, listAdminComments);
       if (method === 'PATCH' && path === '/api/v1/admin/comments/batch') return await requireAdmin(request, env, updateAdminCommentsBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireAdmin(request, env, updateAdminComment);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireAdmin(request, env, deleteAdminComment);
-      if (method === 'GET' && path === '/api/v1/admin/users') return await requireAdmin(request, env, listAdminUsers);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminComment);
+      
+      if (method === 'GET' && path === '/api/v1/admin/users') return await requireSuperAdmin(request, env, listAdminUsers);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/users/')) return await requireSuperAdmin(request, env, updateAdminUser);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/users\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminUser);
 
@@ -4337,8 +5253,13 @@ export default {
       if (method === 'GET' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, listAdminFriends);
       if (method === 'POST' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, createFriend);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireAdmin(request, env, updateFriend);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireAdmin(request, env, deleteFriend);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriend);
+      
+      if (method === 'GET' && path === '/api/v1/admin/friends/applications') return await requireAdmin(request, env, listFriendApplications);
+      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireAdmin(request, env, auditFriendApplication);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriendApplication);
 
+      
       if (method === 'GET' && path === '/api/v1/admin/media') return await requireAdmin(request, env, listAdminMedia);
       if (method === 'GET' && path === '/api/v1/admin/media/usage') return await requireAdmin(request, env, getAdminMediaUsage);
       if (method === 'GET' && path === '/api/v1/admin/media/usage/detail') return await requireAdmin(request, env, getAdminMediaUsageDetail);
@@ -4348,35 +5269,36 @@ export default {
       if (method === 'POST' && path === '/api/v1/admin/media/init') return await requireAdmin(request, env, initMediaUpload);
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/chunk/')) return await requireAdmin(request, env, uploadMediaChunk);
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/finalize/')) return await requireAdmin(request, env, finalizeMediaUpload);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/media\/\d+$/)) return await requireAdmin(request, env, deleteMedia);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/media\/\d+$/)) return await requireSuperAdmin(request, env, deleteMedia);
 
       
-      if (method === 'GET' && path === '/api/v1/admin/system/databases') return await requireAdmin(request, env, listDatabases);
+      if (method === 'GET' && path === '/api/v1/admin/system/databases') return await requireSuperAdmin(request, env, listDatabases);
       if (method === 'GET' && path === '/api/v1/admin/system/status') return await requireSuperAdmin(request, env, getSystemStatus);
 
       
       if (method === 'GET' && path === '/api/v1/admin/settings/ai') return await requireAdmin(request, env, getAiSettings);
-      if (method === 'PATCH' && path === '/api/v1/admin/settings/ai') return await requireAdmin(request, env, updateAiSettings);
+      if (method === 'PATCH' && path === '/api/v1/admin/settings/ai') return await requireSuperAdmin(request, env, updateAiSettings);
       if (method === 'GET' && path === '/api/v1/admin/ai/models') return await requireAdmin(request, env, listAdminAiModels);
       if (method === 'POST' && path === '/api/v1/admin/ai/generate') return await requireAdmin(request, env, aiGeneratePost);
       if (method === 'POST' && path === '/api/v1/admin/ai/format') return await requireAdmin(request, env, aiFormatOptimize);
+      if (method === 'POST' && path === '/api/v1/admin/ai/summary') return await requireAdmin(request, env, aiGenerateSummary);
       if (method === 'POST' && path === '/api/v1/admin/ai/chat') return await requireAdmin(request, env, aiChat);
-      if (method === 'GET' && path === '/api/v1/admin/ai/keys') return await requireAdmin(request, env, listAiApiKeys);
-      if (method === 'POST' && path === '/api/v1/admin/ai/keys') return await requireAdmin(request, env, createAiApiKey);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/keys\/\d+$/)) return await requireAdmin(request, env, deleteAiApiKey);
-      if (method === 'GET' && path === '/api/v1/admin/ai/custom-models') return await requireAdmin(request, env, listAiCustomModels);
-      if (method === 'POST' && path === '/api/v1/admin/ai/custom-models') return await requireAdmin(request, env, createAiCustomModel);
-      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireAdmin(request, env, updateAiCustomModel);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireAdmin(request, env, deleteAiCustomModelHandler);
+      if (method === 'GET' && path === '/api/v1/admin/ai/keys') return await requireSuperAdmin(request, env, listAiApiKeys);
+      if (method === 'POST' && path === '/api/v1/admin/ai/keys') return await requireSuperAdmin(request, env, createAiApiKey);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/keys\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiApiKey);
+      if (method === 'GET' && path === '/api/v1/admin/ai/custom-models') return await requireSuperAdmin(request, env, listAiCustomModels);
+      if (method === 'POST' && path === '/api/v1/admin/ai/custom-models') return await requireSuperAdmin(request, env, createAiCustomModel);
+      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, updateAiCustomModel);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiCustomModelHandler);
 
       
-      if (method === 'GET' && path === '/api/v1/admin/themes') return await requireAdmin(request, env, listAdminThemes);
-      if (method === 'GET' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireAdmin(request, env, getAdminTheme);
-      if (method === 'POST' && path === '/api/v1/admin/themes') return await requireAdmin(request, env, createAdminTheme);
-      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+\/apply$/)) return await requireAdmin(request, env, applyAdminTheme);
-      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireAdmin(request, env, updateAdminTheme);
-      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireAdmin(request, env, deleteAdminTheme);
-      if (method === 'POST' && path === '/api/v1/admin/themes/clear-active') return await requireAdmin(request, env, clearAdminActiveTheme);
+      if (method === 'GET' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, listAdminThemes);
+      if (method === 'GET' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, getAdminTheme);
+      if (method === 'POST' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, createAdminTheme);
+      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+\/apply$/)) return await requireSuperAdmin(request, env, applyAdminTheme);
+      if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, updateAdminTheme);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteAdminTheme);
+      if (method === 'POST' && path === '/api/v1/admin/themes/clear-active') return await requireSuperAdmin(request, env, clearAdminActiveTheme);
 
       
       if (method === 'GET' && path === '/api/v1/ai/v1/models') return await openaiModels(request, env);

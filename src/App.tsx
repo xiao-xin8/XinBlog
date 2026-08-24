@@ -110,7 +110,7 @@ function App() {
           timer = window.setTimeout(() => refresh(), delay);
         }
       } catch {
-        // token 格式异常，忽略定时刷新
+        
       }
     };
 
@@ -141,10 +141,12 @@ function App() {
           <RouterProvider router={router} />
           <GlobalMusicPlayer />
         </MusicPlayerProvider>
+
       ) : (
         <Loading fullScreen text="正在加载站点配置..." />
       )}
     </ThemeProvider>
+
   );
 }
 

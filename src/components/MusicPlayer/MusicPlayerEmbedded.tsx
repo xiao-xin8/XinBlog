@@ -9,9 +9,6 @@ interface MusicPlayerEmbeddedProps {
 }
 
 
-
-
-
 export function MusicPlayerEmbedded({ config }: MusicPlayerEmbeddedProps) {
   const storeMusic = useSiteStore((s) => s.config.music);
   const effective = config || storeMusic;

@@ -1,4 +1,4 @@
-import { apiGet, apiPatch } from './client';
+import { apiGet, apiPatch, apiPost } from './client';
 
 export interface UserProfile {
   nickname?: string;
@@ -29,4 +29,10 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
 
 export async function updateUserProfile(profile: UserProfile): Promise<boolean> {
   return updateUserSettings({ ui: { profile } });
+}
+
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean; msg?: string }> {
+  const res = await apiPost('/api/v1/user/change-password', { currentPassword, newPassword });
+  return res.code === 0 ? { ok: true } : { ok: false, msg: res.msg || '修改失败' };
 }

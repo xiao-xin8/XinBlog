@@ -71,6 +71,9 @@ const defaultConfig: SiteConfig = {
   postLayout: 'grid',
   footerText: '',
   lazyLoadMedia: false,
+  enableLatex: false,
+  disableSmoothScroll: false,
+  enableDashboardStats: true,
   paginationMode: 'load-more',
   pageSize: 9,
   theme: {
@@ -236,7 +239,7 @@ function getCachedSiteConfig(): SiteConfig | null {
       }
     }
   } catch {
-    // ignore
+    
   }
   return null;
 }
@@ -246,7 +249,7 @@ export function setCachedSiteConfig(config: SiteConfig) {
   try {
     localStorage.setItem(SITE_CACHE_KEY, JSON.stringify({ config, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 

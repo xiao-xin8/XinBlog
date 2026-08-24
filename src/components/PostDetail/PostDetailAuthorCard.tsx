@@ -60,9 +60,11 @@ export function PostDetailAuthorCard() {
         />
       </Box>
 
+
       <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 1 }}>
         {authorName}
       </Typography>
+
 
       <Typography
         variant="caption"
@@ -76,6 +78,8 @@ export function PostDetailAuthorCard() {
       >
         {bio}
       </Typography>
+
     </Box>
+
   );
 }

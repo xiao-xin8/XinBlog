@@ -66,12 +66,14 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
           >
             {(siteConfig.siteName || 'X').charAt(0).toUpperCase()}
           </Avatar>
+
         )}
         <Box sx={{ minWidth: 0, flex: 1 }}>
           {displayGreeting && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
               {greeting}
             </Typography>
+
           )}
           <Typography
             variant={titleVariant as 'subtitle1' | 'h6' | 'h5'}
@@ -79,8 +81,11 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
           >
             {siteConfig.author || siteConfig.siteName || 'Xin'}
           </Typography>
+
         </Box>
+
       </Stack>
+
 
       {displayBio && (
         <Typography
@@ -97,6 +102,7 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
         >
           {about.bio}
         </Typography>
+
       )}
 
       {displayTags && about.tags && (
@@ -115,13 +121,16 @@ export function ProfileWidget({ config }: { config: HeroWidgetConfig }) {
             />
           ))}
         </Box>
+
       )}
 
       {displaySocial && (
         <Typography variant="caption" color="text.secondary">
           社交链接将在这里展示
         </Typography>
+
       )}
     </Box>
+
   );
 }

@@ -40,6 +40,8 @@ export function NavLogo({ navTheme }: NavLogoProps) {
       <Typography component="span" sx={{ fontWeight: 900, fontSize: 'inherit', color: 'inherit' }}>
         {logoText}
       </Typography>
+
     </Box>
+
   );
 }

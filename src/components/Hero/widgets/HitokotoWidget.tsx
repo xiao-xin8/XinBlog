@@ -77,11 +77,14 @@ export function HitokotoWidget({ config }: { config: HeroWidgetConfig }) {
       >
         {loading ? '正在加载一言...' : data?.hitokoto}
       </Typography>
+
       {!loading && data && showSource && (
         <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>
           —— {data.from_who || ''}《{data.from}》
         </Typography>
+
       )}
     </Box>
+
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
 import type { HeadingItem } from '@/components/Post/TableOfContents';
+import { smoothScrollTo } from '@/utils/smoothScrollController';
 
 interface PostDetailTOCProps {
   headings: HeadingItem[];
@@ -52,10 +53,17 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
   }, [headings]);
 
   const handleClick = (id: string) => {
-    const top = getHeadingTop(id);
     const container = getScrollContainer();
-    if (top === null || !container) return;
-    container.scrollTo({ top: Math.max(0, top - 24), behavior: 'smooth' });
+    const el = document.getElementById(id);
+    if (!container || !el) return;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const top = container.scrollTop + (elRect.top - containerRect.top);
+    const target = Math.max(0, top - 24);
+    
+    if (!smoothScrollTo(target)) {
+      container.scrollTo({ top: target, behavior: 'smooth' });
+    }
     setActiveId(id);
   };
 
@@ -96,6 +104,7 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
       >
         TABLE OF CONTENTS
       </Typography>
+
 
       <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box
@@ -164,10 +173,14 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
               >
                 {cleanHeadingText(h.text)}
               </Typography>
+
             </Box>
+
           );
         })}
       </Box>
+
     </Box>
+
   );
 }

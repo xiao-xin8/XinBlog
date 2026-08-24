@@ -2,10 +2,6 @@ import { useState, useEffect } from 'react';
 import { useTheme, type Theme } from '@mui/material/styles';
 
 
-
-
-
-
 export function useSafeMediaQuery(queryFn: (theme: Theme) => string, defaultMatches = false): boolean {
   const theme = useTheme();
   const query = queryFn(theme);

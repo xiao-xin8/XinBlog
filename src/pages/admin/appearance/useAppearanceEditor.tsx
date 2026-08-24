@@ -9,7 +9,8 @@ import { useUIStore } from '@/stores/uiStore';
 import { fetchPosts } from '@/api/posts';
 import { uploadMedia } from '@/api/media';
 import { useSnackbar } from 'notistack';
-import type { HeroConfig, AboutConfig, Post, PaginationMode, UserFont, UserCursor, NavConfig, NavItemConfig, NavThemeConfig, ClickEffectConfig } from '@/types';
+import type { HeroConfig, AboutConfig, Post, PaginationMode, UserFont, UserCursor, NavConfig, NavItemConfig, NavThemeConfig, ClickEffectConfig, SpacingConfig } from '@/types';
+import { DEFAULT_SPACING, resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { PostLayoutMode } from '@/stores/uiStore';
 import { toAbsoluteCloudUrl } from '@/config';
 import { getBase64Size, compressImage } from '@/utils/image';
@@ -36,7 +37,7 @@ const defaultNavTheme: NavThemeConfig = {
 
 const toAbsoluteFontUrl = toAbsoluteCloudUrl;
 
-export type AppearanceTab = 'theme' | 'font' | 'cursor' | 'click' | 'hero' | 'about' | 'basic' | 'layout' | 'nav';
+export type AppearanceTab = 'theme' | 'font' | 'cursor' | 'click' | 'hero' | 'about' | 'basic' | 'layout' | 'nav' | 'spacing';
 
 export const tabList: { value: AppearanceTab; label: string }[] = [
   { value: 'basic', label: '基础设置' },
@@ -45,6 +46,7 @@ export const tabList: { value: AppearanceTab; label: string }[] = [
   { value: 'cursor', label: '鼠标' },
   { value: 'click', label: '点击特效' },
   { value: 'layout', label: '文章布局' },
+  { value: 'spacing', label: '间距' },
   { value: 'theme', label: '配色' },
   { value: 'font', label: '字体' },
   { value: 'nav', label: '导航栏' },
@@ -70,9 +72,6 @@ export const layouts: { id: PostLayoutMode; name: string; desc: string; icon: Re
     icon: <AutoStories sx={{ fontSize: { xs: 28, md: 40 } }} />,
   },
 ];
-
-
-
 
 
 export function useAppearanceEditor() {
@@ -245,6 +244,9 @@ export function useAppearanceEditor() {
   const [borderRadius, setBorderRadius] = useState(themeConfig.borderRadius);
 
   
+  const [spacing, setSpacing] = useState<SpacingConfig>(() => resolveSpacingConfig(site.config.spacing));
+
+  
   const [siteName, setSiteName] = useState(site.config.siteName || 'StarBlog');
   const [author, setAuthor] = useState(site.config.author);
   const [shareDescription, setShareDescription] = useState(site.config.shareDescription || '');
@@ -331,7 +333,8 @@ export function useAppearanceEditor() {
       setColors(themeCfg.customColors ?? themeConfig.customColors);
       setBorderRadius(themeCfg.borderRadius ?? themeConfig.borderRadius);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSpacing(resolveSpacingConfig(c.spacing));
+    
   }, [site.config]);
 
   const activeColors = getActiveColors({
@@ -417,6 +420,8 @@ export function useAppearanceEditor() {
     if (clickEffectTextList !== currentTextList) return true;
     if (clickEffectIntensity !== (currentClickEffect.intensity || 'medium')) return true;
 
+    if (JSON.stringify(spacing) !== JSON.stringify(resolveSpacingConfig(site.config.spacing))) return true;
+
     return false;
   }, [
     presetId,
@@ -491,6 +496,8 @@ export function useAppearanceEditor() {
     clickEffectTextList,
     clickEffectIntensity,
     site.config.clickEffect,
+    spacing,
+    site.config.spacing,
   ]);
 
   const resetToPreset = (id: string) => {
@@ -526,6 +533,23 @@ export function useAppearanceEditor() {
       const msg = err instanceof Error ? err.message : `${label}处理失败`;
       enqueueSnackbar(msg, { variant: 'error' });
     }
+  };
+
+  
+  const updateSpacing = (key: keyof SpacingConfig, side: 'mobile' | 'desktop', value: number) => {
+    setSpacing((prev) => {
+      const base = prev ?? resolveSpacingConfig(site.config.spacing);
+      const next = { ...base };
+      next[key] = {
+        ...(base[key] || DEFAULT_SPACING[key]),
+        [side]: Math.min(240, Math.max(0, Math.round(Number(value)) || 0)),
+      };
+      return next;
+    });
+  };
+
+  const resetSpacing = () => {
+    setSpacing(JSON.parse(JSON.stringify(DEFAULT_SPACING)) as SpacingConfig);
   };
 
   const applyAll = async () => {
@@ -587,6 +611,7 @@ export function useAppearanceEditor() {
       },
       nav: navConfig,
       postLayout,
+      spacing,
       font: {
         activeFontId,
         fonts: userFonts,
@@ -669,6 +694,7 @@ export function useAppearanceEditor() {
         setBorderRadius(savedTheme.borderRadius ?? tc.borderRadius);
       }
       setPostLayout(sc.postLayout || ui.postLayout || 'grid');
+      setSpacing(resolveSpacingConfig(sc.spacing));
       setUserFonts(sc.font?.fonts || []);
       setActiveFontId(sc.font?.activeFontId || '');
       setUserCursors(sc.cursor?.cursors || []);
@@ -996,6 +1022,11 @@ export function useAppearanceEditor() {
     setPageSize,
     pwaThemeColor,
     setPwaThemeColor,
+    
+    spacing,
+    updateSpacing,
+    resetSpacing,
+    DEFAULT_SPACING,
     
     heroTitle,
     setHeroTitle,

@@ -81,7 +81,7 @@ export function PostDetailThemePanel() {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   useEffect(() => {
@@ -204,6 +204,7 @@ export function PostDetailThemePanel() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           所有主题
         </Typography>
+
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
             <Paper
@@ -243,16 +244,22 @@ export function PostDetailThemePanel() {
                     <Box sx={{ height: 3, width: '100%', bgcolor: (t) => alpha(t.palette.primary.main, 0.25), borderRadius: 0.5 }} />
                     <Box sx={{ height: 3, width: '75%', bgcolor: (t) => alpha(t.palette.primary.main, 0.25), borderRadius: 0.5 }} />
                   </Box>
+
                 </Box>
+
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700} noWrap>
                     默认主题
                   </Typography>
+
                   <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                     恢复为系统内置默认文章详情样式
                   </Typography>
+
                 </Box>
+
               </Box>
+
               <Box sx={{ mt: 1.5 }}>
                 <Button
                   variant={pendingActiveThemeId === '' ? 'outlined' : 'contained'}
@@ -267,9 +274,13 @@ export function PostDetailThemePanel() {
                 >
                   {pendingActiveThemeId === '' ? '已选中' : '恢复默认'}
                 </Button>
+
               </Box>
+
             </Paper>
+
           </Grid>
+
 
           {BUILTIN_POST_DETAIL_THEMES.map((t) => (
             <Grid item xs={12} sm={6} md={4} key={t.id} sx={{ display: 'flex' }}>
@@ -281,9 +292,12 @@ export function PostDetailThemePanel() {
                 onReset={handleResetToDefault}
               />
             </Grid>
+
           ))}
         </Grid>
+
       </Paper>
+
 
       {editingTheme && pendingActiveThemeId !== '' && (
         <Fade in timeout={400}>
@@ -319,8 +333,10 @@ export function PostDetailThemePanel() {
                     >
                       正在使用
                     </Box>
+
                   )}
                 </Typography>
+
                 <Button
                   variant="outlined"
                   size="small"
@@ -336,13 +352,16 @@ export function PostDetailThemePanel() {
                 >
                   恢复默认
                 </Button>
+
               </Box>
+
               <PostDetailThemeParamEditor
                 schema={activeSchema}
                 config={editingDetailTheme}
                 onChange={updateEditingDetailTheme}
               />
             </Paper>
+
 
             <Paper
               elevation={0}
@@ -359,6 +378,7 @@ export function PostDetailThemePanel() {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 实时预览
               </Typography>
+
               {previewLoading ? (
                 <Loading text="加载预览中..." />
               ) : (
@@ -368,8 +388,11 @@ export function PostDetailThemePanel() {
                 />
               )}
             </Paper>
+
           </Box>
+
         </Fade>
+
       )}
 
       <FloatingSaveButton
@@ -379,5 +402,6 @@ export function PostDetailThemePanel() {
         label="保存主题"
       />
     </Stack>
+
   );
 }

@@ -42,7 +42,7 @@ function writeCommentsCache(slug: string, data: CommentListResponse) {
   try {
     localStorage.setItem(getCommentsCacheKey(slug), JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 
@@ -124,6 +124,7 @@ export default function CommentSection({ slug }: CommentSectionProps) {
         <Skeleton variant="text" width="30%" height={32} />
         <Skeleton variant="rectangular" height={120} sx={{ mt: 2, borderRadius: 1 }} />
       </Box>
+
     );
   }
 
@@ -141,6 +142,7 @@ export default function CommentSection({ slug }: CommentSectionProps) {
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           评论
         </Typography>
+
         <Box
           sx={{
             ml: 0.5,
@@ -155,7 +157,9 @@ export default function CommentSection({ slug }: CommentSectionProps) {
         >
           {total}
         </Box>
+
       </Box>
+
 
       {isAuthenticated ? (
         <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
@@ -167,7 +171,9 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <CommentEditor slug={slug} onSuccess={handleRefresh} />
           </Box>
+
         </Box>
+
       ) : (
         <Paper
           elevation={0}
@@ -183,9 +189,11 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
             登录后留下你的想法
           </Typography>
+
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             加入讨论，与大家一起分享观点
           </Typography>
+
           <Button
             variant="contained"
             size="small"
@@ -199,7 +207,9 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           >
             去登录
           </Button>
+
         </Paper>
+
       )}
 
       {loading ? (
@@ -214,10 +224,14 @@ export default function CommentSection({ slug }: CommentSectionProps) {
               loadingMore={loadingMore}
               onLoadMore={handleLoadMore}
               onDeleted={handleRefresh}
+              onReplied={handleRefresh}
             />
           </Box>
+
         </Fade>
+
       )}
     </Box>
+
   );
 }

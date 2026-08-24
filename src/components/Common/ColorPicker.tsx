@@ -106,11 +106,14 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
           <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500, overflowWrap: 'break-word', minWidth: 0 }}>
             {label}
           </Typography>
+
         )}
         <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', flexShrink: 0 }}>
           {value}
         </Typography>
+
       </ButtonBase>
+
 
       <Popover
         open={open}
@@ -162,6 +165,7 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
             ))}
           </Box>
 
+
           <TextField
             label="HEX"
             value={localHex}
@@ -177,10 +181,13 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
                 <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
                   {channel}
                 </Typography>
+
                 <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
                   {rgb[channel]}
                 </Typography>
+
               </Box>
+
               <Slider
                 value={rgb[channel]}
                 onChange={(_, v) => updateChannel(channel, v as number)}
@@ -197,9 +204,13 @@ export function ColorPicker({ value, onChange, disabled, label }: ColorPickerPro
                 }}
               />
             </Box>
+
           ))}
         </Stack>
+
       </Popover>
+
     </>
+
   );
 }

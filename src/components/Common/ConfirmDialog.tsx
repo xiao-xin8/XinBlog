@@ -49,9 +49,12 @@ export function ConfirmDialog({
       }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+
       <DialogContent>
         <DialogContentText color="text.secondary">{content}</DialogContentText>
+
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box
           sx={{
@@ -71,6 +74,7 @@ export function ConfirmDialog({
           >
             取消
           </Button>
+
           <Button
             onClick={onConfirm}
             variant="contained"
@@ -82,8 +86,12 @@ export function ConfirmDialog({
           >
             {loading ? '处理中...' : confirmText}
           </Button>
+
         </Box>
+
       </DialogActions>
+
     </Dialog>
+
   );
 }

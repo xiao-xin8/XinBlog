@@ -9,6 +9,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
+import { resolveSpacingConfig } from '@/utils/spacingConfig';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -25,11 +26,13 @@ export function MainLayout({ children }: MainLayoutProps) {
     wheelMultiplier: 1,
     touchMultiplier: 1,
     disableOnTouch: true,
+    enabled: !config.disableSmoothScroll,
   });
 
   const hasBackground = Boolean(config.backgroundImage);
   const backgroundOpacity = config.backgroundOpacity ?? 1;
   const backgroundBlur = config.backgroundBlur ?? 0;
+  const spacing = resolveSpacingConfig(config.spacing);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -105,19 +108,25 @@ export function MainLayout({ children }: MainLayoutProps) {
             minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
-            px: { xs: 2, md: 0 },
+            px: { xs: `${spacing.mainPaddingX.mobile}px`, md: `${spacing.mainPaddingX.desktop}px` },
           }}
         >
           <Toolbar />
           <Box sx={{ flexGrow: 1 }}>
             <Fade in timeout={400} key={location.pathname}>
               <Box sx={{ minHeight: '100%' }}>{children}</Box>
+
             </Fade>
+
           </Box>
+
           <Footer />
         </Box>
+
       </Box>
+
       <Live2DWidget />
     </Box>
+
   );
 }

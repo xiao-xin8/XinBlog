@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Box, Avatar, Typography, IconButton, Paper, alpha, Fade } from '@mui/material';
+import { Box, Avatar, Typography, IconButton, Button, Paper, alpha, Fade } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ReplyIcon from '@mui/icons-material/Reply';
 import { useSnackbar } from 'notistack';
 import { deleteComment } from '@/api/comments';
 import { useAuthStore } from '@/stores/authStore';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
+import CommentEditor from './CommentEditor';
 import type { Comment } from '@/types/interaction';
 
 interface CommentItemProps {
   comment: Comment;
   slug: string;
   onDeleted: () => void;
+  onReplied: () => void;
 }
 
 function formatTime(iso: string) {
@@ -29,7 +32,7 @@ const statusLabel: Record<string, { text: string; color: string }> = {
   rejected: { text: '未通过', color: 'error.main' },
 };
 
-export default function CommentItem({ comment, slug, onDeleted }: CommentItemProps) {
+export default function CommentItem({ comment, slug, onDeleted, onReplied }: CommentItemProps) {
   const { user, isAuthenticated } = useAuthStore();
   const { enqueueSnackbar } = useSnackbar();
   const isOwner = isAuthenticated && user && String(comment.userId) === String(user.id);
@@ -38,6 +41,7 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
   const status = statusLabel[comment.status];
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showReply, setShowReply] = useState(false);
 
   const handleConfirmDelete = async () => {
     setDeleting(true);
@@ -84,6 +88,7 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
               <Typography variant="subtitle2" sx={{ fontWeight: 700, overflowWrap: 'break-word', minWidth: 0 }}>
                 {comment.username || '未知用户'}
               </Typography>
+
               {status && (
                 <Box
                   sx={{
@@ -99,8 +104,10 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
                 >
                   {status.text}
                 </Box>
+
               )}
             </Box>
+
             {canDelete && (
               <IconButton
                 size="small"
@@ -113,11 +120,29 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
               >
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
+
             )}
           </Box>
+
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             {formatTime(comment.createdAt)}
           </Typography>
+
+          {comment.replyToUsername && (
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mb: 0.5,
+                color: 'primary.main',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+              }}
+            >
+              回复 @{comment.replyToUsername}
+            </Typography>
+
+          )}
           <Typography
             variant="body2"
             sx={{
@@ -129,8 +154,50 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
           >
             {comment.content}
           </Typography>
+
+          {comment.status === 'approved' && isAuthenticated && (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                size="small"
+                startIcon={<ReplyIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setShowReply(!showReply)}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  color: 'text.secondary',
+                  minWidth: 0,
+                  p: 0.5,
+                  borderRadius: 1,
+                  '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08) },
+                }}
+              >
+                {showReply ? '取消回复' : '回复'}
+              </Button>
+
+            </Box>
+
+          )}
+          {showReply && (
+            <Box sx={{ mt: 2, ml: { xs: 0, sm: 2 } }}>
+              <CommentEditor
+                slug={slug}
+                parentId={comment.id}
+                onSuccess={() => {
+                  setShowReply(false);
+                  onReplied();
+                }}
+                placeholder={`回复 ${comment.username || '用户'}...`}
+                autoFocus
+                compact
+              />
+            </Box>
+
+          )}
         </Box>
+
       </Box>
+
 
       <ConfirmDialog
         open={deleteDialogOpen}
@@ -143,6 +210,8 @@ export default function CommentItem({ comment, slug, onDeleted }: CommentItemPro
         onConfirm={handleConfirmDelete}
       />
     </Paper>
+
     </Fade>
+
   );
 }

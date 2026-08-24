@@ -117,6 +117,7 @@ function NavEditDialog({
     >
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{item ? '编辑导航' : '新增导航'}</DialogTitle>
+
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 0.5 }}>
             <TextField
@@ -142,8 +143,10 @@ function NavEditDialog({
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 文字颜色（留空使用默认主题色）
               </Typography>
+
               <ColorPicker value={form.color || ''} onChange={(v) => setForm((f) => ({ ...f, color: v }))} />
             </Box>
+
             <FormControlLabel
               control={
                 <Switch
@@ -154,17 +157,24 @@ function NavEditDialog({
               label="在新标签页打开"
             />
           </Stack>
+
         </DialogContent>
+
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
           <Button onClick={onClose} color="inherit">
             取消
           </Button>
+
           <Button type="submit" variant="contained" startIcon={<Save />}>
             保存
           </Button>
+
         </DialogActions>
+
       </form>
+
     </Dialog>
+
   );
 }
 
@@ -268,15 +278,19 @@ export function NavSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
           导航设置
         </Typography>
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           自定义顶部导航栏显示的链接，可设置名称、跳转地址、颜色及是否新标签页打开。
         </Typography>
+
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button variant="contained" startIcon={<Add />} onClick={handleAdd} sx={{ textTransform: 'none' }}>
             新增导航
           </Button>
+
         </Box>
+
 
         <Stack spacing={2}>
           {items.length === 0 && (
@@ -291,7 +305,9 @@ export function NavSettings() {
               }}
             >
               <Typography>暂无自定义导航，点击上方按钮添加</Typography>
+
             </Box>
+
           )}
 
           {items.map((item, index) => (
@@ -317,14 +333,18 @@ export function NavSettings() {
                     <Typography variant="subtitle2" fontWeight={700} sx={{ color: item.color || 'text.primary' }}>
                       {item.title}
                     </Typography>
+
                     {item.openInNewTab && (
                       <OpenInNew fontSize="small" sx={{ color: 'text.secondary', fontSize: 14 }} />
                     )}
                   </Box>
+
                   <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
                     {item.url}
                   </Typography>
+
                 </Box>
+
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                   <IconButton
@@ -335,6 +355,7 @@ export function NavSettings() {
                   >
                     <ArrowUpward fontSize="small" />
                   </IconButton>
+
                   <IconButton
                     size="small"
                     onClick={() => handleMove(index, 1)}
@@ -343,17 +364,24 @@ export function NavSettings() {
                   >
                     <ArrowDownward fontSize="small" />
                   </IconButton>
+
                   <IconButton size="small" onClick={() => handleEdit(item)} aria-label="编辑">
                     <Edit fontSize="small" />
                   </IconButton>
+
                   <IconButton size="small" onClick={() => handleDelete(item)} aria-label="删除" color="error">
                     <DeleteOutline fontSize="small" />
                   </IconButton>
+
                 </Box>
+
               </CardContent>
+
             </Card>
+
           ))}
         </Stack>
+
 
         <NavEditDialog
           open={editOpen}
@@ -377,6 +405,8 @@ export function NavSettings() {
 
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存导航" />
       </Paper>
+
     </Fade>
+
   );
 }

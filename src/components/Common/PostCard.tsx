@@ -13,6 +13,7 @@ import { AccessTime, Visibility } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { LazyImage } from '@/components/Common/LazyImage';
 import { useSiteStore } from '@/stores/siteStore';
+import { resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { Post, PostCardThemeConfig } from '@/types';
 import type { SxProps, Theme } from '@mui/material/styles';
 import dayjs from 'dayjs';
@@ -104,6 +105,8 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
   const activeColors = getActiveColors(themeConfig);
   const baseTheme = mergeCardTheme(theme || config.cardTheme);
   const cardTheme = adaptThemeForLayout(baseTheme, forcedLayout);
+  const cardPadding = resolveSpacingConfig(config.spacing).cardPaddingY;
+  const cardPaddingSx = { xs: cardPadding.mobile, sm: cardPadding.desktop };
   const output = buildPostCardOutput(cardTheme, {
     post,
     config,
@@ -116,7 +119,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
     const rootSx = height ? { ...output.root, height } : output.root;
 
     return (
-      <Fade in timeout={300} style={{ height: '100%' }}>
+      <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
         <ButtonBase
           component={Link}
           to={`/post/${post.slug}`}
@@ -180,9 +183,8 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
 
   const horizontal = forcedLayout === 'horizontal';
   if (horizontal) {
-    
     return (
-      <Fade in timeout={300} style={{ height: '100%' }}>
+      <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
         <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{
             width: '100%',
             height: '100%',
@@ -233,7 +235,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                 <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
               </Box>
             )}
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: cardPaddingSx }}>
               <CardTags post={post} visible />
               <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1.5, lineHeight: 1.3, overflowWrap: 'break-word' }}>
                 {post.title}
@@ -250,7 +252,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
   }
 
   return (
-    <Fade in timeout={300} style={{ height: '100%' }}>
+    <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
       <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{
             width: '100%',
             height: '100%',
@@ -267,11 +269,10 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
         <Paper
           elevation={0}
           sx={{
+            position: 'relative',
             textDecoration: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            minHeight: { xs: 380, sm: 420 },
+            display: 'block',
+            height: { xs: 380, sm: 420 },
             minWidth: 0,
             overflow: 'hidden',
             borderRadius: 1,
@@ -287,29 +288,50 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
           }}
         >
           {post.cover && (
-            <Box
-              sx={{
-                width: '100%',
-                height: { xs: 160, sm: 180, md: 200 },
-                borderRadius: (theme) => `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                overflow: 'hidden',
-                '& img': {
-                  transition: 'transform 0.6s ease',
-                },
-              }}
-            >
-              <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
-            </Box>
+            <>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  '& img': {
+                    transition: 'transform 0.6s ease',
+                  },
+                }}
+              >
+                <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
+              </Box>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '50%',
+                  bgcolor: 'background.paper',
+                }}
+              />
+            </>
           )}
-          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: { xs: 2, sm: 3 } }}>
+          <CardContent
+            sx={{
+              position: 'absolute',
+              top: post.cover ? '50%' : 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              p: cardPaddingSx,
+            }}
+          >
             <CardTags post={post} visible />
             <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1.5, lineHeight: 1.3, overflowWrap: 'break-word' }}>
               {post.title}
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ flexGrow: 1, mb: 2, lineHeight: 1.7, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word', overflow: 'hidden' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {post.excerpt}
             </Typography>
-            <CardMeta post={post} sx={{ color: 'text.secondary' }} />
+            <CardMeta post={post} sx={{ color: 'text.secondary', mt: 'auto' }} />
           </CardContent>
         </Paper>
       </ButtonBase>
@@ -318,10 +340,12 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
 }
 
 export function PostCardSkeleton() {
+  const { config } = useSiteStore();
+  const cardPadding = resolveSpacingConfig(config.spacing).cardPaddingY;
   return (
     <Paper elevation={0} sx={{ height: '100%', overflow: 'hidden', borderRadius: 1 }}>
       <Skeleton variant="rectangular" sx={{ height: { xs: 160, sm: 180, md: 200 } }} />
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+      <CardContent sx={{ p: { xs: cardPadding.mobile, sm: cardPadding.desktop } }}>
         <Skeleton variant="text" width="40%" sx={{ mb: 2 }} />
         <Skeleton variant="text" height={32} sx={{ mb: 1 }} />
         <Skeleton variant="text" height={20} sx={{ mb: 0.5 }} />

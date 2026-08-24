@@ -85,6 +85,7 @@ export function ImageField({
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
         {label}
       </Typography>
+
       {value ? (
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 1 }}>
           <Box
@@ -99,7 +100,9 @@ export function ImageField({
           >
             <Close fontSize="small" />
           </IconButton>
+
         </Box>
+
       ) : null}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         <Button
@@ -125,9 +128,11 @@ export function ImageField({
             }}
           />
         </Button>
+
         {showSizeSelect && (
           <FormControl size="small" sx={{ minWidth: 120, flexShrink: 0 }}>
             <InputLabel id={`${label}-size-label`}>压缩目标</InputLabel>
+
             <Select
               labelId={`${label}-size-label`}
               value={targetSize}
@@ -139,9 +144,12 @@ export function ImageField({
                 <MenuItem key={s} value={s}>
                   {s >= 1024 ? `${Math.round(s / 1024)}KB` : `${s}B`}
                 </MenuItem>
+
               ))}
             </Select>
+
           </FormControl>
+
         )}
         {acceptUrl && (
           <TextField
@@ -153,10 +161,12 @@ export function ImageField({
           />
         )}
       </Box>
+
       {hint && (
         <Typography variant="caption" color="text.secondary">
           {hint}
         </Typography>
+
       )}
 
       <ConfirmDialog
@@ -170,5 +180,6 @@ export function ImageField({
         onConfirm={handleConfirmDelete}
       />
     </Box>
+
   );
 }

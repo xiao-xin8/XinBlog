@@ -80,9 +80,11 @@ export function TagPage() {
           <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
             标签
           </Typography>
+
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             探索所有话题
           </Typography>
+
           <Box
             sx={{
               display: 'flex',
@@ -123,9 +125,11 @@ export function TagPage() {
               />
             ))}
           </Box>
+
           <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             全部文章
           </Typography>
+
           {loading ? (
             <Loading />
           ) : (
@@ -150,6 +154,7 @@ export function TagPage() {
                     >
                       {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                     </Button>
+
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Button
@@ -164,6 +169,7 @@ export function TagPage() {
                       >
                         上一页
                       </Button>
+
                       <Box
                         sx={{
                           px: 2,
@@ -178,6 +184,7 @@ export function TagPage() {
                       >
                         {page}
                       </Box>
+
                       <Button
                         variant="outlined"
                         onClick={handleNextPage}
@@ -190,14 +197,21 @@ export function TagPage() {
                       >
                         下一页
                       </Button>
+
                     </Box>
+
                   )}
                 </Box>
+
               </Box>
+
             </Fade>
+
           )}
         </Container>
+
       </Fade>
+
     );
   }
 
@@ -240,12 +254,15 @@ export function TagPage() {
                 <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }, overflowWrap: 'break-word' }}>
                   标签：{tag.name}
                 </Typography>
+
                 <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   共 {total} 篇文章
                 </Typography>
+
                 <Box sx={{ mt: { xs: 3, md: 6 }, textAlign: 'left' }}>
                   <PostList posts={posts} />
                 </Box>
+
                 <Box sx={{ mt: 5, display: 'flex', justifyContent: 'center' }}>
                   {paginationMode === 'load-more' ? (
                     <Button
@@ -264,6 +281,7 @@ export function TagPage() {
                     >
                       {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                     </Button>
+
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Button
@@ -278,6 +296,7 @@ export function TagPage() {
                       >
                         上一页
                       </Button>
+
                       <Box
                         sx={{
                           px: 2,
@@ -292,6 +311,7 @@ export function TagPage() {
                       >
                         {page}
                       </Box>
+
                       <Button
                         variant="outlined"
                         onClick={handleNextPage}
@@ -304,13 +324,20 @@ export function TagPage() {
                       >
                         下一页
                       </Button>
+
                     </Box>
+
                   )}
                 </Box>
+
               </Box>
+
             </Fade>
+
           )}
         </Container>
+
       </Fade>
+
   );
 }

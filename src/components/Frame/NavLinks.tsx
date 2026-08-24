@@ -93,6 +93,7 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
       >
         {item.title}
       </ButtonBase>
+
     );
   }
 
@@ -100,6 +101,7 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
     <ButtonBase component={Link} to={item.url} sx={baseSx}>
       {item.title}
     </ButtonBase>
+
   );
 }
 
@@ -146,7 +148,9 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
         >
           <MenuOpen />
         </IconButton>
+
       </Tooltip>
+
       <Menu
         id="nav-menu"
         anchorEl={anchorEl}
@@ -210,6 +214,7 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
               >
                 {item.title}
               </MenuItem>
+
             );
           }
 
@@ -223,10 +228,13 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
             >
               {item.title}
             </MenuItem>
+
           );
         })}
       </Menu>
+
     </>
+
   );
 }
 
@@ -331,6 +339,7 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
           >
             更多
           </ButtonBase>
+
           <Menu
             id="nav-more-menu"
             anchorEl={anchorEl}
@@ -394,6 +403,7 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                   >
                     {item.title}
                   </MenuItem>
+
                 );
               }
 
@@ -407,11 +417,15 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                 >
                   {item.title}
                 </MenuItem>
+
               );
             })}
           </Menu>
+
         </>
+
       )}
     </Box>
+
   );
 }

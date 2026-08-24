@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -75,7 +76,7 @@ import {
   fetchAdminTags,
   createAdminTag,
 } from '@/api/admin';
-import { generateAiPost, fetchAiSettings, fetchAiModels, formatOptimize, isTextAiModel, AiGenerateError, type AiGeneratedPost, type AiModel } from '@/api/ai';
+import { generateAiPost, fetchAiSettings, fetchAiModels, formatOptimize, generateAiSummary, isTextAiModel, AiGenerateError, type AiGeneratedPost, type AiModel } from '@/api/ai';
 import { peekCache } from '@/api/client';
 import { uploadMedia, deleteMedia, extractMediaId } from '@/api/media';
 import { Loading } from '@/components/Common/Loading';
@@ -83,6 +84,8 @@ import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { AdminPost, AdminTag, PagedResult } from '@/api/admin';
 import { useSnackbar } from 'notistack';
 import { useUIStore } from '@/stores/uiStore';
+import { useAuthStore } from '@/stores/authStore';
+import { isSuperAdmin } from '@/utils/permission';
 
 const MAX_COVER_SIZE = 500 * 1024;
 const MAX_INLINE_IMAGE_SIZE = 500 * 1024;
@@ -120,6 +123,8 @@ export function AdminPosts() {
   const { enqueueSnackbar } = useSnackbar();
   const postsCache = peekCache<PagedResult<AdminPost>>('/api/v1/admin/posts');
   const tagsCache = peekCache<PagedResult<AdminTag>>('/api/v1/admin/tags');
+  const { user } = useAuthStore();
+  const isSuper = isSuperAdmin(user?.role);
   const [posts, setPosts] = useState<AdminPost[]>(postsCache.data?.list || []);
   const [tags, setTags] = useState<AdminTag[]>(tagsCache.data?.list || []);
   const [loading, setLoading] = useState(!(postsCache.hit && tagsCache.hit));
@@ -175,6 +180,9 @@ export function AdminPosts() {
   const [aiFormatLoading, setAiFormatLoading] = useState(false);
   const [aiFormatError, setAiFormatError] = useState('');
   const [aiFormatApplying, setAiFormatApplying] = useState(false);
+  
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryError, setAiSummaryError] = useState('');
   const [aiShowParams, setAiShowParams] = useState(false);
   const [aiModels, setAiModels] = useState<AiModel[]>([]);
   const setAdminNavHidden = useUIStore((state) => state.setAdminNavHidden);
@@ -223,12 +231,12 @@ export function AdminPosts() {
 
   useEffect(() => {
     loadData(!(postsCache.hit && tagsCache.hit));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [page, rowsPerPage]);
 
   useEffect(() => {
@@ -311,7 +319,7 @@ export function AdminPosts() {
       try {
         await deleteMedia(mediaId);
       } catch {
-        // 忽略删除失败
+        
       }
     }
     setPendingMediaIds([]);
@@ -710,6 +718,30 @@ export function AdminPosts() {
     setAiFormatError('');
   };
 
+  const handleAiSummary = async () => {
+    const content = form.content.trim();
+    if (!content) {
+      setAiSummaryError('当前文章没有内容可供摘要');
+      return;
+    }
+    setAiSummaryError('');
+    setAiSummaryLoading(true);
+    try {
+      const result = await generateAiSummary(form.title, content, {
+        model: aiModel || undefined,
+        temperature: aiTemperature,
+        maxTokens: aiMaxTokens,
+      });
+      setForm((prev) => ({ ...prev, excerpt: result.excerpt }));
+      enqueueSnackbar('AI 摘要已生成并填入', { variant: 'success' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI 摘要生成失败，请稍后重试';
+      setAiSummaryError(msg);
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  };
+
   const toolbarItems = [
     { icon: <FormatBold fontSize="small" />, title: '加粗', action: () => insertMarkdown('**', '**') },
     { icon: <FormatItalic fontSize="small" />, title: '斜体', action: () => insertMarkdown('*', '*') },
@@ -770,13 +802,18 @@ export function AdminPosts() {
           <Typography variant="subtitle2" fontWeight={700}>
             AI 助手
           </Typography>
+
         </Box>
+
         <Tooltip title="收起 AI 助手">
           <IconButton size="small" onClick={() => setAiOpen(false)}>
             <Close fontSize="small" />
           </IconButton>
+
         </Tooltip>
+
       </Box>
+
 
       <Box
         ref={aiPanelScrollRef}
@@ -786,6 +823,7 @@ export function AdminPosts() {
           <Typography variant="body2" color="text.secondary">
             AI 功能尚未开启，请先在「AI 管理」中启用。
           </Typography>
+
         )}
 
         <TextField
@@ -823,6 +861,7 @@ export function AdminPosts() {
           >
             {aiShowParams ? '隐藏参数配置' : '展开参数配置'}
           </Button>
+
           <Collapse in={aiShowParams} timeout={300}>
             <Paper
               variant="outlined"
@@ -835,6 +874,7 @@ export function AdminPosts() {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel id="ai-model-label">生成模型</InputLabel>
+
                   <Select
                     labelId="ai-model-label"
                     value={aiModel}
@@ -847,19 +887,25 @@ export function AdminPosts() {
                       <MenuItem key={m.id} value={m.id}>
                         {m.name || m.id}
                       </MenuItem>
+
                     ))}
                   </Select>
+
                 </FormControl>
+
 
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
                       创意度 (Temperature)
                     </Typography>
+
                     <Typography variant="caption" fontWeight={600}>
                       {aiTemperature}
                     </Typography>
+
                   </Box>
+
                   <Slider
                     value={aiTemperature}
                     onChange={(_, v) => setAiTemperature(v as number)}
@@ -871,15 +917,19 @@ export function AdminPosts() {
                   />
                 </Box>
 
+
                 <Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
                       最大 Token
                     </Typography>
+
                     <Typography variant="caption" fontWeight={600}>
                       {aiMaxTokens}
                     </Typography>
+
                   </Box>
+
                   <Slider
                     value={aiMaxTokens}
                     onChange={(_, v) => setAiMaxTokens(v as number)}
@@ -895,10 +945,15 @@ export function AdminPosts() {
                     sx={{ '& .MuiSlider-thumb': { borderRadius: '50%' } }}
                   />
                 </Box>
+
               </Box>
+
             </Paper>
+
           </Collapse>
+
         </Box>
+
 
         {aiFormatError && (
           <Paper
@@ -913,7 +968,9 @@ export function AdminPosts() {
             <Typography variant="body2" color="error" sx={{ whiteSpace: 'pre-wrap' }}>
               {aiFormatError}
             </Typography>
+
           </Paper>
+
         )}
 
         {aiError && (
@@ -929,7 +986,9 @@ export function AdminPosts() {
             <Typography variant="body2" color="error" sx={{ whiteSpace: 'pre-wrap' }}>
               {aiError}
             </Typography>
+
           </Paper>
+
         )}
 
         {aiFormatResult && (
@@ -938,6 +997,7 @@ export function AdminPosts() {
               <Typography variant="subtitle2" fontWeight={700}>
                 格式优化结果
               </Typography>
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
@@ -949,6 +1009,7 @@ export function AdminPosts() {
                 >
                   {aiFormatApplying ? '应用中...' : '应用'}
                 </Button>
+
                 <Button
                   variant="outlined"
                   fullWidth
@@ -958,7 +1019,9 @@ export function AdminPosts() {
                 >
                   丢弃
                 </Button>
+
               </Box>
+
               <Paper
                 variant="outlined"
                 sx={{
@@ -972,9 +1035,13 @@ export function AdminPosts() {
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code", monospace', fontSize: '0.85rem' }}>
                   {aiFormatResult}
                 </Typography>
+
               </Paper>
+
             </Box>
+
           </Fade>
+
         )}
 
         {aiResult && (
@@ -983,6 +1050,7 @@ export function AdminPosts() {
               <Typography variant="subtitle2" fontWeight={700}>
                 生成结果
               </Typography>
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
@@ -994,6 +1062,7 @@ export function AdminPosts() {
                 >
                   {aiApplying ? '应用中...' : '应用'}
                 </Button>
+
                 <Button
                   variant="outlined"
                   fullWidth
@@ -1003,29 +1072,38 @@ export function AdminPosts() {
                 >
                   丢弃
                 </Button>
+
               </Box>
+
               <Box>
                 <Typography variant="caption" color="text.secondary">
                   标题
                 </Typography>
+
                 <Typography variant="body2" fontWeight={600}>
                   {String(aiResult.title || '')}
                 </Typography>
+
               </Box>
+
               {aiResult.excerpt && (
                 <Box>
                   <Typography variant="caption" color="text.secondary">
                     摘要
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                     {String(aiResult.excerpt || '')}
                   </Typography>
+
                 </Box>
+
               )}
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                   标签
                 </Typography>
+
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                   {aiResult.tags.map((tagName, idx) => (
                     <Chip
@@ -1036,11 +1114,14 @@ export function AdminPosts() {
                     />
                   ))}
                 </Stack>
+
               </Box>
+
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                   正文预览
                 </Typography>
+
                 <Paper
                   variant="outlined"
                   sx={{
@@ -1053,10 +1134,15 @@ export function AdminPosts() {
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code", monospace', fontSize: '0.85rem' }}>
                     {String(aiResult.content || '')}
                   </Typography>
+
                 </Paper>
+
               </Box>
+
             </Box>
+
           </Fade>
+
         )}
 
         {aiRawOutput && (
@@ -1068,6 +1154,7 @@ export function AdminPosts() {
             >
               {aiRawExpanded ? '隐藏 AI 原始响应' : '查看 AI 原始响应'}
             </Button>
+
             <Collapse in={aiRawExpanded}>
               <Paper
                 variant="outlined"
@@ -1090,11 +1177,16 @@ export function AdminPosts() {
                 >
                   {aiRawOutput}
                 </Typography>
+
               </Paper>
+
             </Collapse>
+
           </Box>
+
         )}
       </Box>
+
 
       <Box
         sx={{
@@ -1120,6 +1212,7 @@ export function AdminPosts() {
           {aiGenerating ? '生成中...' : '生成文章'}
         </Button>
 
+
         <Button
           variant="outlined"
           fullWidth
@@ -1130,8 +1223,11 @@ export function AdminPosts() {
         >
           {aiFormatLoading ? '优化中...' : '优化当前 Markdown'}
         </Button>
+
       </Box>
+
     </Paper>
+
   );
 
   const editorPanel = (
@@ -1152,8 +1248,9 @@ export function AdminPosts() {
         >
           <Loading text="加载文章中..." />
         </Box>
+
       )}
-      {/* 顶部操作栏 */}
+      {}
       <Box
         sx={{
           display: 'flex',
@@ -1168,10 +1265,13 @@ export function AdminPosts() {
           <IconButton onClick={handleBackToList} aria-label="返回列表" sx={{ width: { xs: 44, sm: 40 }, height: { xs: 44, sm: 40 }, flexShrink: 0 }}>
             <ArrowBack />
           </IconButton>
+
           <Typography variant="h5" sx={{ fontWeight: 700, display: { xs: 'none', lg: 'block' }, overflowWrap: 'break-word' }}>
             {editingId ? '编辑文章' : '新建文章'}
           </Typography>
+
         </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', minWidth: 0 }}>
           <Tooltip title="AI 助手">
             <IconButton
@@ -1186,9 +1286,12 @@ export function AdminPosts() {
             >
               <AutoAwesome />
             </IconButton>
+
           </Tooltip>
+
           <FormControl size="small" sx={{ minWidth: 120, display: { xs: 'none', sm: 'flex' } }}>
             <InputLabel id="status-label">状态</InputLabel>
+
             <Select
               labelId="status-label"
               value={form.status}
@@ -1196,22 +1299,30 @@ export function AdminPosts() {
               onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as 'published' | 'draft' }))}
             >
               <MenuItem value="published">已发布</MenuItem>
+
               <MenuItem value="draft">草稿</MenuItem>
+
             </Select>
+
           </FormControl>
+
           <Button variant="contained" startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />} onClick={handleSave} disabled={saving} sx={{ px: { xs: 2, sm: 3 } }}>
             {saving ? '保存中...' : '保存'}
           </Button>
+
         </Box>
+
       </Box>
+
 
       {formError && (
         <Typography color="error" variant="body2">
           {formError}
         </Typography>
+
       )}
 
-      {/* 基础信息 */}
+      {}
       <Paper
         elevation={0}
         sx={{
@@ -1242,6 +1353,7 @@ export function AdminPosts() {
             />
             <FormControl sx={{ flex: 1, minWidth: { xs: '100%', sm: 240 } }}>
               <InputLabel id="tags-label">标签</InputLabel>
+
               <Select
                 labelId="tags-label"
                 multiple
@@ -1263,34 +1375,64 @@ export function AdminPosts() {
                       return <Chip key={id} label={tag.name} size="small" sx={{ borderRadius: 1 }} />;
                     })}
                   </Stack>
+
                 )}
               >
                 {tags.map((tag) => (
                   <MenuItem key={tag.id} value={tag.id}>
                     {tag.name}
                   </MenuItem>
+
                 ))}
                 {tags.length > 0 && <Box component="li" sx={{ borderTop: '1px solid', borderColor: 'divider', my: 0.5 }} />}
                 <MenuItem value="__add_new_tag__" sx={{ color: 'primary.main', fontWeight: 600 }}>
                   <Add fontSize="small" sx={{ mr: 1 }} />
                   添加新标签
                 </MenuItem>
+
               </Select>
+
             </FormControl>
+
           </Box>
-          <TextField
-            label="摘要"
-            value={form.excerpt}
-            onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
-            fullWidth
-            multiline
-            rows={2}
-            placeholder="留空将自动截取正文前 160 字"
-          />
+
+          <Box>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Typography variant="body2">摘要</Typography>
+
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={aiSummaryLoading ? <CircularProgress size={14} color="inherit" /> : <AutoAwesome fontSize="small" />}
+                onClick={handleAiSummary}
+                disabled={!aiEnabled || aiSummaryLoading || !form.content.trim()}
+              >
+                {aiSummaryLoading ? '生成中...' : 'AI 生成摘要'}
+              </Button>
+
+            </Stack>
+
+            <TextField
+              value={form.excerpt}
+              onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+              fullWidth
+              multiline
+              rows={2}
+              placeholder="留空将自动截取正文前 160 字，也可点击右上角按钮让 AI 生成摘要"
+            />
+            {aiSummaryError && (
+              <Alert severity="error" sx={{ mt: 1 }} onClose={() => setAiSummaryError('')}>
+                {aiSummaryError}
+              </Alert>
+
+            )}
+          </Box>
+
           <Box>
             <Typography variant="body2" sx={{ mb: 1 }}>
               封面图片（可选）
             </Typography>
+
             {form.coverBase64 ? (
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
                 {coverLoading && (
@@ -1324,13 +1466,16 @@ export function AdminPosts() {
                 >
                   <Close fontSize="small" />
                 </IconButton>
+
               </Box>
+
             ) : (
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="stretch">
                 <Button variant="outlined" component="label" size="small" startIcon={coverLoading ? <CircularProgress size={16} /> : <ImageIcon />} disabled={coverLoading} sx={{ flexShrink: 0 }}>
                   {coverLoading ? '上传中...' : '上传封面'}
                   <input type="file" accept="image/*" hidden onChange={handleCoverChange} />
                 </Button>
+
                 <TextField
                   size="small"
                   placeholder="或输入图片 URL"
@@ -1347,13 +1492,18 @@ export function AdminPosts() {
                 <Button variant="outlined" size="small" onClick={handleApplyCoverUrl} disabled={!coverUrlInput.trim()} sx={{ flexShrink: 0 }}>
                   使用 URL
                 </Button>
+
               </Stack>
+
             )}
           </Box>
+
         </Stack>
+
       </Paper>
 
-      {/* 移动端状态选择：放在编辑器上方，避免文章写太长时看不到 */}
+
+      {}
       <Box
         sx={{
           display: { xs: 'flex', sm: 'none' },
@@ -1364,6 +1514,7 @@ export function AdminPosts() {
       >
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel id="mobile-status-label">状态</InputLabel>
+
           <Select
             labelId="mobile-status-label"
             value={form.status}
@@ -1371,15 +1522,21 @@ export function AdminPosts() {
             onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as 'published' | 'draft' }))}
           >
             <MenuItem value="published">已发布</MenuItem>
+
             <MenuItem value="draft">草稿</MenuItem>
+
           </Select>
+
         </FormControl>
+
         <Typography variant="caption" color="text.secondary">
           返回即取消，不会保存修改
         </Typography>
+
       </Box>
 
-      {/* 编辑器 */}
+
+      {}
       <Paper
         elevation={0}
         sx={{
@@ -1395,7 +1552,7 @@ export function AdminPosts() {
               : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
         }}
       >
-        {/* 工具栏 + 胶囊 Tab */}
+        {}
         <Box
           ref={toolbarRef}
           sx={{
@@ -1428,8 +1585,8 @@ export function AdminPosts() {
               },
             }}
           >
-            {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
-            {/* eslint-disable-next-line react-hooks/refs */}
+            {}
+            {}
             {toolbarItems.map((item) => (
               <ToggleButton
                 key={item.title}
@@ -1447,8 +1604,10 @@ export function AdminPosts() {
               >
                 {item.icon}
               </ToggleButton>
+
             ))}
           </ToggleButtonGroup>
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
             <FormControlLabel
               control={
@@ -1462,14 +1621,17 @@ export function AdminPosts() {
               sx={{ '& .MuiFormControlLabel-label': { fontSize: { xs: '0.75rem', sm: '0.85rem' } } }}
             />
           </Box>
+
           <Dialog open={inlineImageDialogOpen} onClose={() => setInlineImageDialogOpen(false)} fullWidth maxWidth="xs" TransitionComponent={Grow} PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }} BackdropProps={{ 'aria-hidden': false }}>
             <DialogTitle sx={{ fontWeight: 700 }}>插入图片</DialogTitle>
+
             <DialogContent>
               <Stack spacing={2}>
                 <Button variant="outlined" component="label" startIcon={inlineImageUploading ? <CircularProgress size={18} /> : <ImageIcon />} disabled={inlineImageUploading} fullWidth sx={{ textTransform: 'none', borderRadius: 2, py: 1 }}>
                   {inlineImageUploading ? '上传中...' : '上传本地图片'}
                   <input type="file" accept="image/*" hidden onChange={handleInlineImageFromDialog} />
                 </Button>
+
                 <TextField
                   label="或输入图片 URL"
                   placeholder="https://example.com/image.jpg"
@@ -1485,21 +1647,29 @@ export function AdminPosts() {
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Stack>
+
             </DialogContent>
+
             <DialogActions sx={{ px: 3, pb: 2 }}>
               <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
                 <Button onClick={() => setInlineImageDialogOpen(false)} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
                   取消
                 </Button>
+
                 <Button variant="contained" onClick={handleInsertInlineImageUrl} disabled={!inlineImageUrl.trim()} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
                   插入
                 </Button>
+
               </Box>
+
             </DialogActions>
+
           </Dialog>
+
         </Box>
 
-        {/* 编辑区 */}
+
+        {}
         <Box
           sx={{
             flex: 1,
@@ -1539,9 +1709,11 @@ export function AdminPosts() {
             }}
           />
         </Box>
+
       </Paper>
 
-      {/* 右侧可展开/收起的 Markdown 工具栏 */}
+
+      {}
       <Paper
         elevation={3}
         sx={{
@@ -1575,11 +1747,13 @@ export function AdminPosts() {
           >
             {editorToolbarExpanded ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
           </IconButton>
+
         </Tooltip>
+
         <Collapse in={editorToolbarExpanded} orientation="vertical" timeout={250}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.75, pt: 0 }}>
-            {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
-            {/* eslint-disable-next-line react-hooks/refs */}
+            {}
+            {}
             {toolbarItems.map((item) => (
               <Tooltip key={item.title} title={item.title} placement="left">
                 <span>
@@ -1597,12 +1771,18 @@ export function AdminPosts() {
                   >
                     {item.icon}
                   </IconButton>
+
                 </span>
+
               </Tooltip>
+
             ))}
           </Box>
+
         </Collapse>
+
       </Paper>
+
 
       {createPortal(
         <Box
@@ -1638,8 +1818,8 @@ export function AdminPosts() {
                 '&::-webkit-scrollbar': { display: 'none' },
               }}
             >
-              {/* toolbarItems 的 action 均为点击回调，refs 在事件触发时才访问，非 render 期间访问 */}
-              {/* eslint-disable-next-line react-hooks/refs */}
+              {}
+              {}
               {toolbarItems.map((item) => (
                 <Tooltip key={item.title} title={item.title} placement="left">
                   <span>
@@ -1657,10 +1837,14 @@ export function AdminPosts() {
                     >
                       {item.icon}
                     </IconButton>
+
                   </span>
+
                 </Tooltip>
+
               ))}
             </Paper>
+
           )}
           <Tooltip title={mobileToolbarOpen ? '收起工具栏' : '展开工具栏'} placement="left">
             <IconButton
@@ -1680,13 +1864,17 @@ export function AdminPosts() {
             >
               {mobileToolbarOpen ? <Close fontSize="small" /> : <MoreVert />}
             </IconButton>
+
           </Tooltip>
+
         </Box>,
+
         document.body
       )}
     </Box>
 
-    {/* AI 侧边栏抽屉：小屏覆盖，大屏持久推内容 */}
+
+    {}
     <Drawer
       anchor="right"
       open={aiOpen}
@@ -1699,7 +1887,8 @@ export function AdminPosts() {
       {aiPanelContent}
     </Drawer>
 
-    {/* AI 重新生成确认 */}
+
+    {}
     <ConfirmDialog
       open={aiRegenerateConfirmOpen}
       title="确认重新生成？"
@@ -1709,6 +1898,7 @@ export function AdminPosts() {
       onConfirm={doAiGenerate}
     />
     </Box>
+
   );
 
   const listPanel = (
@@ -1718,14 +1908,19 @@ export function AdminPosts() {
           <Typography variant="h5" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
             文章管理
           </Typography>
+
           <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
             创建、编辑和管理博客文章
           </Typography>
+
         </Box>
+
         <Button variant="contained" startIcon={<Add />} onClick={handleOpenCreate} sx={{ px: { xs: 2, sm: 3 } }}>
           新建
         </Button>
+
       </Box>
+
 
       {loading ? (
         <Loading text="加载文章中..." />
@@ -1750,6 +1945,7 @@ export function AdminPosts() {
                     <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.3, pr: 1, minWidth: 0, overflowWrap: 'break-word' }}>
                       {post.title}
                     </Typography>
+
                     <Chip
                       label={post.status === 'published' ? '已发布' : '草稿'}
                       size="small"
@@ -1757,9 +1953,11 @@ export function AdminPosts() {
                       sx={{ borderRadius: 1, flexShrink: 0 }}
                     />
                   </Box>
+
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, overflowWrap: 'break-word' }}>
                     {post.slug}
                   </Typography>
+
                   <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
                     {post.tags?.map((tag) => (
                       <Chip
@@ -1777,33 +1975,48 @@ export function AdminPosts() {
                       <Typography variant="caption" color="text.secondary">
                         无标签
                       </Typography>
+
                     )}
                   </Stack>
+
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
                       {post.views} 阅读 · {new Date(post.created_at).toLocaleDateString('zh-CN')}
                     </Typography>
+
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton onClick={() => handleOpenEdit(post)} sx={{ width: 44, height: 44 }}>
                         <Edit fontSize="small" />
                       </IconButton>
+
+                      {isSuper && (
                       <IconButton color="error" onClick={() => setDeleteId(post.id)} sx={{ width: 44, height: 44 }}>
                         <Delete fontSize="small" />
                       </IconButton>
+
+                      )}
                     </Box>
+
                   </Box>
+
                 </CardContent>
+
               </Card>
+
             </Grid>
+
           ))}
           {posts.length === 0 && (
             <Grid item xs={12}>
               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                 暂无文章，点击右上角新建
               </Box>
+
             </Grid>
+
           )}
         </Grid>
+
       ) : (
       <Paper
         elevation={0}
@@ -1821,14 +2034,23 @@ export function AdminPosts() {
             <TableHead>
               <TableRow>
                 <TableCell>标题</TableCell>
+
                 <TableCell>Slug</TableCell>
+
                 <TableCell>状态</TableCell>
+
                 <TableCell>标签</TableCell>
+
                 <TableCell>阅读</TableCell>
+
                 <TableCell>创建时间</TableCell>
+
                 <TableCell align="right">操作</TableCell>
+
               </TableRow>
+
             </TableHead>
+
             <TableBody>
               {posts.map((post) => (
                 <TableRow key={post.id} hover>
@@ -1836,12 +2058,16 @@ export function AdminPosts() {
                     <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 220 }}>
                       {post.title}
                     </Typography>
+
                   </TableCell>
+
                   <TableCell>
                     <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 160, display: 'block' }}>
                       {post.slug}
                     </Typography>
+
                   </TableCell>
+
                   <TableCell>
                     <Chip
                       label={post.status === 'published' ? '已发布' : '草稿'}
@@ -1850,6 +2076,7 @@ export function AdminPosts() {
                       sx={{ borderRadius: 1 }}
                     />
                   </TableCell>
+
                   <TableCell>
                     <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                       {post.tags?.map((tag) => (
@@ -1865,29 +2092,44 @@ export function AdminPosts() {
                         />
                       ))}
                     </Stack>
+
                   </TableCell>
+
                   <TableCell>{post.views}</TableCell>
+
                   <TableCell>{new Date(post.created_at).toLocaleDateString('zh-CN')}</TableCell>
+
                   <TableCell align="right">
                     <IconButton onClick={() => handleOpenEdit(post)} sx={{ width: 40, height: 40 }}>
                       <Edit fontSize="small" />
                     </IconButton>
+
+                    {isSuper && (
                     <IconButton color="error" onClick={() => setDeleteId(post.id)} sx={{ width: 40, height: 40 }}>
                       <Delete fontSize="small" />
                     </IconButton>
+
+                    )}
                   </TableCell>
+
                 </TableRow>
+
               ))}
               {posts.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     暂无文章，点击右上角新建
                   </TableCell>
+
                 </TableRow>
+
               )}
             </TableBody>
+
           </Table>
+
         </TableContainer>
+
         {!loading && total > 0 && (
           <TablePagination
             component="div"
@@ -1909,11 +2151,13 @@ export function AdminPosts() {
           />
             )}
           </Paper>
+
         )}
         </Fade>
+
       )}
 
-      {/* 删除确认 */}
+      {}
       <ConfirmDialog
         open={!!deleteId}
         title="确认删除"
@@ -1926,6 +2170,7 @@ export function AdminPosts() {
       />
 
     </Box>
+
   );
 
   return (
@@ -1933,7 +2178,9 @@ export function AdminPosts() {
       {view === 'list' && (
         <Fade in timeout={300}>
           <Box sx={{ flex: '0 0 auto', minWidth: 0 }}>{listPanel}</Box>
+
         </Fade>
+
       )}
       {view === 'editor' && (
         <Fade in timeout={400}>
@@ -1956,10 +2203,12 @@ export function AdminPosts() {
           >
             {editorPanel}
           </Box>
+
         </Fade>
+
       )}
 
-      {/* 添加新标签 */}
+      {}
       <Dialog
         open={addTagDialogOpen}
         onClose={handleCloseAddTagDialog}
@@ -1971,6 +2220,7 @@ export function AdminPosts() {
         sx={{ zIndex: 1400 }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>添加新标签</DialogTitle>
+
         <DialogContent>
           <TextField
             autoFocus
@@ -1988,19 +2238,25 @@ export function AdminPosts() {
             sx={{ mt: 0.5 }}
           />
         </DialogContent>
+
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Box sx={{ display: 'flex', gap: 1.5, width: '100%', flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { sm: 'flex-end' }, minWidth: 0 }}>
             <Button onClick={handleCloseAddTagDialog} disabled={addingTag} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
               取消
             </Button>
+
             <Button variant="contained" onClick={handleCreateTagFromDialog} disabled={!newTagName.trim() || addingTag} fullWidth={isMobileAdmin} sx={{ textTransform: 'none', borderRadius: 2 }}>
               {addingTag ? <CircularProgress size={16} color="inherit" /> : '创建'}
             </Button>
+
           </Box>
+
         </DialogActions>
+
       </Dialog>
 
-      {/* 移除封面确认 */}
+
+      {}
       <ConfirmDialog
         open={removeCoverDialogOpen}
         title="确认移除封面？"
@@ -2012,5 +2268,6 @@ export function AdminPosts() {
         onConfirm={handleConfirmRemoveCover}
       />
     </Box>
+
   );
 }

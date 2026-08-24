@@ -30,7 +30,7 @@ function writeLocalCache(data: MessageWallSettings) {
   try {
     localStorage.setItem(MESSAGE_WALL_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 
@@ -39,7 +39,7 @@ function clearLocalCache() {
   try {
     localStorage.removeItem(MESSAGE_WALL_CACHE_KEY);
   } catch {
-    // ignore
+    
   }
 }
 
@@ -48,6 +48,12 @@ const defaultSettings: MessageWallSettings = {
   allowAnonymous: true,
   auditEnabled: false,
   defaultStyle: 'danmaku',
+  danmakuRepeatSec: 45,
+  danmakuTrackCount: 12,
+  danmakuSpeedMin: 8,
+  danmakuSpeedMax: 11,
+  danmakuIntervalMin: 6,
+  danmakuIntervalMax: 10,
 };
 
 export async function getMessageWallSettings() {
@@ -73,6 +79,12 @@ export async function updateMessageWallSettings(data: MessageWallSettings) {
     allowAnonymous: data.allowAnonymous !== false,
     auditEnabled: data.auditEnabled === true,
     defaultStyle: data.defaultStyle || 'danmaku',
+    danmakuRepeatSec: data.danmakuRepeatSec,
+    danmakuTrackCount: data.danmakuTrackCount,
+    danmakuSpeedMin: data.danmakuSpeedMin,
+    danmakuSpeedMax: data.danmakuSpeedMax,
+    danmakuIntervalMin: data.danmakuIntervalMin,
+    danmakuIntervalMax: data.danmakuIntervalMax,
   };
   const res = await apiPatch<MessageWallSettings>('/api/v1/admin/settings/message-wall', normalized);
   if (res.code === 0) {

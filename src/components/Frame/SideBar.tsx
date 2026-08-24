@@ -15,6 +15,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
+import { isContentAdmin } from '@/utils/permission';
 import { useSiteStore } from '@/stores/siteStore';
 import { useMessageWallEnabled } from '@/hooks/useMessageWallEnabled';
 import { Logo } from '@/components/Common/Logo';
@@ -96,7 +97,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             px: 1,
           }}
         >
-          {/* Expand button on top */}
+          {}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -116,7 +117,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             <ChevronRight />
           </IconButton>
 
-          {/* Mini Navigation */}
+
+          {}
           <Stack
             sx={{
               flexGrow: 1,
@@ -156,11 +158,13 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                   >
                     {item.icon}
                   </IconButton>
+
                 </Tooltip>
+
               );
             })}
 
-            {user?.role === 'super_admin' && (
+            {isContentAdmin(user?.role) && (
               <Tooltip title="管理后台" placement="right">
                 <IconButton
                   component={Link}
@@ -186,10 +190,14 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   <Settings fontSize="small" />
                 </IconButton>
+
               </Tooltip>
+
             )}
           </Stack>
+
         </Box>
+
       );
     }
 
@@ -203,11 +211,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
+        {}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
+
           <Box>
             <IconButton
               onClick={() => {
@@ -221,10 +230,13 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               <ChevronLeft />
             </IconButton>
+
           </Box>
+
         </DrawerHeaderContainer>
 
-        {/* Navigation - 独立滚动区域 */}
+
+        {}
         <Stack
           sx={{
             flexGrow: 1,
@@ -261,15 +273,18 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   {item.icon}
                 </Box>
+
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
+
               </StyledNavButton>
+
             );
           })}
 
-          {/* Admin Entry - 仅超级管理员可见 */}
-          {user?.role === 'super_admin' && (
+          {}
+          {isContentAdmin(user?.role) && (
             <StyledNavButton
               active={location.pathname.startsWith('/admin')}
               component={Link}
@@ -291,14 +306,18 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
               >
                 <Settings fontSize="small" />
               </Box>
+
               <Typography variant="body2" fontWeight={600} noWrap>
                 管理后台
               </Typography>
+
             </StyledNavButton>
+
           )}
         </Stack>
 
-        {/* Footer: login/logout & user info */}
+
+        {}
         <Box
           sx={{
             px: 1.5,
@@ -328,12 +347,17 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
+
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
+
           </StyledNavButton>
+
         </Box>
+
       </Box>
+
     );
   };
 
@@ -341,7 +365,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
 
   return (
     <>
-      {/* 移动端抽屉 */}
+      {}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -361,7 +385,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         {drawerContent(false)}
       </Drawer>
 
-      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
+
+      {}
       <Drawer
         variant="persistent"
         anchor="left"
@@ -405,7 +430,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             drawerContent(sidebarCollapsed)
           )}
         </Box>
+
       </Drawer>
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -415,6 +442,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         }}
       />
     </>
+
   );
 }
 

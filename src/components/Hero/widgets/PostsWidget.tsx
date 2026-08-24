@@ -73,16 +73,20 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
         <Typography variant="subtitle2" fontWeight={700}>
           最新文章
         </Typography>
+
       </Box>
+
 
       {loading ? (
         <Typography variant="body2" color="text.secondary">
           加载中...
         </Typography>
+
       ) : posts.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           暂无文章
         </Typography>
+
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {posts.slice(0, displayLimit).map((post) => (
@@ -113,6 +117,7 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                 <Typography variant="body2" fontWeight={700} noWrap>
                   {post.title}
                 </Typography>
+
                 {displayExcerpt && (
                   <Typography
                     variant="caption"
@@ -126,6 +131,7 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                   >
                     {post.excerpt}
                   </Typography>
+
                 )}
                 {displayTags && post.tags && post.tags.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 0.25, flexWrap: 'nowrap', overflow: 'hidden' }}>
@@ -144,12 +150,17 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                       />
                     ))}
                   </Box>
+
                 )}
               </Box>
+
             </Box>
+
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }
