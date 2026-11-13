@@ -1,0 +1,44 @@
+# 技能包 07：友链
+
+skill = friend.list
+name = 友链列表
+visible = true
+handler = listAdminFriends
+desc = 分页查询友链（含状态）。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"}},"additionalProperties":false}
+
+---
+skill = friend.application.list
+name = 友链申请列表
+visible = true
+handler = listFriendApplications
+desc = 分页查询友链申请（含站点名、链接、申请人）。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 10"}},"additionalProperties":false}
+
+---
+skill = friend.create
+name = 添加友链
+visible = true
+desc = 【写操作，需确认】手动添加一条友链。参数 name、url 必填。
+params = {"type":"object","properties":{"name":{"type":"string","description":"友链名称/站点名"},"url":{"type":"string","description":"站点链接"},"avatar":{"type":"string","description":"头像地址"},"description":{"type":"string","description":"一句话介绍"}},"required":["name","url"],"additionalProperties":false}
+
+---
+skill = friend.application.review
+name = 审核友链申请
+visible = true
+desc = 【写操作，需确认】审核友链申请，status 为 approved/rejected。参数 id、status 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"申请 ID"},"status":{"type":"string","enum":["approved","rejected"],"description":"审核结果"},"remark":{"type":"string","description":"备注"}},"required":["id","status"],"additionalProperties":false}
+
+---
+skill = friend.update
+name = 编辑友链
+visible = true
+desc = 【写操作，需确认】修改已有友链的信息。参数 id 必填，其余可选。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"友链 ID"},"name":{"type":"string","description":"友链名称/站点名"},"url":{"type":"string","description":"站点链接"},"description":{"type":"string","description":"一句话介绍"},"avatar":{"type":"string","description":"头像地址"},"sortOrder":{"type":"integer","description":"排序值"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = friend.application.delete
+name = 删除友链申请
+visible = true
+desc = 【写操作，需确认，仅站主】删除一条友链申请记录。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"申请 ID"}},"required":["id"],"additionalProperties":false}

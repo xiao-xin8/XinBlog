@@ -1,0 +1,102 @@
+# 技能包 01：站点与总览（public/skills/01-site.txt）
+# 格式：key = value，技能之间用独立一行的 --- 分隔；# 开头为注释
+
+skill = site.info
+name = 站点信息
+visible = true
+desc = 获取博客站点的基础配置信息（站点名、简介、公告、开关等）。无参数。
+params = {}
+
+---
+skill = dashboard.stat
+name = 站点数据总览
+visible = true
+handler = getDashboard
+desc = 获取站点文章、标签、媒体、用户等核心数据的统计与近期趋势。参数 days：7/30/90。
+params = {"type":"object","properties":{"days":{"type":"integer","enum":[7,30,90],"description":"统计天数，默认 30"}},"additionalProperties":false}
+
+---
+skill = system.status
+name = 系统状态
+visible = true
+handler = getSystemStatus
+desc = 获取站点运行状态（数据库健康、绑定等）。仅站主可用。无参数。
+params = {}
+
+---
+skill = system.databases
+name = 数据库列表
+visible = true
+handler = listDatabases
+desc = 列出站点各数据库的表与使用情况。仅站主可用。无参数。
+params = {}
+
+---
+skill = site.settings.auth
+name = 认证设置
+visible = true
+handler = getAuthSettings
+desc = 读取注册/登录相关设置（开放注册、邮箱验证、验证码模式等）。无参数。
+params = {}
+
+---
+skill = site.settings.email
+name = 邮箱设置
+visible = true
+handler = getEmailSettings
+desc = 读取邮件服务器配置（SMTP 等，不含密钥明文）。无参数。
+params = {}
+
+---
+skill = site.settings.emailTemplate
+name = 邮件模板设置
+visible = true
+handler = getEmailTemplateSettings
+desc = 读取各类邮件的模板配置。无参数。
+params = {}
+
+---
+skill = site.settings.commentNotify
+name = 评论通知设置
+visible = true
+handler = getCommentNotifySettings
+desc = 读取评论、回复、点赞等互动通知的开关配置。无参数。
+params = {}
+
+---
+skill = site.settings.interaction
+name = 互动设置
+visible = true
+handler = getInteractionSettings
+desc = 读取评论/点赞/审核的开关与选项。无参数。
+params = {}
+
+---
+skill = site.settings.messageWall
+name = 留言墙设置
+visible = true
+handler = getMessageWallSettings
+desc = 读取留言墙相关开关与配置。无参数。
+params = {}
+
+---
+skill = site.settings.chat
+name = 聊天设置
+visible = true
+handler = getChatSettings
+desc = 读取聊天室相关设置（开关、房间上限等）。无参数。
+params = {}
+
+---
+skill = site.terms.update
+name = 更新协议/隐私政策
+visible = true
+desc = 【写操作，需确认，仅站主】更新用户协议与隐私政策内容（Markdown）。参数 termsAgreement / termsPrivacy 至少一个。
+params = {"type":"object","properties":{"termsAgreement":{"type":"string","description":"用户协议 Markdown 内容"},"termsPrivacy":{"type":"string","description":"隐私政策 Markdown 内容"}},"additionalProperties":false}
+
+---
+skill = site.info.update
+name = 更新站点信息
+visible = true
+desc = 【写操作，需确认，仅站主】更新站点基础文本信息（简介 description、公告 announcement、标题 title、副标题 subtitle 等）。
+params = {"type":"object","properties":{"description":{"type":"string","description":"站点简介"},"announcement":{"type":"string","description":"站点公告"},"title":{"type":"string","description":"站点标题"},"subtitle":{"type":"string","description":"站点副标题"}},"additionalProperties":false}

@@ -1,0 +1,22 @@
+# 技能包 06：用户
+
+skill = user.list
+name = 用户列表
+visible = true
+handler = listAdminUsers
+desc = 分页查询站点用户（用户名、邮箱、角色、状态），可用 keyword 按用户名/邮箱搜索。参数 page、limit、keyword。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 10"},"keyword":{"type":"string","description":"按用户名或邮箱搜索"}},"additionalProperties":false}
+
+---
+skill = user.update
+name = 修改用户
+visible = true
+desc = 【写操作，需确认，仅站主】修改用户角色/状态等。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"用户 ID"},"role":{"type":"string","description":"角色"},"status":{"type":"integer","description":"状态 0/1"},"emailVerified":{"type":"boolean","description":"是否已验证邮箱"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = user.delete
+name = 删除用户
+visible = true
+desc = 【写操作，需确认，仅站主】删除用户。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"要删除的用户 ID"}},"required":["id"],"additionalProperties":false}

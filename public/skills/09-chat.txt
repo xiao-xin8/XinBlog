@@ -1,0 +1,53 @@
+# 技能包 09：聊天
+
+skill = chat.room.list
+name = 聊天室列表
+visible = true
+handler = listAdminChatRooms
+desc = 分页查询聊天室房间。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"}},"additionalProperties":false}
+
+---
+skill = chat.room.members
+name = 房间成员
+visible = true
+handler = getAdminChatRoomMembers
+desc = 读取某个聊天室的成员列表。参数 key 为房间 key。
+params = {"type":"object","properties":{"key":{"type":"string","description":"聊天室 key"}},"required":["key"],"additionalProperties":false}
+
+---
+skill = chat.user.search
+name = 搜索用户（可加入房间）
+visible = true
+handler = searchRoomUsers
+desc = 搜索启用中的用户（用于挑选聊天室成员）。参数 keyword、page、limit。
+params = {"type":"object","properties":{"keyword":{"type":"string","description":"用户名搜索关键词"},"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"}},"additionalProperties":false}
+
+---
+skill = chat.do.overview
+name = 聊天室数据概览
+visible = true
+handler = adminChatDoOverview
+desc = 获取各聊天室的消息数、图片数与图片字节数概览。无参数。
+params = {}
+
+---
+skill = chat.room.create
+name = 创建聊天室
+visible = true
+desc = 【写操作，需确认】创建一个自定义聊天室。参数 name 必填，可选 description/cover/maxUsers/members。
+params = {"type":"object","properties":{"name":{"type":"string","description":"房间名称（最多 24 字）"},"description":{"type":"string","description":"房间简介"},"cover":{"type":"string","description":"封面"},"maxUsers":{"type":"integer","description":"最大人数"},"members":{"type":"array","items":{"type":"integer"},"description":"成员用户 ID 数组"}},"required":["name"],"additionalProperties":false}
+
+---
+skill = chat.room.update
+name = 编辑聊天室
+visible = true
+desc = 【写操作，需确认】修改已有聊天室。参数 key 必填，其余可选。
+params = {"type":"object","properties":{"key":{"type":"string","description":"房间 key"},"name":{"type":"string","description":"房间名称"},"description":{"type":"string","description":"房间简介"},"cover":{"type":"string","description":"封面"},"maxUsers":{"type":"integer","description":"最大人数"},"enabled":{"type":"boolean","description":"是否启用"},"members":{"type":"array","items":{"type":"integer"},"description":"成员用户 ID 数组（整体替换）"}},"required":["key"],"additionalProperties":false}
+
+---
+skill = chat.room.delete
+name = 删除聊天室
+visible = true
+desc = 【写操作，需确认，仅站主】删除聊天室。参数 key 必填。
+params = {"type":"object","properties":{"key":{"type":"string","description":"房间 key"}},"required":["key"],"additionalProperties":false}

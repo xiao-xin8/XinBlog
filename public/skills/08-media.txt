@@ -1,0 +1,32 @@
+# 技能包 08：媒体
+
+skill = media.list
+name = 媒体列表
+visible = true
+handler = listAdminMedia
+desc = 分页查询上传的媒体文件（音频/图片等）。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 10"}},"additionalProperties":false}
+
+---
+skill = media.info
+name = 媒体详情
+visible = true
+handler = getAdminMedia
+desc = 读取单个媒体文件的详细信息（类型、尺寸、大小、绑定情况）。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"媒体 ID"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = media.usage
+name = 媒体用量
+visible = true
+handler = getAdminMediaUsage
+desc = 获取媒体存储用量统计。无参数。
+params = {}
+
+---
+skill = media.usage.detail
+name = 媒体用量明细
+visible = true
+handler = getAdminMediaUsageDetail
+desc = 获取媒体存储精确用量明细（原始/base64/分片大小与占用比）。无参数。
+params = {}

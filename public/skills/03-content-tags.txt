@@ -1,0 +1,29 @@
+# 技能包 03：内容 - 标签
+
+skill = tag.list
+name = 标签列表
+visible = true
+handler = listAdminTags
+desc = 分页查询站点标签（含颜色、关联文章数）。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"}},"additionalProperties":false}
+
+---
+skill = tag.create
+name = 创建标签
+visible = true
+desc = 【写操作，需确认】创建一个新标签。参数 name 必填，可选 slug/color。
+params = {"type":"object","properties":{"name":{"type":"string","description":"标签名称"},"slug":{"type":"string","description":"URL 别名"},"color":{"type":"string","description":"主题色"}},"required":["name"],"additionalProperties":false}
+
+---
+skill = tag.update
+name = 编辑标签
+visible = true
+desc = 【写操作，需确认】修改标签。参数 id 必填，其余可选。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"标签 ID"},"name":{"type":"string","description":"标签名称"},"slug":{"type":"string","description":"URL 别名"},"color":{"type":"string","description":"主题色"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = tag.delete
+name = 删除标签
+visible = true
+desc = 【写操作，需确认，仅站主】删除标签。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"要删除的标签 ID"}},"required":["id"],"additionalProperties":false}

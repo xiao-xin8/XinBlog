@@ -1,0 +1,37 @@
+# 技能包 02：内容 - 文章
+
+skill = article.list
+name = 文章列表
+visible = true
+handler = listAdminPosts
+desc = 分页查询站点文章（含状态、标题、摘要、浏览量、阅读时长），可用 keyword 按标题/摘要搜索。参数 page、limit、keyword。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 10"},"keyword":{"type":"string","description":"按标题或摘要关键词搜索"}},"additionalProperties":false}
+
+---
+skill = article.read
+name = 文章详情
+visible = true
+handler = getAdminPost
+desc = 读取单篇文章的完整内容（正文、摘要、封面、状态、浏览量、作者）。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"文章 ID"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = article.create
+name = 创建文章
+visible = true
+desc = 【写操作，需确认】创建一篇新文章。参数 title/content 必填，可选 slug/excerpt/tagIds/status。
+params = {"type":"object","properties":{"title":{"type":"string","description":"文章标题"},"content":{"type":"string","description":"文章正文（Markdown）"},"slug":{"type":"string","description":"URL 别名，留空自动生成"},"excerpt":{"type":"string","description":"摘要，留空取正文开头"},"tagIds":{"type":"array","items":{"type":"integer"},"description":"标签 ID 数组"},"status":{"type":"string","enum":["draft","published"],"description":"草稿或已发布"}},"required":["title","content"],"additionalProperties":false}
+
+---
+skill = article.update
+name = 编辑文章
+visible = true
+desc = 【写操作，需确认】修改已有文章。参数 id 必填，其余字段可选。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"文章 ID"},"title":{"type":"string","description":"文章标题"},"slug":{"type":"string","description":"URL 别名"},"content":{"type":"string","description":"文章正文（Markdown）"},"excerpt":{"type":"string","description":"摘要"},"tagIds":{"type":"array","items":{"type":"integer"},"description":"标签 ID 数组"},"status":{"type":"string","enum":["draft","published"],"description":"草稿或已发布"}},"required":["id"],"additionalProperties":false}
+
+---
+skill = article.delete
+name = 删除文章
+visible = true
+desc = 【写操作，需确认，仅站主】删除一篇文章。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"要删除的文章 ID"}},"required":["id"],"additionalProperties":false}

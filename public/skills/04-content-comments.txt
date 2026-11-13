@@ -1,0 +1,22 @@
+# 技能包 04：内容 - 评论
+
+skill = comment.list
+name = 评论列表
+visible = true
+handler = listAdminComments
+desc = 分页查询文章评论，可按状态筛选（pending/approved/rejected）与内容关键词搜索。参数 page、limit、status、keyword。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"},"status":{"type":"string","enum":["pending","approved","rejected"],"description":"评论状态筛选"},"keyword":{"type":"string","description":"按评论内容关键词搜索"}},"additionalProperties":false}
+
+---
+skill = comment.review
+name = 审核评论
+visible = true
+desc = 【写操作，需确认】按状态审核评论（ids 数组），status 为 approved/rejected。参数 ids、status 必填。
+params = {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer"},"description":"评论 ID 数组"},"status":{"type":"string","enum":["approved","rejected"],"description":"审核结果"}},"required":["ids","status"],"additionalProperties":false}
+
+---
+skill = comment.delete
+name = 删除评论
+visible = true
+desc = 【写操作，需确认，仅站主】删除单条评论。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"要删除的评论 ID"}},"required":["id"],"additionalProperties":false}

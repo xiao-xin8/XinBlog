@@ -1,0 +1,22 @@
+# 技能包 10：AI
+skill = ai.models
+name = AI 模型列表
+visible = true
+handler = listAdminAiModels
+desc = 获取后台已启用的 AI 模型配置（内置 + 自定义）。无参数。
+params = {}
+
+---
+skill = ai.settings
+name = AI 功能设置
+visible = true
+handler = getAiSettings
+desc = 获取当前 AI 功能的启用状态、默认模型等设置。无参数。
+params = {}
+
+---
+skill = site.settings.emailTemplate.update
+name = 更新邮件模板
+visible = true
+desc = 【写操作，需确认，仅站主】更新邮件模板内容。kind 为 email（通用）或 reset（找回密码），subject/html/text 至少填一个。
+params = {"type":"object","properties":{"kind":{"type":"string","enum":["email","reset"],"description":"模板类型：email 通用 / reset 找回密码"},"subject":{"type":"string","description":"邮件主题"},"html":{"type":"string","description":"HTML 正文"},"text":{"type":"string","description":"纯文本正文"}},"required":["kind"],"additionalProperties":false}

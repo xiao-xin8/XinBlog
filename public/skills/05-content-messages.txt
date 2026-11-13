@@ -1,0 +1,22 @@
+# 技能包 05：内容 - 留言墙
+
+skill = message.list
+name = 留言墙列表
+visible = true
+handler = listAdminMessages
+desc = 分页查询留言墙消息。参数 page、limit。
+params = {"type":"object","properties":{"page":{"type":"integer","minimum":1,"description":"页码，默认 1"},"limit":{"type":"integer","minimum":1,"maximum":100,"description":"每页数量，默认 20"}},"additionalProperties":false}
+
+---
+skill = message.review
+name = 审核留言
+visible = true
+desc = 【写操作，需确认】按状态审核留言（ids 数组），status 为 approved/rejected。参数 ids、status 必填。
+params = {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer"},"description":"留言 ID 数组"},"status":{"type":"string","enum":["approved","rejected"],"description":"审核结果"}},"required":["ids","status"],"additionalProperties":false}
+
+---
+skill = message.delete
+name = 删除留言
+visible = true
+desc = 【写操作，需确认，仅站主】删除单条留言。参数 id 必填。
+params = {"type":"object","properties":{"id":{"type":"integer","description":"要删除的留言 ID"}},"required":["id"],"additionalProperties":false}
