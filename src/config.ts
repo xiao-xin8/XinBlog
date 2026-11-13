@@ -9,7 +9,7 @@ export function toAbsoluteCloudUrl(relative: string): string {
 }
 
 // ---------- 可被 .env 覆盖的站点元信息（方便 fork 后自定义，避免硬编码） ----------
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.7.0';
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.7.1';
 export const SITE_NAME = import.meta.env.VITE_SITE_NAME || 'XinBlog';
 export const SITE_HOMEPAGE_URL = import.meta.env.VITE_SITE_URL || 'https://xinblog.zhyhome.top';
 
