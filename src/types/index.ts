@@ -262,6 +262,8 @@ export interface SiteConfig {
   lazyLoadMedia?: boolean;
   enableLatex?: boolean;
   disableSmoothScroll?: boolean;
+  icpBeian?: string;
+  policeBeian?: string;
   /** AI 智能体（AI 助手）功能是否开启：站点 AI 功能开启且启用了 Agent 时为 true */
   agentEnabled?: boolean;
   /** 文章正文图片显示模式 */
