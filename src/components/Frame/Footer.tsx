@@ -88,7 +88,7 @@ export function Footer() {
               </Typography>
             ) : null}
 
-            <Box
+{/*            <Box
               component="a"
               href={SITE_HOMEPAGE_URL}
               target="_blank"
@@ -101,7 +101,7 @@ export function Footer() {
                   color: (theme) => theme.palette.primary.main,
                 },
               }}
-            >
+            >  */}
               {SITE_NAME}
             </Box>
 
