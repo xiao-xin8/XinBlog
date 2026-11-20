@@ -37,6 +37,10 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
     MAX_BACKGROUND_SIZE,
     isMobileAdmin,
     handleImageUpload,
+    icpBeian,
+    setIcpBeian,
+    policeBeian,
+    setPoliceBeian,
   } = editor;
 
   return (
@@ -79,6 +83,12 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
           onUpload={handleImageUpload}
           hint="建议 1200×630，压缩到 100KB 以内，也可引用自定义 URL"
         />
+                <TextField
+          label="站点名称（站点标题 / 侧边栏 Logo 文字）"
+          value={siteName}
+          onChange={(e) => setSiteName(e.target.value)}
+          fullWidth
+        />
         <TextField
           label="页脚自定义文本"
           value={footerText}
@@ -87,6 +97,20 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
           multiline
           rows={2}
           placeholder="显示在版权声明上方的自定义文字"
+        />
+        <TextField
+          label="ICP 备案号"
+          value={icpBeian}
+          onChange={(e) => setIcpBeian(e.target.value)}
+          fullWidth
+          placeholder="例如：京ICP备12345678号-1"
+        />
+        <TextField
+          label="公安联网备案号"
+          value={policeBeian}
+          onChange={(e) => setPoliceBeian(e.target.value)}
+          fullWidth
+          placeholder="例如：京公网安备 11010802012345号"
         />
         <ColorPicker
           label="安装应用主题色"
