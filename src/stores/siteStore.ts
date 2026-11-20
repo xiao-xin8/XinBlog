@@ -77,6 +77,8 @@ const defaultConfig: SiteConfig = {
   enableDashboardStats: true,
   paginationMode: 'load-more',
   pageSize: 9,
+  icpBeian: '',
+  policeBeian: '',
   theme: {
     presetId: defaultPreset.id,
     customColors: { ...defaultPreset.colors },
