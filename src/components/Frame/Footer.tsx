@@ -2,11 +2,14 @@ import { Box, Typography, Container, alpha, Fade, Divider } from '@mui/material'
 import { Link } from 'react-router-dom';
 import { useSiteStore } from '@/stores/siteStore';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
-import { APP_VERSION, SITE_NAME, SITE_HOMEPAGE_URL } from '@/config';
+import { SITE_NAME, SITE_HOMEPAGE_URL } from '@/config';
 
 export function Footer() {
   const { config } = useSiteStore();
   const spacing = resolveSpacingConfig(config.spacing);
+
+  // 从备案号里抽纯数字，拼公安备案官方跳转链接
+  const policeCode = (config.policeBeian || '').replace(/\D/g, '');
 
   return (
     <Fade in timeout={400}>
@@ -24,42 +27,67 @@ export function Footer() {
         }}
       >
         <Container maxWidth="lg">
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1,
-            textAlign: 'center',
-          }}
-        >
-          {config.footerText ? (
-            <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
-              {config.footerText}
-            </Typography>
-          ) : null}
-{(siteConfig.icpBeian || siteConfig.policeBeian) ? (
-  <Typography variant="body2" sx={{ /* 保持原有样式 */ }}>
-    {siteConfig.icpBeian && (
-      <>
-        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-          {siteConfig.icpBeian}
-        </a>
-        {' '}
-      </>
-    )}
-    {siteConfig.policeBeian && (
-      <a href={`https://beian.gov.cn/portal/registerSystemInfo?recordcode=${siteConfig.policeBeian.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-        <img src="https://beian.gov.cn/img/new/gongan.png" alt="" style={{ width: 14, height: 14, verticalAlign: 'middle', marginRight: 4 }} />
-        {siteConfig.policeBeian}
-      </a>
-    )}
-  </Typography>
-) : (
-  // ⬇️ 这里放你原来搜到的那行版权内容作为回退
-  <Typography>© {new Date().getFullYear()} {siteConfig.siteName}</Typography>
-)}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              textAlign: 'center',
+            }}
+          >
+            {config.footerText ? (
+              <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
+                {config.footerText}
+              </Typography>
+            ) : null}
+
+            {(config.icpBeian || config.policeBeian) ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                  gap: 1,
+                }}
+              >
+                {config.icpBeian && (
+                  <a
+                    href="https://beian.miit.gov.cn/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'none' }}
+                  >
+                    {config.icpBeian}
+                  </a>
+                )}
+                {config.policeBeian && (
+                  <a
+                    href={`https://beian.gov.cn/portal/registerSystemInfo?recordcode=${policeCode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: 'inherit',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <img
+                      src="https:gongan.png"
+                      alt=""
+                      style={{ width: 14, height: 14, verticalAlign: 'middle', marginRight: 4 }}
+                    />
+                    {config.policeBeian}
+                  </a>
+                )}
+              </Typography>
+            ) : null}
+
             <Box
               component="a"
               href={SITE_HOMEPAGE_URL}
@@ -76,53 +104,53 @@ export function Footer() {
             >
               {SITE_NAME}
             </Box>
-          </Typography>
-          <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: { xs: `${spacing.footerLinkGap.mobile}px`, md: `${spacing.footerLinkGap.desktop}px` },
-              flexWrap: 'wrap',
-            }}
-          >
-            <Typography
-              component={Link}
-              to="/agreement"
-              variant="caption"
+
+            <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
+            <Box
               sx={{
-                color: (theme) => alpha(theme.palette.primary.main, 0.7),
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-                '&:hover': {
-                  color: (theme) => theme.palette.primary.main,
-                  textDecoration: 'underline',
-                },
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: { xs: `${spacing.footerLinkGap.mobile}px`, md: `${spacing.footerLinkGap.desktop}px` },
+                flexWrap: 'wrap',
               }}
             >
-              用户协议
-            </Typography>
-            <Typography
-              component={Link}
-              to="/privacy"
-              variant="caption"
-              sx={{
-                color: (theme) => alpha(theme.palette.primary.main, 0.7),
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-                '&:hover': {
-                  color: (theme) => theme.palette.primary.main,
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              隐私政策
-            </Typography>
+              <Typography
+                component={Link}
+                to="/agreement"
+                variant="caption"
+                sx={{
+                  color: (theme) => alpha(theme.palette.primary.main, 0.7),
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease',
+                  '&:hover': {
+                    color: (theme) => theme.palette.primary.main,
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                用户协议
+              </Typography>
+              <Typography
+                component={Link}
+                to="/privacy"
+                variant="caption"
+                sx={{
+                  color: (theme) => alpha(theme.palette.primary.main, 0.7),
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease',
+                  '&:hover': {
+                    color: (theme) => theme.palette.primary.main,
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                隐私政策
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </Container>
-    </Box>
+        </Container>
+      </Box>
     </Fade>
   );
 }
