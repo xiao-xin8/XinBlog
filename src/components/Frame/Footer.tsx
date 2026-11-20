@@ -2,13 +2,12 @@ import { Box, Typography, Container, alpha, Fade, Divider } from '@mui/material'
 import { Link } from 'react-router-dom';
 import { useSiteStore } from '@/stores/siteStore';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
-import { SITE_NAME, SITE_HOMEPAGE_URL } from '@/config';
 
 export function Footer() {
   const { config } = useSiteStore();
   const spacing = resolveSpacingConfig(config.spacing);
 
-  // 从备案号里抽纯数字，拼公安备案官方跳转链接
+  // 从公安备案号里抽纯数字，拼官方跳转链接
   const policeCode = (config.policeBeian || '').replace(/\D/g, '');
 
   return (
@@ -87,23 +86,6 @@ export function Footer() {
                 )}
               </Typography>
             ) : null}
-
-{/*            <Box
-              component="a"
-              href={SITE_HOMEPAGE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{
-                color: (theme) => alpha(theme.palette.primary.main, 0.8),
-                textDecoration: 'none',
-                fontStyle: 'italic',
-                '&:hover': {
-                  color: (theme) => theme.palette.primary.main,
-                },
-              }}
-            >  */}
-              {SITE_NAME}
-            </Box>
 
             <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
             <Box
