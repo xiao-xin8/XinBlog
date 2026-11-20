@@ -39,8 +39,27 @@ export function Footer() {
               {config.footerText}
             </Typography>
           ) : null}
-          <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
-            © {new Date().getFullYear()} {APP_VERSION} Powered by{' '}
+{(siteConfig.icpBeian || siteConfig.policeBeian) ? (
+  <Typography variant="body2" sx={{ /* 保持原有样式 */ }}>
+    {siteConfig.icpBeian && (
+      <>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+          {siteConfig.icpBeian}
+        </a>
+        {' '}
+      </>
+    )}
+    {siteConfig.policeBeian && (
+      <a href={`https://beian.gov.cn/portal/registerSystemInfo?recordcode=${siteConfig.policeBeian.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+        <img src="https://beian.gov.cn/img/new/gongan.png" alt="" style={{ width: 14, height: 14, verticalAlign: 'middle', marginRight: 4 }} />
+        {siteConfig.policeBeian}
+      </a>
+    )}
+  </Typography>
+) : (
+  // ⬇️ 这里放你原来搜到的那行版权内容作为回退
+  <Typography>© {new Date().getFullYear()} {siteConfig.siteName}</Typography>
+)}
             <Box
               component="a"
               href={SITE_HOMEPAGE_URL}
