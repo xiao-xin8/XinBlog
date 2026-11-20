@@ -271,6 +271,8 @@ export function useAppearanceEditor() {
   const [paginationMode, setPaginationMode] = useState<PaginationMode>(site.config.paginationMode || 'load-more');
   const [pageSize, setPageSize] = useState(site.config.pageSize ?? 9);
   const [pwaThemeColor, setPwaThemeColor] = useState(site.config.pwaThemeColor || '#ffffff');
+  const [icpBeian, setIcpBeian] = useState(site.config.icpBeian || '');
+  const [policeBeian, setPoliceBeian] = useState(site.config.policeBeian || '');
 
   // hero
   const hero = site.config.hero || {};
@@ -316,6 +318,8 @@ export function useAppearanceEditor() {
     setPaginationMode(c.paginationMode || 'load-more');
     setPageSize(c.pageSize ?? 9);
     setPwaThemeColor(c.pwaThemeColor || '#ffffff');
+    setIcpBeian(c.icpBeian || '');
+    setPoliceBeian(c.policeBeian || '');
     const heroCfg = c.hero || {};
     setHeroTitle(heroCfg.title ?? '');
     setHeroSubtitle(heroCfg.subtitle ?? '');
@@ -380,6 +384,8 @@ export function useAppearanceEditor() {
     if (paginationMode !== (site.config.paginationMode || 'load-more')) return true;
     if (pageSize !== (site.config.pageSize ?? 9)) return true;
     if (pwaThemeColor !== (site.config.pwaThemeColor || '#ffffff')) return true;
+    if (icpBeian !== (site.config.icpBeian || '')) return true;
+    if (policeBeian !== (site.config.policeBeian || '')) return true;
 
     if (heroTitle !== (currentHero.title ?? '')) return true;
     if (heroSubtitle !== (currentHero.subtitle ?? '')) return true;
@@ -496,6 +502,10 @@ export function useAppearanceEditor() {
     pageSize,
     pwaThemeColor,
     site.config.pwaThemeColor,
+    icpBeian,
+    policeBeian,
+    site.config.icpBeian,
+    site.config.policeBeian,
     userFonts,
     activeFontId,
     site.config.font,
@@ -616,6 +626,8 @@ export function useAppearanceEditor() {
       paginationMode,
       pageSize,
       pwaThemeColor,
+      icpBeian,
+      policeBeian,
       hero: heroConfig,
       about: aboutConfig,
       theme: {
@@ -679,6 +691,8 @@ export function useAppearanceEditor() {
       setPaginationMode(sc.paginationMode || 'load-more');
       setPageSize(sc.pageSize ?? 9);
       setPwaThemeColor(sc.pwaThemeColor || '#ffffff');
+      setIcpBeian(sc.icpBeian || '');
+      setPoliceBeian(sc.policeBeian || '');
       const savedHero = sc.hero || {};
       setHeroTitle(savedHero.title ?? '');
       setHeroSubtitle(savedHero.subtitle ?? '');
@@ -1069,6 +1083,10 @@ export function useAppearanceEditor() {
     setPageSize,
     pwaThemeColor,
     setPwaThemeColor,
+    icpBeian,
+    setIcpBeian,
+    policeBeian,
+    setPoliceBeian,
     // 间距
     spacing,
     updateSpacing,
