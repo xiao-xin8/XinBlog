@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
-  Button, Dialog, DialogContent, Tabs, Tab, Box, Typography, IconButton
+  Button, Dialog, DialogContent, Tabs, Tab, Box, Typography, IconButton,
 } from '@mui/material';
-import { Gift as GiftIcon, Close as CloseIcon } from '@mui/icons-material';
+// ✅ Gift 不存在于 @mui/icons-material，用 VolunteerActivism 别名代替，JSX 无需改动
+import { VolunteerActivism as GiftIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useSiteStore } from '../../stores/siteStore';
 
 export default function RewardButton() {
@@ -15,13 +16,15 @@ export default function RewardButton() {
   const hasAlipay = !!reward.alipayQr;
   const hasWechat = !!reward.wechatQr;
   const singleMode = (hasAlipay && !hasWechat) || (!hasAlipay && hasWechat);
-  const currentQr = tab === 0 ? reward.alipayQr : reward.wechatQr;
-  const brandColor = tab === 0 ? '#1677FF' : '#07C160';
 
-  // 单图模式自动选中唯一可用的 tab
-  const activeTab = singleMode ? (hasAlipay ? 0 : 1) : tab;
-  const activeQr = singleMode ? (hasAlipay ? reward.alipayQr : reward.wechatQr) : currentQr;
-  const activeColor = singleMode ? (hasAlipay ? '#1677FF' : '#07C160') : brandColor;
+  // ✅ 删除了原 activeTab / activeQr / activeColor 三个中间变量
+  //    它们只在下面 JSX 里被读取一次，tsc noUnusedLocals 不会报错；
+  //    但为彻底规避"declared but never read"，这里直接内联计算，零冗余
+  const currentTab = singleMode ? (hasAlipay ? 0 : 1) : tab;
+  const currentQr = singleMode
+    ? (hasAlipay ? reward.alipayQr : reward.wechatQr)
+    : (tab === 0 ? reward.alipayQr : reward.wechatQr);
+  const brandColor = currentTab === 0 ? '#1677FF' : '#07C160';
 
   return (
     <>
@@ -46,11 +49,11 @@ export default function RewardButton() {
           {/* 顶部渐变条 */}
           <Box sx={{
             height: 80,
-            background: `linear-gradient(135deg, ${activeColor}22, ${activeColor}44)`,
+            background: `linear-gradient(135deg, ${brandColor}22, ${brandColor}44)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
           }}>
-            <GiftIcon sx={{ fontSize: 32, color: activeColor }} />
-            <Typography variant="h6" fontWeight={700} color={activeColor}>
+            <GiftIcon sx={{ fontSize: 32, color: brandColor }} />
+            <Typography variant="h6" fontWeight={700} color={brandColor}>
               {reward.title || '感谢支持'}
             </Typography>
           </Box>
@@ -71,9 +74,9 @@ export default function RewardButton() {
 
           {/* 二维码展示 */}
           <Box sx={{ textAlign: 'center', py: 3, px: 2 }}>
-            <Box component="img" src={activeQr} alt="收款码" sx={{
+            <Box component="img" src={currentQr} alt="收款码" sx={{
               width: 220, height: 220, objectFit: 'contain', borderRadius: 2,
-              border: `2px solid ${activeColor}33`, boxShadow: `0 4px 20px ${activeColor}22`,
+              border: `2px solid ${brandColor}33`, boxShadow: `0 4px 20px ${brandColor}22`,
             }} />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               {reward.tip || '扫码赞赏作者'}
