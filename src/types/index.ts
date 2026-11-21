@@ -235,6 +235,21 @@ export interface SpacingConfig {
   cardPaddingY: SpacingValue;
 }
 
+// ========== 新增：打赏（赞赏）配置 ==========
+export interface RewardConfig {
+  /** 是否在文章页显示打赏按钮 */
+  enabled: boolean;
+  /** 弹窗标题，默认 "感谢支持" */
+  title?: string;
+  /** 底部提示文案，默认 "扫码赞赏作者" */
+  tip?: string;
+  /** 支付宝收款码图片 URL */
+  alipayQr?: string;
+  /** 微信收款码图片 URL */
+  wechatQr?: string;
+}
+// ==========================================
+
 export interface SiteConfig {
   title?: string;
   subtitle?: string;
@@ -283,6 +298,9 @@ export interface SiteConfig {
   termsAgreement?: string;
   termsPrivacy?: string;
   spacing?: SpacingConfig;
+  // ========== 新增：打赏配置 ==========
+  reward?: RewardConfig;
+  // ====================================
 }
 
 export interface FriendLink {
