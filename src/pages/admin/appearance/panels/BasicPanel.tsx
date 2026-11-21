@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Stack, TextField, ToggleButtonGroup, ToggleButton, Slider, alpha } from '@mui/material';
+import { Box, Typography, Paper, Stack, TextField, ToggleButtonGroup, ToggleButton, Slider, alpha, Switch, FormControlLabel } from '@mui/material';
 import type { PaginationMode } from '@/types';
 import { ImageField } from '../ImageField';
 import { ColorPicker } from '@/components/Common/ColorPicker';
@@ -41,6 +41,9 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
     setIcpBeian,
     policeBeian,
     setPoliceBeian,
+    // ===== 新增：打赏相关 =====
+    reward,
+    setReward,
   } = editor;
 
   return (
@@ -82,12 +85,6 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
           isMobileAdmin={isMobileAdmin}
           onUpload={handleImageUpload}
           hint="建议 1200×630，压缩到 100KB 以内，也可引用自定义 URL"
-        />
-                <TextField
-          label="站点名称（站点标题 / 侧边栏 Logo 文字）"
-          value={siteName}
-          onChange={(e) => setSiteName(e.target.value)}
-          fullWidth
         />
         <TextField
           label="页脚自定义文本"
@@ -220,6 +217,64 @@ export function BasicPanel({ editor }: { editor: AppearanceEditor }) {
             ]}
             valueLabelDisplay="auto"
           />
+        </Box>
+
+        {/* ===== 新增：文章打赏（赞赏）配置 ===== */}
+        <Box sx={{ pt: 2, borderTop: (t) => `1px solid ${alpha(t.palette.divider, 0.6)}` }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+            文章打赏（赞赏）
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={reward?.enabled ?? false}
+                onChange={(e) => setReward({ ...reward, enabled: e.target.checked })}
+              />
+            }
+            label="在文章页显示打赏按钮"
+          />
+
+          {reward?.enabled && (
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              <TextField
+                label="弹窗标题"
+                value={reward?.title || ''}
+                onChange={(e) => setReward({ ...reward, title: e.target.value })}
+                fullWidth
+                placeholder="默认：感谢支持"
+              />
+              <TextField
+                label="底部提示文案"
+                value={reward?.tip || ''}
+                onChange={(e) => setReward({ ...reward, tip: e.target.value })}
+                fullWidth
+                placeholder="默认：扫码赞赏作者"
+              />
+              <ImageField
+                label="支付宝收款码"
+                value={reward?.alipayQr || ''}
+                onChange={(v) => setReward({ ...reward, alipayQr: v })}
+                maxSize={MAX_ICON_SIZE}
+                acceptUrl
+                isMobileAdmin={isMobileAdmin}
+                onUpload={handleImageUpload}
+                hint="建议 400×400 正方形，压缩到 200KB 以内，也可引用自定义 URL"
+                showSizeSelect={false}
+              />
+              <ImageField
+                label="微信收款码"
+                value={reward?.wechatQr || ''}
+                onChange={(v) => setReward({ ...reward, wechatQr: v })}
+                maxSize={MAX_ICON_SIZE}
+                acceptUrl
+                isMobileAdmin={isMobileAdmin}
+                onUpload={handleImageUpload}
+                hint="建议 400×400 正方形，压缩到 200KB 以内，也可引用自定义 URL"
+                showSizeSelect={false}
+              />
+            </Stack>
+          )}
         </Box>
       </Stack>
     </Paper>
