@@ -1,341 +1,1186 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import { GridView, ViewList, AutoStories } from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
-
-// 假设这些是你项目中的实际导入路径
 import { themePresets } from '@/types/theme';
 import { useThemeConfigStore, getActiveColors } from '@/stores/themeConfigStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useUIStore } from '@/stores/uiStore';
 import { fetchPosts } from '@/api/posts';
 import { uploadMedia } from '@/api/media';
+import { useSnackbar } from 'notistack';
+// ===== 新增：补上 RewardConfig 类型 =====
+import type { HeroConfig, AboutConfig, Post, PaginationMode, UserFont, UserFontFile, UserCursor, NavConfig, NavItemConfig, NavThemeConfig, ClickEffectConfig, SpacingConfig, RewardConfig } from '@/types';
+import { DEFAULT_SPACING, resolveSpacingConfig } from '@/utils/spacingConfig';
+import type { PostLayoutMode } from '@/stores/uiStore';
 import { toAbsoluteCloudUrl } from '@/config';
 import { getBase64Size, compressImage } from '@/utils/image';
-import { DEFAULT_SPACING, resolveSpacingConfig } from '@/utils/spacingConfig';
 
-import type {
-  HeroConfig,
-  AboutConfig,
-  Post,
-  PaginationMode,
-  UserFont,
-  UserFontFile,
-  UserCursor,
-  NavConfig,
-  NavItemConfig,
-  NavThemeConfig,
-  ClickEffectConfig,
-  SpacingConfig,
-  RewardConfig,
-} from '@/types';
-import type { PostLayoutMode } from '@/stores/uiStore';
+const MAX_HERO_IMAGE_SIZE = 500 * 1024;
+const MAX_ICON_SIZE = 100 * 1024;
+const MAX_SHARE_IMAGE_SIZE = 100 * 1024;
+const MAX_BACKGROUND_SIZE = 600 * 1024;
 
-// ================= 常量与类型定义 =================
-export type AppearanceTab = 'basic' | 'hero' | 'nav' | 'layout' | 'font' | 'cursor' | 'click' | 'spacing' | 'reward' | 'about';
+const DEFAULT_FONT_FALLBACK =
+  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-const MAX_HERO_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
-const MAX_ICON_SIZE = 500 * 1024;            // 500KB
-const MAX_SHARE_IMAGE_SIZE = 1024 * 1024;    // 1MB
-const MAX_BACKGROUND_SIZE = 2 * 1024 * 1024; // 2MB
-const DEFAULT_FONT_FALLBACK = 'system-ui, -apple-system, sans-serif';
+const defaultNavTheme: NavThemeConfig = {
+  variant: 'default',
+  glassOpacity: 0.4,
+  blur: 16,
+  borderOpacity: 0.2,
+  shadowOpacity: 0.08,
+  textColor: '',
+  activeColor: '',
+  logoText: '',
+  hideOnScroll: true,
+};
 
-const tabList = [
-  { value: 'basic', label: '基础', icon: <ViewList /> },
-  { value: 'hero', label: '首页', icon: <GridView /> },
-  { value: 'nav', label: '导航', icon: <AutoStories /> },
-  // ... 其他 tabs
-  { value: 'reward', label: '打赏', icon: <GridView /> },
-] as const;
+const toAbsoluteFontUrl = toAbsoluteCloudUrl;
 
-// ================= 辅助函数 =================
-/** 安全解析 Reward 配置，防止后端返回异常类型导致崩溃 */
-function safeParseReward(raw: unknown): Partial<RewardConfig> {
-  if (raw && typeof raw === 'object') {
-    return raw as Partial<RewardConfig>;
-  }
-  return {};
+export type AppearanceTab = 'theme' | 'font' | 'cursor' | 'click' | 'hero' | 'about' | 'basic' | 'layout' | 'nav' | 'spacing';
+
+export const tabList: { value: AppearanceTab; label: string }[] = [
+  { value: 'basic', label: '基础设置' },
+  { value: 'hero', label: '主页英雄区' },
+  { value: 'about', label: '关于页面' },
+  { value: 'cursor', label: '鼠标' },
+  { value: 'click', label: '点击特效' },
+  { value: 'layout', label: '文章布局' },
+  { value: 'spacing', label: '间距' },
+  { value: 'theme', label: '配色' },
+  { value: 'font', label: '字体' },
+  { value: 'nav', label: '导航栏' },
+];
+
+export const layouts: { id: PostLayoutMode; name: string; desc: string; icon: React.ReactNode }[] = [
+  {
+    id: 'grid',
+    name: '网格卡片',
+    desc: '三列等宽卡片，适合图片较多的博客',
+    icon: <GridView sx={{ fontSize: { xs: 28, md: 40 } }} />,
+  },
+  {
+    id: 'list',
+    name: '横向列表',
+    desc: '大图 + 文字左右交替排列，大气高级',
+    icon: <ViewList sx={{ fontSize: { xs: 28, md: 40 } }} />,
+  },
+  {
+    id: 'magazine',
+    name: '杂志布局',
+    desc: '首篇精选大卡片，其余双列展示',
+    icon: <AutoStories sx={{ fontSize: { xs: 28, md: 40 } }} />,
+  },
+];
+
+/** 从 RewardConfig 原始值安全构造表单所需的完整对象 */
+function buildReward(raw: unknown): RewardConfig {
+  const cfg = (raw && typeof raw === 'object' ? raw : {}) as Partial<RewardConfig>;
+  return {
+    enabled: !!cfg.enabled,
+    title: cfg.title ?? '',
+    tip: cfg.tip ?? '',
+    alipayQr: cfg.alipayQr ?? '',
+    wechatQr: cfg.wechatQr ?? '',
+  };
 }
 
-// ================= 核心 Hook =================
 export function useAppearanceEditor() {
   const site = useSiteStore();
   const themeConfig = useThemeConfigStore();
-  const ui = useUIStore();
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
-  
   const [tab, setTab] = useState<AppearanceTab>('basic');
   const [saving, setSaving] = useState(false);
 
-  // ================= 1. 基础配置 State =================
+  // layout
+  const ui = useUIStore();
+  const [postLayout, setPostLayout] = useState<PostLayoutMode>(
+    site.config.postLayout || ui.postLayout || 'grid'
+  );
+  const [previewPosts, setPreviewPosts] = useState<Post[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // font
+  const fontCfg = site.config.font || {};
+  const [userFonts, setUserFonts] = useState<UserFont[]>(fontCfg.fonts || []);
+  const [activeFontId, setActiveFontId] = useState<string>(fontCfg.activeFontId || '');
+  const [fontStoreOpen, setFontStoreOpen] = useState(false);
+  const [storeFonts, setStoreFonts] = useState<UserFont[]>([]);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [fontActionLoading, setFontActionLoading] = useState(false);
+  const [fontPreviewText, setFontPreviewText] = useState(
+    '落霞与孤鹜齐飞，秋水共长天一色。Hello World! 1234567890 · @#￥%……&*（）'
+  );
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    type: 'add' | 'remove';
+    font: UserFont | null;
+  }>({ open: false, type: 'add', font: null });
+  const [customFontOpen, setCustomFontOpen] = useState(false);
+  const [customFontDraft, setCustomFontDraft] = useState<{
+    name: string;
+    family: string;
+    url: string;
+    preview: string;
+    format: UserFontFile['format'];
+  }>({ name: '', family: '', url: '', preview: '', format: 'woff2' });
+
+  // cursor
+  const cursorCfg = site.config.cursor || {};
+  const [userCursors, setUserCursors] = useState<UserCursor[]>(cursorCfg.cursors || []);
+  const [activeCursorId, setActiveCursorId] = useState<string>(cursorCfg.activeCursorId || '');
+  const [cursorSize, setCursorSize] = useState<number>(cursorCfg.size || 32);
+  const [previewCursorUrl, setPreviewCursorUrl] = useState<string>('');
+  const activeCursor = userCursors.find((c) => c.id === activeCursorId);
+  const [cursorStoreOpen, setCursorStoreOpen] = useState(false);
+  const [storeCursors, setStoreCursors] = useState<UserCursor[]>([]);
+  const [cursorStoreLoading, setCursorStoreLoading] = useState(false);
+  const [cursorActionLoading, setCursorActionLoading] = useState(false);
+  const [cursorConfirmDialog, setCursorConfirmDialog] = useState<{
+    open: boolean;
+    type: 'add' | 'remove';
+    cursor: UserCursor | null;
+  }>({ open: false, type: 'add', cursor: null });
+
+  // click effect
+  const clickEffectCfg = (site.config.clickEffect || {}) as Partial<ClickEffectConfig>;
+  const [clickEffectEnabled, setClickEffectEnabled] = useState<boolean>(clickEffectCfg.enabled ?? false);
+  const [clickEffectType, setClickEffectType] = useState<ClickEffectConfig['type']>(clickEffectCfg.type || 'heart');
+  const [clickEffectColorMode, setClickEffectColorMode] = useState<ClickEffectConfig['colorMode']>(
+    clickEffectCfg.colorMode || 'theme'
+  );
+  const [clickEffectCustomColor, setClickEffectCustomColor] = useState<string>(clickEffectCfg.customColor || '');
+  const [clickEffectTextList, setClickEffectTextList] = useState<string>(
+    (clickEffectCfg.textList || []).join('\n')
+  );
+  const [clickEffectIntensity, setClickEffectIntensity] = useState<ClickEffectConfig['intensity']>(
+    clickEffectCfg.intensity || 'medium'
+  );
+
+  // ===== 新增：打赏（reward）state =====
+  const [reward, setReward] = useState<RewardConfig>(() => buildReward(site.config.reward));
+  // 用序列化字符串作为稳定依赖，避免 site.config.reward 引用变化导致死循环
+  const rewardConfigKey = JSON.stringify(site.config.reward ?? null);
+
+  useEffect(() => {
+    const layout = site.config.postLayout || ui.postLayout;
+    if (layout && ['grid', 'list', 'magazine'].includes(layout)) {
+      setPostLayout(layout);
+    }
+  }, [site.config.postLayout, ui.postLayout]);
+
+  useEffect(() => {
+    const cfg = site.config.font || {};
+    setUserFonts(cfg.fonts || []);
+    setActiveFontId(cfg.activeFontId || '');
+  }, [site.config.font]);
+
+  useEffect(() => {
+    const cfg = site.config.cursor || {};
+    setUserCursors(cfg.cursors || []);
+    setActiveCursorId(cfg.activeCursorId || '');
+    setCursorSize(cfg.size || 32);
+  }, [site.config.cursor]);
+
+  useEffect(() => {
+    const cfg = (site.config.clickEffect || {}) as Partial<ClickEffectConfig>;
+    setClickEffectEnabled(cfg.enabled ?? false);
+    setClickEffectType(cfg.type || 'heart');
+    setClickEffectColorMode(cfg.colorMode || 'theme');
+    setClickEffectCustomColor(cfg.customColor || '');
+    setClickEffectTextList((cfg.textList || []).join('\n'));
+    setClickEffectIntensity(cfg.intensity || 'medium');
+  }, [site.config.clickEffect]);
+
+  // ===== 新增：reward 独立同步（依赖稳定的 rewardConfigKey）=====
+  useEffect(() => {
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(rewardConfigKey);
+    } catch {
+      parsed = null;
+    }
+    setReward(buildReward(parsed));
+  }, [rewardConfigKey]);
+
+  useEffect(() => {
+    if (!activeCursor) {
+      setPreviewCursorUrl('');
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = cursorSize;
+        canvas.height = cursorSize;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, cursorSize, cursorSize);
+        if (!cancelled) setPreviewCursorUrl(canvas.toDataURL('image/png'));
+      } catch {
+        if (!cancelled) setPreviewCursorUrl(activeCursor.preview);
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setPreviewCursorUrl(activeCursor.preview);
+    };
+    img.src = activeCursor.preview;
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCursor, cursorSize]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const active = userFonts.find((f) => f.id === activeFontId);
+    const styleId = 'site-font-preview';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
+    if (active && active.files.length > 0) {
+      const src = active.files
+        .map((file) => `url("${file.url}") format("${file.format}")`)
+        .join(', ');
+      style.textContent = `@font-face { font-family: "${active.family}"; src: ${src}; font-display: swap; }`;
+    } else {
+      style.textContent = '';
+    }
+    return () => {
+      const el = document.getElementById(styleId);
+      if (el) el.textContent = '';
+    };
+  }, [userFonts, activeFontId]);
+
+  useEffect(() => {
+    let mounted = true;
+    setPreviewLoading(true);
+    fetchPosts().then((data) => {
+      if (!mounted) return;
+      setPreviewPosts(data.slice(0, 6));
+      setPreviewLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // theme
+  const [presetId, setPresetId] = useState(themeConfig.presetId);
+  const [useCustom, setUseCustom] = useState(themeConfig.useCustomColors);
+  const [colors, setColors] = useState(themeConfig.customColors);
+  const [borderRadius, setBorderRadius] = useState(themeConfig.borderRadius);
+
+  // spacing（间距）
+  const [spacing, setSpacing] = useState<SpacingConfig>(() => resolveSpacingConfig(site.config.spacing));
+
+  // basic
   const [siteName, setSiteName] = useState(site.config.siteName || 'StarBlog');
-  const [siteDescription, setSiteDescription] = useState(site.config.siteDescription || '');
-  const [siteLogo, setSiteLogo] = useState(site.config.siteLogo || '');
-  const [siteFavicon, setSiteFavicon] = useState(site.config.siteFavicon || '');
+  const [author, setAuthor] = useState(site.config.author);
+  const [shareDescription, setShareDescription] = useState(site.config.shareDescription || '');
+  const [shareImage, setShareImage] = useState(site.config.shareImage || '');
   const [footerText, setFooterText] = useState(site.config.footerText || '');
+  const [logo, setLogo] = useState(site.config.logo || '');
+  const [favicon, setFavicon] = useState(site.config.favicon || '');
+  const [backgroundImage, setBackgroundImage] = useState(site.config.backgroundImage || '');
+  const [backgroundOpacity, setBackgroundOpacity] = useState(site.config.backgroundOpacity ?? 1);
+  const [backgroundBlur, setBackgroundBlur] = useState(site.config.backgroundBlur ?? 0);
+  const [paginationMode, setPaginationMode] = useState<PaginationMode>(site.config.paginationMode || 'load-more');
+  const [pageSize, setPageSize] = useState(site.config.pageSize ?? 9);
+  const [pwaThemeColor, setPwaThemeColor] = useState(site.config.pwaThemeColor || '#ffffff');
   const [icpBeian, setIcpBeian] = useState(site.config.icpBeian || '');
   const [policeBeian, setPoliceBeian] = useState(site.config.policeBeian || '');
 
-  // ================= 2. 布局与文章 State =================
-  const [layoutMode, setLayoutMode] = useState<PostLayoutMode>(ui.layoutMode || 'card');
-  const [paginationMode, setPaginationMode] = useState<PaginationMode>(site.config.paginationMode || 'infinite');
-  const [postsPerPage, setPostsPerPage] = useState(site.config.postsPerPage || 10);
-  const [posts, setPosts] = useState<Post[]>([]);
+  // hero
+  const hero = site.config.hero || {};
+  const [heroTitle, setHeroTitle] = useState(hero.title ?? '');
+  const [heroSubtitle, setHeroSubtitle] = useState(hero.subtitle ?? '');
+  const [heroBadge, setHeroBadge] = useState(hero.badge ?? '');
+  const [heroBgImage, setHeroBgImage] = useState(hero.backgroundImage ?? '');
+  const [heroBgColor, setHeroBgColor] = useState(hero.backgroundColor ?? '');
 
-  // ================= 3. Hero / Nav / About State =================
-  const [heroConfig, setHeroConfig] = useState<HeroConfig>(site.config.heroConfig || { title: '', subtitle: '' });
-  const [navConfig, setNavConfig] = useState<NavConfig>(site.config.navConfig || { items: [], theme: {} });
-  const [aboutConfig, setAboutConfig] = useState<AboutConfig>(site.config.aboutConfig || { content: '' });
+  // nav
+  const nav = site.config.nav || { items: [] };
+  const navTheme = nav.theme || defaultNavTheme;
+  const [navLayout, setNavLayout] = useState<NavConfig['layout']>(nav.layout ?? 'sidebar');
+  const [navItems, setNavItems] = useState<NavItemConfig[]>(nav.items || []);
+  const [navVariant, setNavVariant] = useState<NavThemeConfig['variant']>(navTheme.variant);
+  const [navGlassOpacity, setNavGlassOpacity] = useState(navTheme.glassOpacity ?? 0.4);
+  const [navBlur, setNavBlur] = useState(navTheme.blur ?? 16);
+  const [navBorderOpacity, setNavBorderOpacity] = useState(navTheme.borderOpacity ?? 0.2);
+  const [navShadowOpacity, setNavShadowOpacity] = useState(navTheme.shadowOpacity ?? 0.08);
+  const [navTextColor, setNavTextColor] = useState(navTheme.textColor ?? '');
+  const [navActiveColor, setNavActiveColor] = useState(navTheme.activeColor ?? '');
+  const [navLogoText, setNavLogoText] = useState(navTheme.logoText ?? '');
+  const [navHideOnScroll, setNavHideOnScroll] = useState(navTheme.hideOnScroll ?? true);
 
-  // ================= 4. 字体 / 鼠标 / 点击效果 / 间距 State =================
-  const [userFont, setUserFont] = useState<UserFont | null>(site.config.userFont || null);
-  const [userCursor, setUserCursor] = useState<UserCursor | null>(site.config.userCursor || null);
-  const [clickEffect, setClickEffect] = useState<ClickEffectConfig>(site.config.clickEffect || { enabled: false, type: 'heart' });
-  const [spacing, setSpacing] = useState<SpacingConfig>(site.config.spacing || DEFAULT_SPACING);
-  
-  // 点击效果拆解 (为了表单控件绑定)
-  const [clickEffectEnabled, setClickEffectEnabled] = useState(clickEffect.enabled ?? false);
-  const [clickEffectType, setClickEffectType] = useState(clickEffect.type ?? 'heart');
-  const [clickEffectColorMode, setClickEffectColorMode] = useState(clickEffect.colorMode ?? 'theme');
-  const [clickEffectCustomColor, setClickEffectCustomColor] = useState(clickEffect.customColor ?? '#ff0000');
-  const [clickEffectTextList, setClickEffectTextList] = useState((clickEffect.textList || []).join('\n'));
-  const [clickEffectIntensity, setClickEffectIntensity] = useState(clickEffect.intensity ?? 1);
+  // about
+  const about = site.config.about || {};
+  const [aboutSubtitle, setAboutSubtitle] = useState(about.subtitle ?? '');
+  const [aboutBio, setAboutBio] = useState(about.bio ?? '');
+  const [aboutTags, setAboutTags] = useState((about.tags ?? []).join('、'));
 
-  // ================= 5. 打赏 (Reward) State [已优化] =================
-  // 使用 JSON 序列化作为稳定的依赖项，避免对象引用变化导致无限循环
-  const rewardConfigJson = useMemo(
-    () => JSON.stringify(site.config.reward ?? {}),
-    [site.config.reward]
-  );
-
-  const [reward, setReward] = useState<RewardConfig>(() => {
-    const cfg = safeParseReward(site.config.reward);
-    return {
-      enabled: cfg.enabled ?? false,
-      title: cfg.title ?? '',
-      tip: cfg.tip ?? '',
-      alipayQr: cfg.alipayQr ?? '',
-      wechatQr: cfg.wechatQr ?? '',
-    };
-  });
-
-  // ================= 6. 同步 Effects =================
-  
-  // 6.1 Reward 同步 (仅在服务端配置真正变化时触发)
-  useEffect(() => {
-    const cfg = safeParseReward(JSON.parse(rewardConfigJson));
-    setReward({
-      enabled: cfg.enabled ?? false,
-      title: cfg.title ?? '',
-      tip: cfg.tip ?? '',
-      alipayQr: cfg.alipayQr ?? '',
-      wechatQr: cfg.wechatQr ?? '',
-    });
-  }, [rewardConfigJson]);
-
-  // 6.2 全局配置大同步 (当 site.config 整体刷新时，如切换站点或首次加载完成)
   useEffect(() => {
     const c = site.config;
     setSiteName(c.siteName || 'StarBlog');
-    setSiteDescription(c.siteDescription || '');
-    setSiteLogo(c.siteLogo || '');
-    setSiteFavicon(c.siteFavicon || '');
+    setAuthor(c.author);
+    setShareDescription(c.shareDescription || '');
+    setShareImage(c.shareImage || '');
     setFooterText(c.footerText || '');
+    setLogo(c.logo || '');
+    setFavicon(c.favicon || '');
+    setBackgroundImage(c.backgroundImage || '');
+    setBackgroundOpacity(c.backgroundOpacity ?? 1);
+    setBackgroundBlur(c.backgroundBlur ?? 0);
+    setPaginationMode(c.paginationMode || 'load-more');
+    setPageSize(c.pageSize ?? 9);
+    setPwaThemeColor(c.pwaThemeColor || '#ffffff');
     setIcpBeian(c.icpBeian || '');
     setPoliceBeian(c.policeBeian || '');
-    
-    setHeroConfig(c.heroConfig || { title: '', subtitle: '' });
-    setNavConfig(c.navConfig || { items: [], theme: {} });
-    setAboutConfig(c.aboutConfig || { content: '' });
-    
-    // ... 其他字段同步 ...
-    
-    // 注意：Reward 已经通过上面的 rewardConfigJson effect 独立同步，此处无需重复
-  }, [site.config.id, site.config.updatedAt]); // 依赖站点ID和更新时间，避免频繁触发
+    const heroCfg = c.hero || {};
+    setHeroTitle(heroCfg.title ?? '');
+    setHeroSubtitle(heroCfg.subtitle ?? '');
+    setHeroBadge(heroCfg.badge ?? '');
+    setHeroBgImage(heroCfg.backgroundImage ?? '');
+    setHeroBgColor(heroCfg.backgroundColor ?? '');
+    const aboutCfg = c.about || {};
+    setAboutSubtitle(aboutCfg.subtitle ?? '');
+    setAboutBio(aboutCfg.bio ?? '');
+    setAboutTags((aboutCfg.tags ?? []).join('、'));
+    const navCfg = c.nav || { items: [] };
+    setNavItems(navCfg.items || []);
+    const nt = navCfg.theme || defaultNavTheme;
+    setNavVariant(nt.variant);
+    setNavGlassOpacity(nt.glassOpacity ?? 0.4);
+    setNavBlur(nt.blur ?? 16);
+    setNavBorderOpacity(nt.borderOpacity ?? 0.2);
+    setNavShadowOpacity(nt.shadowOpacity ?? 0.08);
+    setNavTextColor(nt.textColor ?? '');
+    setNavActiveColor(nt.activeColor ?? '');
+    setNavLogoText(nt.logoText ?? '');
+    setNavHideOnScroll(nt.hideOnScroll ?? true);
+    const themeCfg = c.theme;
+    if (themeCfg) {
+      setPresetId(themeCfg.presetId ?? themeConfig.presetId);
+      setUseCustom(themeCfg.useCustomColors ?? themeConfig.useCustomColors);
+      setColors(themeCfg.customColors ?? themeConfig.customColors);
+      setBorderRadius(themeCfg.borderRadius ?? themeConfig.borderRadius);
+    }
+    setSpacing(resolveSpacingConfig(c.spacing));
+    // ===== 新增：reward 同步 =====
+    setReward(buildReward(c.reward));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site.config]);
 
-  // 6.3 文章获取
-  useEffect(() => {
-    fetchPosts({ page: 1, limit: 10 }).then(res => {
-      if (res.data) setPosts(res.data);
-    }).catch(() => {});
-  }, []);
+  const activeColors = getActiveColors({
+    ...themeConfig,
+    presetId,
+    useCustomColors: useCustom,
+    customColors: colors,
+  });
 
-  // ================= 7. 计算属性 =================
-  const activeColors = useMemo(() => getActiveColors(themeConfig), [themeConfig]);
-
-  // isDirty 检查 [已优化：直接使用可选链，避免创建临时对象]
   const isDirty = useMemo(() => {
-    const c = site.config;
-    
-    // 基础信息
-    if (siteName !== (c.siteName || 'StarBlog')) return true;
-    if (siteDescription !== (c.siteDescription || '')) return true;
-    if (siteLogo !== (c.siteLogo || '')) return true;
-    if (footerText !== (c.footerText || '')) return true;
-    if (policeBeian !== (c.policeBeian || '')) return true;
-    
-    // ... 其他字段的 dirty 检查 (Hero, Nav, Layout 等) ...
+    const currentHero = site.config.hero || {};
+    const currentAbout = site.config.about || {};
+    const currentTags = (currentAbout.tags ?? []).join('、');
+    const currentLayout = site.config.postLayout || ui.postLayout || 'grid';
 
-    // Reward 检查
-    const r = c.reward;
-    if (reward.enabled !== (r?.enabled ?? false)) return true;
-    if (reward.title !== (r?.title ?? '')) return true;
-    if (reward.tip !== (r?.tip ?? '')) return true;
-    if (reward.alipayQr !== (r?.alipayQr ?? '')) return true;
-    if (reward.wechatQr !== (r?.wechatQr ?? '')) return true;
+    if (presetId !== themeConfig.presetId) return true;
+    if (useCustom !== themeConfig.useCustomColors) return true;
+    if (borderRadius !== themeConfig.borderRadius) return true;
+    if (JSON.stringify(colors) !== JSON.stringify(themeConfig.customColors)) return true;
+
+    if (siteName !== (site.config.siteName || 'StarBlog')) return true;
+    if (author !== site.config.author) return true;
+    if (shareDescription !== (site.config.shareDescription || '')) return true;
+    if (shareImage !== (site.config.shareImage || '')) return true;
+    if (footerText !== (site.config.footerText || '')) return true;
+    if (logo !== (site.config.logo || '')) return true;
+    if (favicon !== (site.config.favicon || '')) return true;
+    if (backgroundImage !== (site.config.backgroundImage || '')) return true;
+    if (backgroundOpacity !== (site.config.backgroundOpacity ?? 1)) return true;
+    if (backgroundBlur !== (site.config.backgroundBlur ?? 0)) return true;
+    if (paginationMode !== (site.config.paginationMode || 'load-more')) return true;
+    if (pageSize !== (site.config.pageSize ?? 9)) return true;
+    if (pwaThemeColor !== (site.config.pwaThemeColor || '#ffffff')) return true;
+    if (icpBeian !== (site.config.icpBeian || '')) return true;
+    if (policeBeian !== (site.config.policeBeian || '')) return true;
+
+    if (heroTitle !== (currentHero.title ?? '')) return true;
+    if (heroSubtitle !== (currentHero.subtitle ?? '')) return true;
+    if (heroBadge !== (currentHero.badge ?? '')) return true;
+    if (heroBgImage !== (currentHero.backgroundImage ?? '')) return true;
+    if (heroBgColor !== (currentHero.backgroundColor ?? '')) return true;
+
+    if (aboutSubtitle !== (currentAbout.subtitle ?? '')) return true;
+    if (aboutBio !== (currentAbout.bio ?? '')) return true;
+    if (aboutTags !== currentTags) return true;
+
+    const currentNav = site.config.nav || { items: [] };
+    if ((navLayout ?? 'sidebar') !== (currentNav.layout ?? 'sidebar')) return true;
+    if (JSON.stringify(navItems) !== JSON.stringify(currentNav.items || [])) return true;
+    const currentNavTheme = currentNav.theme || defaultNavTheme;
+    if (navVariant !== currentNavTheme.variant) return true;
+    if (navGlassOpacity !== (currentNavTheme.glassOpacity ?? 0.4)) return true;
+    if (navBlur !== (currentNavTheme.blur ?? 16)) return true;
+    if (navBorderOpacity !== (currentNavTheme.borderOpacity ?? 0.2)) return true;
+    if (navShadowOpacity !== (currentNavTheme.shadowOpacity ?? 0.08)) return true;
+    if (navTextColor !== (currentNavTheme.textColor ?? '')) return true;
+    if (navActiveColor !== (currentNavTheme.activeColor ?? '')) return true;
+    if (navLogoText !== (currentNavTheme.logoText ?? '')) return true;
+    if (navHideOnScroll !== (currentNavTheme.hideOnScroll ?? true)) return true;
+
+    if (postLayout !== currentLayout) return true;
+
+    const currentFont = site.config.font || {};
+    if (
+      JSON.stringify(activeFontId) !== JSON.stringify(currentFont.activeFontId || '') ||
+      JSON.stringify(userFonts) !== JSON.stringify(currentFont.fonts || [])
+    ) {
+      return true;
+    }
+
+    const currentCursor = site.config.cursor || {};
+    if (
+      JSON.stringify(activeCursorId) !== JSON.stringify(currentCursor.activeCursorId || '') ||
+      JSON.stringify(userCursors) !== JSON.stringify(currentCursor.cursors || []) ||
+      cursorSize !== (currentCursor.size || 32)
+    ) {
+      return true;
+    }
+
+    const currentClickEffect = (site.config.clickEffect || {}) as Partial<ClickEffectConfig>;
+    const currentTextList = (currentClickEffect.textList || []).join('\n');
+    if (clickEffectEnabled !== (currentClickEffect.enabled ?? false)) return true;
+    if (clickEffectType !== (currentClickEffect.type || 'heart')) return true;
+    if (clickEffectColorMode !== (currentClickEffect.colorMode || 'theme')) return true;
+    if (clickEffectCustomColor !== (currentClickEffect.customColor || '')) return true;
+    if (clickEffectTextList !== currentTextList) return true;
+    if (clickEffectIntensity !== (currentClickEffect.intensity || 'medium')) return true;
+
+    if (JSON.stringify(spacing) !== JSON.stringify(resolveSpacingConfig(site.config.spacing))) return true;
+
+    // ===== 新增：reward dirty 检查 =====
+    if (rewardConfigKey !== JSON.stringify(buildReward(site.config.reward))) return true;
 
     return false;
   }, [
-    site.config, 
-    siteName, siteDescription, siteLogo, footerText, policeBeian,
+    presetId,
+    useCustom,
+    colors,
+    borderRadius,
+    themeConfig.presetId,
+    themeConfig.useCustomColors,
+    themeConfig.customColors,
+    themeConfig.borderRadius,
+    siteName,
+    author,
+    shareDescription,
+    shareImage,
+    footerText,
+    logo,
+    favicon,
+    heroTitle,
+    heroSubtitle,
+    heroBadge,
+    heroBgImage,
+    heroBgColor,
+    aboutSubtitle,
+    aboutBio,
+    aboutTags,
+    navLayout,
+    navItems,
+    navVariant,
+    navGlassOpacity,
+    navBlur,
+    navBorderOpacity,
+    navShadowOpacity,
+    navTextColor,
+    navActiveColor,
+    navLogoText,
+    navHideOnScroll,
+    postLayout,
+    site.config.siteName,
+    site.config.author,
+    site.config.shareDescription,
+    site.config.shareImage,
+    site.config.footerText,
+    site.config.logo,
+    site.config.favicon,
+    site.config.backgroundImage,
+    site.config.backgroundOpacity,
+    site.config.backgroundBlur,
+    site.config.paginationMode,
+    site.config.pageSize,
+    site.config.hero,
+    site.config.about,
+    site.config.postLayout,
+    site.config.nav,
+    ui.postLayout,
+    backgroundImage,
+    backgroundOpacity,
+    backgroundBlur,
+    paginationMode,
+    pageSize,
+    pwaThemeColor,
+    site.config.pwaThemeColor,
+    icpBeian,
+    policeBeian,
+    site.config.icpBeian,
+    site.config.policeBeian,
+    userFonts,
+    activeFontId,
+    site.config.font,
+    userCursors,
+    activeCursorId,
+    cursorSize,
+    site.config.cursor,
+    clickEffectEnabled,
+    clickEffectType,
+    clickEffectColorMode,
+    clickEffectCustomColor,
+    clickEffectTextList,
+    clickEffectIntensity,
+    site.config.clickEffect,
+    spacing,
+    site.config.spacing,
+    // ===== 新增 =====
+    rewardConfigKey,
     reward,
-    // ... 其他依赖项
   ]);
 
-  // ================= 8. Handlers =================
-  
-  const handleImageUpload = useCallback(async (file: File, maxSize: number) => {
-    if (file.size > maxSize) {
-      enqueueSnackbar(`图片大小不能超过 ${(maxSize / 1024 / 1024).toFixed(1)}MB`, { variant: 'error' });
-      return null;
+  const resetToPreset = (id: string) => {
+    const preset = themePresets.find((p) => p.id === id);
+    if (preset) {
+      setPresetId(id);
+      setUseCustom(false);
+      setColors({ ...preset.colors });
     }
+  };
+
+  const handleColorChange = (key: keyof import('@/types/theme').ThemeColorConfig, value: string) => {
+    setColors((prev) => ({ ...prev, [key]: value }));
+    setUseCustom(true);
+  };
+
+  const handleImageUpload = async (
+    file: File,
+    targetSize: number,
+    setter: (url: string) => void,
+    label: string
+  ) => {
     try {
-      const compressed = await compressImage(file);
-      const res = await uploadMedia(compressed);
-      return toAbsoluteCloudUrl(res.data.url);
-    } catch (e) {
-      enqueueSnackbar('图片上传失败', { variant: 'error' });
-      return null;
+      const base64 = await compressImage(file, targetSize);
+      if (getBase64Size(base64) > targetSize) {
+        enqueueSnackbar(`${label}压缩后仍超过限制`, { variant: 'error' });
+        return;
+      }
+      const media = await uploadMedia(file.name, base64);
+      setter(media.url);
+      enqueueSnackbar(`${label}上传成功`, { variant: 'success' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `${label}处理失败`;
+      enqueueSnackbar(msg, { variant: 'error' });
     }
-  }, [enqueueSnackbar]);
+  };
 
-  const updateSpacing = useCallback((key: keyof SpacingConfig, value: number) => {
-    setSpacing(prev => ({ ...prev, [key]: value }));
-  }, []);
+  // ---------- 间距 ----------
+  const updateSpacing = (key: keyof SpacingConfig, side: 'mobile' | 'desktop', value: number) => {
+    setSpacing((prev) => {
+      const base = prev ?? resolveSpacingConfig(site.config.spacing);
+      const next = { ...base };
+      next[key] = {
+        ...(base[key] || DEFAULT_SPACING[key]),
+        [side]: Math.min(240, Math.max(0, Math.round(Number(value)) || 0)),
+      };
+      return next;
+    });
+  };
 
-  const resetSpacing = useCallback(() => {
-    setSpacing(DEFAULT_SPACING);
-  }, []);
+  const resetSpacing = () => {
+    setSpacing(JSON.parse(JSON.stringify(DEFAULT_SPACING)) as SpacingConfig);
+  };
 
-  // ================= 9. 保存逻辑 =================
   const applyAll = async () => {
     setSaving(true);
 
-    try {
-      // 构建点击效果配置
-      const clickEffectConfig: ClickEffectConfig = {
+    const heroConfig: HeroConfig = {
+      title: heroTitle,
+      subtitle: heroSubtitle,
+      badge: heroBadge,
+      backgroundImage: heroBgImage,
+      backgroundColor: heroBgColor,
+    };
+
+    const aboutConfig: AboutConfig = {
+      subtitle: aboutSubtitle,
+      bio: aboutBio,
+      tags: aboutTags
+        .split(/[、,，]/)
+        .map((t) => t.trim())
+        .filter(Boolean),
+    };
+
+    const navConfig: NavConfig = {
+      layout: navLayout,
+      items: navItems,
+      theme: {
+        variant: navVariant,
+        glassOpacity: navGlassOpacity,
+        blur: navBlur,
+        borderOpacity: navBorderOpacity,
+        shadowOpacity: navShadowOpacity,
+        textColor: navTextColor,
+        activeColor: navActiveColor,
+        logoText: navLogoText,
+        hideOnScroll: navHideOnScroll,
+      },
+    };
+
+    const siteConfig = {
+      siteName,
+      author,
+      shareDescription,
+      shareImage,
+      footerText,
+      logo,
+      favicon,
+      backgroundImage,
+      backgroundOpacity,
+      backgroundBlur,
+      paginationMode,
+      pageSize,
+      pwaThemeColor,
+      icpBeian,
+      policeBeian,
+      hero: heroConfig,
+      about: aboutConfig,
+      theme: {
+        presetId,
+        useCustomColors: useCustom,
+        customColors: colors,
+        borderRadius,
+      },
+      nav: navConfig,
+      postLayout,
+      spacing,
+      font: {
+        activeFontId,
+        fonts: userFonts,
+        fallback: DEFAULT_FONT_FALLBACK,
+      },
+      cursor: {
+        activeCursorId,
+        cursors: userCursors,
+        size: cursorSize,
+      },
+      clickEffect: {
         enabled: clickEffectEnabled,
         type: clickEffectType,
         colorMode: clickEffectColorMode,
         customColor: clickEffectCustomColor,
-        textList: clickEffectTextList.split(/\n/).map((t) => t.trim()).filter(Boolean),
+        textList: clickEffectTextList
+          .split(/\n/)
+          .map((t) => t.trim())
+          .filter(Boolean),
         intensity: clickEffectIntensity,
-      };
+      },
+      // ===== 新增：保存 reward =====
+      reward,
+    };
 
-      // 构建完整 SiteConfig
-      const siteConfig = {
-        siteName,
-        siteDescription,
-        siteLogo,
-        siteFavicon,
-        footerText,
-        icpBeian,
-        policeBeian,
-        heroConfig,
-        navConfig,
-        aboutConfig,
-        clickEffect: clickEffectConfig,
-        spacing,
-        reward, // 写入打赏配置
-        // ... 其他字段
-      };
+    const siteOk = await site.saveConfig(siteConfig);
 
-      const siteOk = await site.saveConfig(siteConfig);
+    if (siteOk) {
+      useSiteStore.setState((state) => ({
+        config: { ...state.config, ...siteConfig },
+      }));
+      useThemeConfigStore.setState({
+        presetId,
+        useCustomColors: useCustom,
+        customColors: colors,
+        borderRadius,
+      });
+      ui.setPostLayout(postLayout);
 
-      if (siteOk) {
-        enqueueSnackbar('保存成功', { variant: 'success' });
-        
-        // [关键修复] 保存成功后，用服务端实际存储的数据重置本地 state
-        // 防止服务端对数据进行了清洗、默认值填充或格式化
-        const sc = site.config; // 假设 saveConfig 内部已经更新了 store
-        
-        const savedReward = safeParseReward(sc.reward);
-        setReward({
-          enabled: savedReward.enabled ?? false,
-          title: savedReward.title ?? '',
-          tip: savedReward.tip ?? '',
-          alipayQr: savedReward.alipayQr ?? '',
-          wechatQr: savedReward.wechatQr ?? '',
-        });
-        
-        // ... 重置其他 state (如 clickEffect, spacing 等) ...
-      } else {
-        enqueueSnackbar('保存失败，请重试', { variant: 'error' });
+      const sc = useSiteStore.getState().config;
+      const tc = useThemeConfigStore.getState();
+      setSiteName(sc.siteName || 'StarBlog');
+      setAuthor(sc.author);
+      setShareDescription(sc.shareDescription || '');
+      setShareImage(sc.shareImage || '');
+      setFooterText(sc.footerText || '');
+      setLogo(sc.logo || '');
+      setFavicon(sc.favicon || '');
+      setBackgroundImage(sc.backgroundImage || '');
+      setBackgroundOpacity(sc.backgroundOpacity ?? 1);
+      setBackgroundBlur(sc.backgroundBlur ?? 0);
+      setPaginationMode(sc.paginationMode || 'load-more');
+      setPageSize(sc.pageSize ?? 9);
+      setPwaThemeColor(sc.pwaThemeColor || '#ffffff');
+      setIcpBeian(sc.icpBeian || '');
+      setPoliceBeian(sc.policeBeian || '');
+      const savedHero = sc.hero || {};
+      setHeroTitle(savedHero.title ?? '');
+      setHeroSubtitle(savedHero.subtitle ?? '');
+      setHeroBadge(savedHero.badge ?? '');
+      setHeroBgImage(savedHero.backgroundImage ?? '');
+      setHeroBgColor(savedHero.backgroundColor ?? '');
+      const savedAbout = sc.about || {};
+      setAboutSubtitle(savedAbout.subtitle ?? '');
+      setAboutBio(savedAbout.bio ?? '');
+      setAboutTags((savedAbout.tags ?? []).join('、'));
+      const savedNav = sc.nav || { items: [] };
+      setNavItems(savedNav.items || []);
+      const savedNavTheme = savedNav.theme || defaultNavTheme;
+      setNavVariant(savedNavTheme.variant);
+      setNavGlassOpacity(savedNavTheme.glassOpacity ?? 0.4);
+      setNavBlur(savedNavTheme.blur ?? 16);
+      setNavBorderOpacity(savedNavTheme.borderOpacity ?? 0.2);
+      setNavShadowOpacity(savedNavTheme.shadowOpacity ?? 0.08);
+      setNavTextColor(savedNavTheme.textColor ?? '');
+      setNavActiveColor(savedNavTheme.activeColor ?? '');
+      setNavLogoText(savedNavTheme.logoText ?? '');
+      setNavHideOnScroll(savedNavTheme.hideOnScroll ?? true);
+      const savedTheme = sc.theme;
+      if (savedTheme) {
+        setPresetId(savedTheme.presetId ?? tc.presetId);
+        setUseCustom(savedTheme.useCustomColors ?? tc.useCustomColors);
+        setColors(savedTheme.customColors ?? tc.customColors);
+        setBorderRadius(savedTheme.borderRadius ?? tc.borderRadius);
       }
-    } catch (error) {
-      console.error('Save config error:', error);
-      enqueueSnackbar('保存过程中发生错误', { variant: 'error' });
-    } finally {
-      setSaving(false);
+      setPostLayout(sc.postLayout || ui.postLayout || 'grid');
+      setSpacing(resolveSpacingConfig(sc.spacing));
+      setUserFonts(sc.font?.fonts || []);
+      setActiveFontId(sc.font?.activeFontId || '');
+      setUserCursors(sc.cursor?.cursors || []);
+      setActiveCursorId(sc.cursor?.activeCursorId || '');
+      setCursorSize(sc.cursor?.size || 32);
+      const savedClickEffect = (sc.clickEffect || {}) as Partial<ClickEffectConfig>;
+      setClickEffectEnabled(savedClickEffect.enabled ?? false);
+      setClickEffectType(savedClickEffect.type || 'heart');
+      setClickEffectColorMode(savedClickEffect.colorMode || 'theme');
+      setClickEffectCustomColor(savedClickEffect.customColor || '');
+      setClickEffectTextList((savedClickEffect.textList || []).join('\n'));
+      setClickEffectIntensity(savedClickEffect.intensity || 'medium');
+      // ===== 新增：保存后同步 reward =====
+      setReward(buildReward(sc.reward));
+    }
+
+    setSaving(false);
+
+    if (siteOk) {
+      enqueueSnackbar('外观设置已保存', { variant: 'success' });
+    } else {
+      enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
 
-  // ================= 10. 导出 =================
+  // ---------- 字体相关 ----------
+  const activeFont = userFonts.find((f) => f.id === activeFontId);
+  const handleOpenFontStore = (forceRefresh = false) => {
+    setFontStoreOpen(true);
+    if (storeFonts.length > 0 && !forceRefresh) {
+      return;
+    }
+    setStoreLoading(true);
+    const cacheBuster = `?t=${Date.now()}`;
+    fetch(toAbsoluteFontUrl(`/resources/fonts/fonts.json${cacheBuster}`))
+      .then((res) => {
+        if (!res.ok) throw new Error('加载失败');
+        return res.json();
+      })
+      .then((list: UserFont[]) => {
+        setStoreFonts(
+          list.map((f) => ({
+            ...f,
+            preview: toAbsoluteFontUrl(f.preview),
+            files: f.files.map((file) => ({
+              ...file,
+              url: toAbsoluteFontUrl(file.url),
+            })),
+          }))
+        );
+      })
+      .catch(() => {
+        enqueueSnackbar('字体商店加载失败，请检查服务站地址与跨域配置', { variant: 'error' });
+      })
+      .finally(() => setStoreLoading(false));
+  };
+
+  const saveFontConfig = async (
+    nextFonts: UserFont[],
+    nextActiveFontId: string,
+    successMsg: string
+  ) => {
+    setFontActionLoading(true);
+    const ok = await site.saveConfig({
+      font: {
+        activeFontId: nextActiveFontId,
+        fonts: nextFonts,
+        fallback: DEFAULT_FONT_FALLBACK,
+      },
+    });
+    setFontActionLoading(false);
+    if (ok) {
+      enqueueSnackbar(successMsg, { variant: 'success' });
+    } else {
+      enqueueSnackbar('字体操作失败，请稍后再试', { variant: 'error' });
+    }
+    return ok;
+  };
+
+  const handleAddFont = (font: UserFont) => {
+    if (userFonts.some((f) => f.id === font.id) || fontActionLoading) return;
+    setConfirmDialog({ open: true, type: 'add', font });
+  };
+
+  const handleRemoveFont = (id: string) => {
+    if (fontActionLoading) return;
+    const font = userFonts.find((f) => f.id === id);
+    if (!font) return;
+    setConfirmDialog({ open: true, type: 'remove', font });
+  };
+
+  const handleConfirmFontAction = async () => {
+    const { type, font } = confirmDialog;
+    if (!font) return;
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+
+    if (type === 'add') {
+      const nextFonts = [...userFonts, font];
+      const nextActiveFontId = activeFontId || font.id;
+      setUserFonts(nextFonts);
+      setActiveFontId(nextActiveFontId);
+      await saveFontConfig(nextFonts, nextActiveFontId, `已添加字体“${font.name}”`);
+    } else {
+      const nextFonts = userFonts.filter((f) => f.id !== font.id);
+      const nextActiveFontId = activeFontId === font.id ? nextFonts[0]?.id || '' : activeFontId;
+      setUserFonts(nextFonts);
+      setActiveFontId(nextActiveFontId);
+      await saveFontConfig(nextFonts, nextActiveFontId, '字体已移除');
+    }
+  };
+
+  const handleResetSystemFont = () => {
+    if (!activeFontId || fontActionLoading) return;
+    setActiveFontId('');
+  };
+
+  const handleActivateFont = (id: string) => {
+    if (activeFontId === id || fontActionLoading) return;
+    setActiveFontId(id);
+  };
+
+  const handleOpenCustomFontDialog = () => {
+    setCustomFontDraft({ name: '', family: '', url: '', preview: '', format: 'woff2' });
+    setCustomFontOpen(true);
+  };
+
+  const handleSaveCustomFont = () => {
+    const name = customFontDraft.name.trim();
+    const fileUrl = customFontDraft.url.trim();
+    if (!name || !fileUrl) {
+      enqueueSnackbar('请填写字体名称与字体文件地址', { variant: 'error' });
+      return;
+    }
+    const font: UserFont = {
+      id: `custom-${Date.now()}`,
+      name,
+      family: customFontDraft.family.trim() || name,
+      preview: customFontDraft.preview.trim(),
+      files: [{ url: fileUrl, format: customFontDraft.format }],
+    };
+    setCustomFontOpen(false);
+    handleAddFont(font);
+  };
+
+  // ---------- 鼠标相关 ----------
+  const handleOpenCursorStore = (forceRefresh = false) => {
+    setCursorStoreOpen(true);
+    if (storeCursors.length > 0 && !forceRefresh) {
+      return;
+    }
+    setCursorStoreLoading(true);
+    const cacheBuster = `?t=${Date.now()}`;
+    fetch(toAbsoluteCloudUrl(`/resources/cursors/cursors.json${cacheBuster}`))
+      .then((res) => {
+        if (!res.ok) throw new Error('加载失败');
+        return res.json();
+      })
+      .then((list: UserCursor[]) => {
+        setStoreCursors(
+          list.map((c) => ({
+            ...c,
+            preview: toAbsoluteCloudUrl(c.preview),
+            files: c.files.map((file) => ({
+              ...file,
+              url: toAbsoluteCloudUrl(file.url),
+            })),
+          }))
+        );
+      })
+      .catch(() => {
+        enqueueSnackbar('鼠标商店加载失败，请检查服务站地址与跨域配置', { variant: 'error' });
+      })
+      .finally(() => setCursorStoreLoading(false));
+  };
+
+  const saveCursorConfig = async (
+    nextCursors: UserCursor[],
+    nextActiveCursorId: string,
+    successMsg: string
+  ) => {
+    setCursorActionLoading(true);
+    const ok = await site.saveConfig({
+      cursor: {
+        activeCursorId: nextActiveCursorId,
+        cursors: nextCursors,
+        size: cursorSize,
+      },
+    });
+    setCursorActionLoading(false);
+    if (ok) {
+      enqueueSnackbar(successMsg, { variant: 'success' });
+    } else {
+      enqueueSnackbar('鼠标操作失败，请稍后再试', { variant: 'error' });
+    }
+    return ok;
+  };
+
+  const handleAddCursor = (cursor: UserCursor) => {
+    if (userCursors.some((c) => c.id === cursor.id) || cursorActionLoading) return;
+    setCursorConfirmDialog({ open: true, type: 'add', cursor });
+  };
+
+  const handleRemoveCursor = (id: string) => {
+    if (cursorActionLoading) return;
+    const cursor = userCursors.find((c) => c.id === id);
+    if (!cursor) return;
+    setCursorConfirmDialog({ open: true, type: 'remove', cursor });
+  };
+
+  const handleConfirmCursorAction = async () => {
+    const { type, cursor } = cursorConfirmDialog;
+    if (!cursor) return;
+    setCursorConfirmDialog((prev) => ({ ...prev, open: false }));
+
+    if (type === 'add') {
+      const nextCursors = [...userCursors, cursor];
+      const nextActiveCursorId = activeCursorId || cursor.id;
+      setUserCursors(nextCursors);
+      setActiveCursorId(nextActiveCursorId);
+      await saveCursorConfig(nextCursors, nextActiveCursorId, `已添加鼠标“${cursor.name}”`);
+    } else {
+      const nextCursors = userCursors.filter((c) => c.id !== cursor.id);
+      const nextActiveCursorId = activeCursorId === cursor.id ? nextCursors[0]?.id || '' : activeCursorId;
+      setUserCursors(nextCursors);
+      setActiveCursorId(nextActiveCursorId);
+      await saveCursorConfig(nextCursors, nextActiveCursorId, '鼠标已移除');
+    }
+  };
+
+  const handleResetSystemCursor = () => {
+    if (!activeCursorId || cursorActionLoading) return;
+    setActiveCursorId('');
+  };
+
+  const handleActivateCursor = (id: string) => {
+    if (activeCursorId === id || cursorActionLoading) return;
+    setActiveCursorId(id);
+  };
+
   return {
-    // UI 状态
+    // 环境
+    site,
+    themeConfig,
+    ui,
+    theme,
+    isMobileAdmin,
+    enqueueSnackbar,
+    // tab
     tab,
     setTab,
     saving,
-    isDirty,
-    isMobileAdmin,
+    setSaving,
+    // 布局预览
+    postLayout,
+    setPostLayout,
+    previewPosts,
+    previewLoading,
+    // 字体
+    userFonts,
+    setUserFonts,
+    activeFontId,
+    setActiveFontId,
+    activeFont,
+    fontStoreOpen,
+    setFontStoreOpen,
+    storeFonts,
+    storeLoading,
+    fontActionLoading,
+    fontPreviewText,
+    setFontPreviewText,
+    confirmDialog,
+    setConfirmDialog,
+    handleOpenFontStore,
+    handleAddFont,
+    handleRemoveFont,
+    handleConfirmFontAction,
+    handleResetSystemFont,
+    handleActivateFont,
+    customFontOpen,
+    setCustomFontOpen,
+    customFontDraft,
+    setCustomFontDraft,
+    handleOpenCustomFontDialog,
+    handleSaveCustomFont,
+    // 鼠标
+    userCursors,
+    setUserCursors,
+    activeCursorId,
+    setActiveCursorId,
+    activeCursor,
+    cursorSize,
+    setCursorSize,
+    previewCursorUrl,
+    cursorStoreOpen,
+    setCursorStoreOpen,
+    storeCursors,
+    cursorStoreLoading,
+    cursorActionLoading,
+    cursorConfirmDialog,
+    setCursorConfirmDialog,
+    handleOpenCursorStore,
+    handleAddCursor,
+    handleRemoveCursor,
+    handleConfirmCursorAction,
+    handleResetSystemCursor,
+    handleActivateCursor,
+    // 点击特效
+    clickEffectEnabled,
+    setClickEffectEnabled,
+    clickEffectType,
+    setClickEffectType,
+    clickEffectColorMode,
+    setClickEffectColorMode,
+    clickEffectCustomColor,
+    setClickEffectCustomColor,
+    clickEffectTextList,
+    setClickEffectTextList,
+    clickEffectIntensity,
+    setClickEffectIntensity,
+    // 主题
+    presetId,
+    setPresetId,
+    useCustom,
+    setUseCustom,
+    colors,
+    setColors,
+    borderRadius,
+    setBorderRadius,
     activeColors,
-    posts,
-    
-    // 基础配置
-    siteName, setSiteName,
-    siteDescription, setSiteDescription,
-    siteLogo, setSiteLogo,
-    footerText, setFooterText,
-    policeBeian, setPoliceBeian,
-    // ... 其他基础字段
-
-    // 布局与模块配置
-    layoutMode, setLayoutMode,
-    heroConfig, setHeroConfig,
-    navConfig, setNavConfig,
-    aboutConfig, setAboutConfig,
-
-    // 打赏配置 (Reward)
-    reward,
-    setReward,
-
-    // 点击效果
-    clickEffectEnabled, setClickEffectEnabled,
-    clickEffectType, setClickEffectType,
-    clickEffectColorMode, setClickEffectColorMode,
-    clickEffectCustomColor, setClickEffectCustomColor,
-    clickEffectTextList, setClickEffectTextList,
-    clickEffectIntensity, setClickEffectIntensity,
-
+    resetToPreset,
+    handleColorChange,
+    // 基础
+    siteName,
+    setSiteName,
+    author,
+    setAuthor,
+    shareDescription,
+    setShareDescription,
+    shareImage,
+    setShareImage,
+    footerText,
+    setFooterText,
+    logo,
+    setLogo,
+    favicon,
+    setFavicon,
+    backgroundImage,
+    setBackgroundImage,
+    backgroundOpacity,
+    setBackgroundOpacity,
+    backgroundBlur,
+    setBackgroundBlur,
+    paginationMode,
+    setPaginationMode,
+    pageSize,
+    setPageSize,
+    pwaThemeColor,
+    setPwaThemeColor,
+    icpBeian,
+    setIcpBeian,
+    policeBeian,
+    setPoliceBeian,
     // 间距
     spacing,
     updateSpacing,
     resetSpacing,
-
-    // Handlers
+    DEFAULT_SPACING,
+    // 英雄区
+    heroTitle,
+    setHeroTitle,
+    heroSubtitle,
+    setHeroSubtitle,
+    heroBadge,
+    setHeroBadge,
+    heroBgImage,
+    setHeroBgImage,
+    heroBgColor,
+    setHeroBgColor,
+    // 导航栏
+    navLayout,
+    setNavLayout,
+    navItems,
+    setNavItems,
+    navVariant,
+    setNavVariant,
+    navGlassOpacity,
+    setNavGlassOpacity,
+    navBlur,
+    setNavBlur,
+    navBorderOpacity,
+    setNavBorderOpacity,
+    navShadowOpacity,
+    setNavShadowOpacity,
+    navTextColor,
+    setNavTextColor,
+    navActiveColor,
+    setNavActiveColor,
+    navLogoText,
+    setNavLogoText,
+    navHideOnScroll,
+    setNavHideOnScroll,
+    defaultNavTheme,
+    // 关于
+    aboutSubtitle,
+    setAboutSubtitle,
+    aboutBio,
+    setAboutBio,
+    aboutTags,
+    setAboutTags,
+    // ===== 新增：打赏 =====
+    reward,
+    setReward,
+    // 杂项
+    isDirty,
     handleImageUpload,
     applyAll,
-
     // 常量
     MAX_HERO_IMAGE_SIZE,
     MAX_ICON_SIZE,
     MAX_SHARE_IMAGE_SIZE,
     MAX_BACKGROUND_SIZE,
     DEFAULT_FONT_FALLBACK,
-    tabList,
   };
 }
 
