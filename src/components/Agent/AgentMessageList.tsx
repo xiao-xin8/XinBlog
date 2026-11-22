@@ -24,7 +24,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import UndoIcon from '@mui/icons-material/Undo';
 import AgentMessageContent from './AgentMessageContent';
-import { getChatBubbleRenderer } from '@/themes/chatBubble/renderers';
+import { getChatBubbleRenderer, resolveBubbleParams } from '@/themes/chatBubble/renderers';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSiteStore } from '@/stores/siteStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -562,12 +562,15 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
   const bubbleRenderer = getChatBubbleRenderer(bubbleTheme.variant);
   const bubbleStyles = useMemo(() => {
     if (!bubbleRenderer) return null;
-    const params = { ...bubbleRenderer.defaultParams, ...(bubbleTheme.params || {}) };
+    // 与聊天室同一套规则：深色下主题没提供暗色配色就回退默认气泡
+    const params = resolveBubbleParams(bubbleRenderer, bubbleTheme.params, theme.palette.mode);
+    if (!params) return null;
     return bubbleRenderer.render(params, {
       themeColor: theme.palette.primary.main,
       borderRadius: theme.shape.borderRadius ?? 16,
+      mode: theme.palette.mode,
     });
-  }, [bubbleRenderer, bubbleTheme.params, theme.palette.primary.main, theme.shape.borderRadius]);
+  }, [bubbleRenderer, bubbleTheme.params, theme.palette.mode, theme.palette.primary.main, theme.shape.borderRadius]);
 
   // 是否贴底：贴底时新内容自动跟随到底部；用户上翻后自动暂停，回到底部附近后恢复
   const [stickToBottom, setStickToBottom] = useState(true);

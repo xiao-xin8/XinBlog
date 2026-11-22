@@ -1183,8 +1183,11 @@ async function register(request, env) {
     await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email).run();
   }
 
-  // 注册场景验证：开关开启时需通过人机验证
-  if (authSettings.registerVerification === true) {
+  // 人机验证统一拦在「发验证码」那一步（sendVerifyCode）。
+  // 有邮箱验证流程时这里不再重复校验：Turnstile/hCaptcha 的 token 一次性，发码时已消费，
+  // 再验一次只会让用户在同一次注册里被弹两次窗。
+  // 但仍要兜底：关掉邮箱验证时没有发码环节，注册就是唯一的入口，必须在这里拦。
+  if (authSettings.emailVerification !== true && authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
@@ -5025,36 +5028,51 @@ async function deleteFriendApplication(request, env, user) {
 
 // ---------- AI 功能 ----------
 
-// OpenAI 风格别名 -> Cloudflare Workers AI 实际模型 ID
-const AI_MODEL_COST = {
-  'gpt-4o-mini': '轻量',
-  'gpt-4o': '中消耗',
-  'gpt-4': '高消耗',
-  'llama-3.3-70b': '高消耗',
-  'deepseek-r1': '高消耗',
-  'qwen2.5-coder-32b': '高消耗',
-  'text-embedding-3-small': '轻量',
-};
+// Workers AI 可用模型清单，直接用真实模型 ID。
+// 2026-11-21 在账号上逐个实打 /ai/run 验证，以下全部返回 200；已下线（410）、无权限（403）、
+// 非对话模型（400）都不在列表里。复查注意：/ai/models/search 会列出已下线模型，目录里有 ≠ 能用。
+const AI_MODEL_IDS = [
+  // 对话
+  '@cf/openai/gpt-oss-120b',
+  '@cf/openai/gpt-oss-20b',
+  '@cf/qwen/qwen3.8-27b',
+  '@cf/qwen/qwen2.5-coder-32b-instruct',
+  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/aisingapore/gemma-sea-lion-v4-27b-it',
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/meta/llama-3.2-3b-instruct',
+  '@cf/mistralai/mistral-small-3.1-24b-instruct',
+  '@cf/zai-org/glm-4.7-flash',
+  '@cf/ibm-granite/granite-4.0-h-micro',
+  '@cf/daily-co/phonellm-mini-alpha-2',
+  // 向量
+  '@cf/baai/bge-small-en-v1.5',
+  '@cf/baai/bge-large-en-v1.5',
+  '@cf/baai/bge-m3',
+  // 图片
+  '@cf/black-forest-labs/flux-1-schnell',
+  '@cf/black-forest-labs/flux-2-klein-4b',
+  '@cf/black-forest-labs/flux-2-klein-9b',
+  // 语音
+  '@cf/openai/whisper',
+];
 
-const AI_MODEL_MAP = {
-  'gpt-4o-mini': '@cf/meta/llama-3.2-3b-instruct',
-  'gpt-4o': '@cf/meta/llama-3.1-8b-instruct-fp8',
-  'gpt-4': '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  'llama-3.3-70b': '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  'deepseek-r1': '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
-  'qwen2.5-coder-32b': '@cf/qwen/qwen2.5-coder-32b-instruct',
-  'text-embedding-3-small': '@cf/baai/bge-small-en-v1.5',
-  'text-embedding-3-large': '@cf/baai/bge-large-en-v1.5',
-  'bge-m3': '@cf/baai/bge-m3',
-  'flux-1-schnell': '@cf/black-forest-labs/flux-1-schnell',
-  'flux-2-klein-4b': '@cf/black-forest-labs/flux-2-klein-4b',
-  'flux-2-klein-9b': '@cf/black-forest-labs/flux-2-klein-9b',
-  'sdxl-base': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
-  'whisper': '@cf/openai/whisper',
-};
+const AI_MODEL_SET = new Set(AI_MODEL_IDS);
 
-function resolveAiModel(input) {
-  return AI_MODEL_MAP[input] || input;
+// 对话没配置、或配置里是旧名字（如 gpt-4o）时，统一回落到这个模型
+const DEFAULT_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const DEFAULT_AI_IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
+
+function resolveAiModel(input, fallback = DEFAULT_AI_MODEL) {
+  const name = typeof input === 'string' ? input.trim() : '';
+  if (!name) return fallback;
+  if (AI_MODEL_SET.has(name)) return name;
+  // 界面显示的是去掉 @cf/ 的短名，这里补回前缀；补完不在清单里就继续往下走
+  const prefixed = '@cf/' + name.replace(/^@cf\//, '');
+  if (AI_MODEL_SET.has(prefixed)) return prefixed;
+  if (name.startsWith('@cf/')) return name; // 手填的其它合法模型 ID 照原样用
+  return fallback; // 旧别名 / 已失效的名字 → 默认模型
 }
 
 function extractAiResponse(result) {
@@ -5075,6 +5093,115 @@ function extractAiResponse(result) {
   }
   if (typeof result === 'string') return result;
   return '';
+}
+
+// ---------- 流式解析 / 用量 / 错误归一 ----------
+
+// SSE 字节流解码器：先做 UTF-8 增量解码（多字节汉字被分片切开时不会被解成乱码），
+// 再按行缓冲（上一块结尾的半行 JSON 留到下一块拼完整，不会被提前 parse 后丢掉）。
+// 上游格式并不统一：Workers AI binding 给的是 `data: {...}`，部分自定义模型直接吐裸 JSON 行，
+// 所以两种都收。
+class AiSseDecoder extends TransformStream {
+  constructor() {
+    let buffer = '';
+    const decoder = new TextDecoder();
+    const emit = (line, controller) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      if (trimmed.startsWith(':')) return; // SSE 注释 / 心跳
+      if (/^(event|id|retry)\s*:/i.test(trimmed)) return; // 非数据字段
+      if (trimmed.startsWith('data:')) {
+        const payload = trimmed.slice(5).trim();
+        if (payload) controller.enqueue(payload);
+        return;
+      }
+      controller.enqueue(trimmed); // 裸 JSON 行
+    };
+    super({
+      transform(chunk, controller) {
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) emit(line, controller);
+      },
+      flush(controller) {
+        if (buffer.trim()) emit(buffer, controller);
+      },
+    });
+  }
+}
+
+// 逐条产出 SSE 数据负载（已去掉 `data:` 前缀，`[DONE]` 原样产出由调用方过滤）
+async function* readAiSse(stream) {
+  const reader = stream.pipeThrough(new AiSseDecoder()).getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      yield value;
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      /* 已被取消时 releaseLock 可能抛错，忽略 */
+    }
+  }
+}
+
+// binding 的 schema 比 OpenAI 严：content 不接受 null/undefined（tool 消息、助手工具调用消息
+// 常见这种写法），官方 provider 也做同样的归一化，否则请求会被直接判 400。
+function normalizeAiMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+  return messages.map((msg) => {
+    if (!msg || typeof msg !== 'object') return msg;
+    if (msg.content === null || msg.content === undefined) return { ...msg, content: '' };
+    return msg;
+  });
+}
+
+// Workers AI 的用量形状与 OpenAI 一致（prompt_tokens / completion_tokens），
+// 流式时 usage 只在末尾某一块出现，拿不到就返回 null 而不是假造 0。
+function extractAiUsage(result) {
+  const usage = result && result.usage;
+  if (!usage) return null;
+  const prompt = Number(usage.prompt_tokens ?? usage.input_tokens ?? 0) || 0;
+  const completion = Number(usage.completion_tokens ?? usage.output_tokens ?? 0) || 0;
+  const total = Number(usage.total_tokens ?? 0) || prompt + completion;
+  return { prompt_tokens: prompt, completion_tokens: completion, total_tokens: total };
+}
+
+// Workers AI 内部错误码 -> HTTP 状态（来源：官方 errors 文档 / gateway-core 同一张表）。
+// binding 抛的 Error 只有消息里带码（如 "3040: Capacity temporarily exceeded"），
+// 没有状态码，前端就无法判断这是「稍后重试」还是「配置错了」。
+const AI_ERROR_STATUS = {
+  5007: 400, // No such model
+  5004: 400, // Invalid data
+  3039: 400, // Finetune missing required files
+  3003: 400, // Incomplete request
+  5018: 403, // Account not allowed for private model
+  5016: 403, // Model agreement not accepted
+  3023: 403, // Account blocked
+  3041: 403, // Account not allowed for private model
+  5019: 405, // Deprecated SDK version
+  5005: 405, // LoRa unsupported
+  3042: 404, // Invalid model ID
+  3006: 413, // Request too large
+  3007: 408, // Timeout
+  3008: 408, // Aborted
+  5028: 410, // Model deprecated（模型已下线，换模型，重试无用）
+  5035: 403, // Model requires Workers Paid plan
+  3036: 429, // Account limited（当日免费额度用完）
+  3040: 429, // Out of capacity（暂时没容量）
+};
+
+function aiErrorStatus(err) {
+  const message = (err && err.message) || String(err || '');
+  for (const match of message.matchAll(/\b(\d{3,5})\s*:/g)) {
+    const code = Number.parseInt(match[1], 10);
+    if (code in AI_ERROR_STATUS) return AI_ERROR_STATUS[code];
+  }
+  return 502;
 }
 
 function isCustomModel(modelAlias) {
@@ -5198,7 +5325,7 @@ async function callCustomModelNonStream(custom, body) {
   };
 }
 
-async function callCustomModelStream(custom, body) {
+async function callCustomModelStream(custom, body, signal) {
   const url = buildCustomModelEndpoint(custom);
   const res = await fetch(url, {
     method: 'POST',
@@ -5206,6 +5333,7 @@ async function callCustomModelStream(custom, body) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${custom.apiKey}`,
     },
+    signal,
     body: JSON.stringify({
       model: custom.modelId,
       messages: body.messages,
@@ -5313,7 +5441,7 @@ function extractJson(text) {
 
 function listAiModels() {
   const created = Math.floor(Date.now() / 1000);
-  return Object.keys(AI_MODEL_MAP).map((id) => ({
+  return AI_MODEL_IDS.map((id) => ({
     id,
     object: 'model',
     created,
@@ -5333,8 +5461,8 @@ const defaultAiSettings = {
   enabled: false,
   agentEnabled: false,
   webSearch: false,
-  model: 'llama-3.3-70b',
-  imageModel: 'flux-1-schnell',
+  model: DEFAULT_AI_MODEL,
+  imageModel: DEFAULT_AI_IMAGE_MODEL,
   temperature: 0.7,
   maxTokens: 4096,
   agentAvatar: '',
@@ -5343,7 +5471,11 @@ const defaultAiSettings = {
 async function getAiSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'ai')) || {};
-    return jsonResponse(0, { ...defaultAiSettings, ...data });
+    const merged = { ...defaultAiSettings, ...data };
+    // 老配置里可能存着 gpt-4o 之类的旧名字，统一回落，避免下拉显示空白
+    merged.model = resolveAiModel(merged.model);
+    merged.imageModel = resolveAiModel(merged.imageModel, DEFAULT_AI_IMAGE_MODEL);
+    return jsonResponse(0, merged);
   } catch (err) {
     if (isBindingError(err)) {
       return jsonResponse(0, { ...defaultAiSettings, _debug: getBindingDebugInfo(env, err) }, 'ok');
@@ -5358,8 +5490,8 @@ async function updateAiSettings(request, env, user) {
     enabled: body.enabled === true,
     agentEnabled: body.agentEnabled === true,
     webSearch: body.webSearch === true,
-    model: String(body.model || defaultAiSettings.model),
-    imageModel: String(body.imageModel || defaultAiSettings.imageModel),
+    model: resolveAiModel(body.model || defaultAiSettings.model),
+    imageModel: resolveAiModel(body.imageModel || defaultAiSettings.imageModel, DEFAULT_AI_IMAGE_MODEL),
     temperature: Math.min(2, Math.max(0, parseFloat(body.temperature ?? defaultAiSettings.temperature) || defaultAiSettings.temperature)),
     maxTokens: Math.min(65536, Math.max(2048, parseInt(body.maxTokens ?? defaultAiSettings.maxTokens, 10) || defaultAiSettings.maxTokens)),
     agentAvatar: typeof body.agentAvatar === 'string' ? body.agentAvatar.slice(0, 200000) : '',
@@ -5443,10 +5575,8 @@ async function deleteAiApiKey(request, env, user) {
 }
 
 async function listAdminAiModels(request, env, user) {
-  const builtIn = Object.keys(AI_MODEL_MAP).map((id) => {
-    const cost = AI_MODEL_COST[id];
-    return { id, name: cost ? `${id}（${cost}）` : id, builtIn: true };
-  });
+  // id 是完整模型 ID（提交给 Workers AI 用），name 去掉 @cf/ 前缀，界面只显示模型名
+  const builtIn = AI_MODEL_IDS.map((id) => ({ id, name: id.replace(/^@cf\//, ''), builtIn: true }));
   const custom = await listCustomModels(env, true);
   const customModels = custom.map((m) => ({ id: `custom:${m.id}`, name: `${m.name}（自定义）`, builtIn: false }));
   return jsonResponse(0, { models: [...customModels, ...builtIn] });
@@ -5737,7 +5867,7 @@ async function aiChat(request, env, user) {
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
 
   const body = await request.json();
-  const messages = body.messages || [];
+  const messages = normalizeAiMessages(body.messages);
   const modelAlias = body.model || defaultAiSettings.model;
   const stream = body.stream === true;
   const aiSettings = (await getSetting(env, 'ai')) || {};
@@ -5775,51 +5905,68 @@ async function aiChat(request, env, user) {
               finish_reason: 'stop',
             },
           ],
-          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+          usage: extractAiUsage({ usage: res.usage }) || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
         });
       }
-      const openAiStream = await callCustomModelStream(custom, options);
+      const openAiStream = await callCustomModelStream(custom, options, request.signal);
       const id = aiGenerateId();
       const created = aiNowUnix();
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
-          const reader = openAiStream.getReader();
+          let sawFinish = false;
           try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              const text = new TextDecoder().decode(value);
-              for (const line of text.split('\n')) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('data:')) continue;
-                const jsonText = trimmed.slice(5).trim();
-                if (!jsonText || jsonText === '[DONE]') continue;
-                let chunk = {};
-                try {
-                  chunk = JSON.parse(jsonText);
-                } catch {
-                  continue;
-                }
-                const delta = chunk.choices?.[0]?.delta;
-                const content = delta?.content || delta?.reasoning_content || '';
-                if (!content) continue;
-                const payload = {
-                  id,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model: modelAlias,
-                  choices: [{ index: 0, delta: { content: stripThinkingTags(content) }, finish_reason: null }],
-                };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+            for await (const jsonText of readAiSse(openAiStream)) {
+              if (!jsonText || jsonText === '[DONE]') continue;
+              let chunk = {};
+              try {
+                chunk = JSON.parse(jsonText);
+              } catch {
+                continue;
               }
+              const choice = chunk.choices?.[0];
+              const delta = choice && (choice.delta || choice.message);
+              const content = (delta && (delta.content || delta.reasoning_content)) || '';
+              const finishReason = (choice && choice.finish_reason) || null;
+              if (!content && !finishReason) continue;
+              if (finishReason) sawFinish = true;
+              const payload = {
+                id,
+                object: 'chat.completion.chunk',
+                created,
+                model: modelAlias,
+                choices: [
+                  {
+                    index: 0,
+                    delta: content ? { content: stripThinkingTags(content) } : {},
+                    finish_reason: finishReason,
+                  },
+                ],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+            }
+            // 上游没给 finish_reason 时补一个终结块：外部 OpenAI 客户端靠它判断「正常结束」，
+            // 只发 [DONE] 会被部分客户端当成截断。
+            if (!sawFinish) {
+              const tail = {
+                id,
+                object: 'chat.completion.chunk',
+                created,
+                model: modelAlias,
+                choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(tail)}\n\n`));
             }
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
           } catch (err) {
             console.error('custom stream error:', err);
-            controller.error(err);
-          } finally {
-            controller.close();
+            // error() 之后不能再 close()，否则会抛 TypeError 变成未捕获异常
+            try {
+              controller.error(err);
+            } catch {
+              /* 下游已关闭 */
+            }
           }
         },
       });
@@ -5832,7 +5979,8 @@ async function aiChat(request, env, user) {
       });
     } catch (err) {
       console.error('custom chat error:', err);
-      return jsonResponse(502, null, `AI 对话失败：${err.message || String(err)}`, 502);
+      const status = aiErrorStatus(err);
+      return jsonResponse(status, null, `AI 对话失败：${err.message || String(err)}`, status);
     }
   }
 
@@ -5844,10 +5992,11 @@ async function aiChat(request, env, user) {
 
   let aiResult;
   try {
-    aiResult = await env.AI.run(model, options);
+    aiResult = await env.AI.run(model, options, { signal: request.signal });
   } catch (err) {
     console.error('AI.run chat error:', err);
-    return jsonResponse(502, null, `AI 对话失败：${err.message || String(err)}`, 502);
+    const status = aiErrorStatus(err);
+    return jsonResponse(status, { model }, `AI 对话失败：${err.message || String(err)}`, status);
   }
 
   if (!stream) {
@@ -5864,7 +6013,7 @@ async function aiChat(request, env, user) {
           finish_reason: 'stop',
         },
       ],
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      usage: extractAiUsage(aiResult) || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     });
   }
 
@@ -5874,43 +6023,81 @@ async function aiChat(request, env, user) {
   const encoder = new TextEncoder();
   const aiStream = aiResult;
 
+  // 少数模型即便传了 stream:true 也会整段返回 JSON，此时没有 body 流可读。
+  // 直接兜底成「一次性事件」，避免 getReader() 抛 TypeError 让前端看到空流。
+  if (!aiStream || typeof aiStream.getReader !== 'function') {
+    const fallbackPayload = {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model: modelAlias,
+      choices: [
+        {
+          index: 0,
+          delta: { content: stripThinkingTags(extractAiResponse(aiResult)) },
+          finish_reason: 'stop',
+        },
+      ],
+      ...(extractAiUsage(aiResult) ? { usage: extractAiUsage(aiResult) } : {}),
+    };
+    return new Response(`data: ${JSON.stringify(fallbackPayload)}\n\ndata: [DONE]\n\n`, {
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+    });
+  }
+
   const readable = new ReadableStream({
     async start(controller) {
-      const reader = aiStream.getReader();
+      let sawFinish = false;
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const text = new TextDecoder().decode(value);
-          for (const line of text.split('\n')) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            const jsonText = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
-            if (!jsonText || jsonText === '[DONE]') continue;
-            let chunk = {};
-            try {
-              chunk = JSON.parse(jsonText);
-            } catch {
-              continue;
-            }
-            const chunkText = extractAiResponse(chunk);
-            if (!chunkText) continue;
-            const payload = {
-              id,
-              object: 'chat.completion.chunk',
-              created,
-              model: modelAlias,
-              choices: [{ index: 0, delta: { content: stripThinkingTags(chunkText) }, finish_reason: null }],
-            };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        for await (const jsonText of readAiSse(aiStream)) {
+          if (!jsonText || jsonText === '[DONE]') continue;
+          let chunk = {};
+          try {
+            chunk = JSON.parse(jsonText);
+          } catch {
+            continue;
           }
+          // usage 块可能只带用量、不带正文，先取用量再决定要不要跳过
+          const usage = extractAiUsage(chunk);
+          const chunkText = extractAiResponse(chunk);
+          const finishReason = (chunk.choices?.[0] && chunk.choices[0].finish_reason) || null;
+          if (!chunkText && !usage && !finishReason) continue;
+          if (finishReason) sawFinish = true;
+          const payload = {
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: modelAlias,
+            choices: [
+              {
+                index: 0,
+                delta: chunkText ? { content: stripThinkingTags(chunkText) } : {},
+                finish_reason: finishReason,
+              },
+            ],
+            ...(usage ? { usage } : {}),
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        }
+        if (!sawFinish) {
+          const tail = {
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: modelAlias,
+            choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(tail)}\n\n`));
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
       } catch (err) {
         console.error('stream error:', err);
-        controller.error(err);
-      } finally {
-        controller.close();
+        try {
+          controller.error(err);
+        } catch {
+          /* 下游已关闭 */
+        }
       }
     },
   });
@@ -7756,7 +7943,7 @@ async function openaiChatCompletions(request, env) {
   }
 
   const body = await request.json();
-  const messages = body.messages || [];
+  const messages = normalizeAiMessages(body.messages);
   const modelAlias = body.model || defaultAiSettings.model;
   const stream = body.stream === true;
   const parsedTemp = parseFloat(body.temperature);
@@ -7786,50 +7973,64 @@ async function openaiChatCompletions(request, env) {
           created: aiNowUnix(),
           model: custom.modelId,
           choices: [{ index: 0, message: { role: 'assistant', content: stripThinkingTags(res.content), refusal: null }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+          usage: extractAiUsage({ usage: res.usage }) || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
         });
       }
-      const openAiStream = await callCustomModelStream(custom, options);
+      const openAiStream = await callCustomModelStream(custom, options, request.signal);
       const id = aiGenerateId();
       const created = aiNowUnix();
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
-          const reader = openAiStream.getReader();
+          let sawFinish = false;
           try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              const text = new TextDecoder().decode(value);
-              for (const line of text.split('\n')) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('data:')) continue;
-                const jsonText = trimmed.slice(5).trim();
-                if (!jsonText || jsonText === '[DONE]') continue;
-                let chunk = {};
-                try {
-                  chunk = JSON.parse(jsonText);
-                } catch {
-                  continue;
-                }
-                const delta = chunk.choices?.[0]?.delta;
-                const content = delta?.content || delta?.reasoning_content || '';
-                if (!content) continue;
-                const payload = {
-                  id,
-                  object: 'chat.completion.chunk',
-                  created,
-                  model: custom.modelId,
-                  choices: [{ index: 0, delta: { content: stripThinkingTags(content) }, finish_reason: null }],
-                };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+            for await (const jsonText of readAiSse(openAiStream)) {
+              if (!jsonText || jsonText === '[DONE]') continue;
+              let chunk = {};
+              try {
+                chunk = JSON.parse(jsonText);
+              } catch {
+                continue;
               }
+              const choice = chunk.choices?.[0];
+              const delta = choice && (choice.delta || choice.message);
+              const content = (delta && (delta.content || delta.reasoning_content)) || '';
+              const finishReason = (choice && choice.finish_reason) || null;
+              if (!content && !finishReason) continue;
+              if (finishReason) sawFinish = true;
+              const payload = {
+                id,
+                object: 'chat.completion.chunk',
+                created,
+                model: custom.modelId,
+                choices: [
+                  {
+                    index: 0,
+                    delta: content ? { content: stripThinkingTags(content) } : {},
+                    finish_reason: finishReason,
+                  },
+                ],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+            }
+            if (!sawFinish) {
+              const tail = {
+                id,
+                object: 'chat.completion.chunk',
+                created,
+                model: custom.modelId,
+                choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(tail)}\n\n`));
             }
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          } catch (err) {
-            controller.error(err);
-          } finally {
             controller.close();
+          } catch (err) {
+            try {
+              controller.error(err);
+            } catch {
+              /* 下游已关闭 */
+            }
           }
         },
       });
@@ -7842,7 +8043,8 @@ async function openaiChatCompletions(request, env) {
         },
       });
     } catch (err) {
-      return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
+      const status = aiErrorStatus(err);
+      return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, status);
     }
   }
 
@@ -7855,9 +8057,10 @@ async function openaiChatCompletions(request, env) {
 
   let aiResult;
   try {
-    aiResult = await env.AI.run(model, options);
+    aiResult = await env.AI.run(model, options, { signal: request.signal });
   } catch (err) {
-    return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
+    const status = aiErrorStatus(err);
+    return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, status);
   }
 
   if (!stream) {
@@ -7868,7 +8071,7 @@ async function openaiChatCompletions(request, env) {
       created: aiNowUnix(),
       model: modelAlias,
       choices: [{ index: 0, message: { role: 'assistant', content, refusal: null }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      usage: extractAiUsage(aiResult) || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     });
   }
 
@@ -7877,42 +8080,82 @@ async function openaiChatCompletions(request, env) {
   const encoder = new TextEncoder();
   const aiStream = aiResult;
 
+  // 与 aiChat 一致：模型不认 stream:true 时整段返回 JSON，兜底成一次性事件
+  if (!aiStream || typeof aiStream.getReader !== 'function') {
+    const fallbackPayload = {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model: modelAlias,
+      choices: [
+        {
+          index: 0,
+          delta: { content: stripThinkingTags(extractAiResponse(aiResult)) },
+          finish_reason: 'stop',
+        },
+      ],
+      ...(extractAiUsage(aiResult) ? { usage: extractAiUsage(aiResult) } : {}),
+    };
+    return new Response(`data: ${JSON.stringify(fallbackPayload)}\n\ndata: [DONE]\n\n`, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        ...openaiCorsHeaders(),
+      },
+    });
+  }
+
   const readable = new ReadableStream({
     async start(controller) {
-      const reader = aiStream.getReader();
+      let sawFinish = false;
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const text = new TextDecoder().decode(value);
-          for (const line of text.split('\n')) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            const jsonText = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
-            if (!jsonText || jsonText === '[DONE]') continue;
-            let chunk = {};
-            try {
-              chunk = JSON.parse(jsonText);
-            } catch {
-              continue;
-            }
-            const chunkText = extractAiResponse(chunk);
-            if (!chunkText) continue;
-            const payload = {
-              id,
-              object: 'chat.completion.chunk',
-              created,
-              model: modelAlias,
-              choices: [{ index: 0, delta: { content: stripThinkingTags(chunkText) }, finish_reason: null }],
-            };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        for await (const jsonText of readAiSse(aiStream)) {
+          if (!jsonText || jsonText === '[DONE]') continue;
+          let chunk = {};
+          try {
+            chunk = JSON.parse(jsonText);
+          } catch {
+            continue;
           }
+          const usage = extractAiUsage(chunk);
+          const chunkText = extractAiResponse(chunk);
+          const finishReason = (chunk.choices?.[0] && chunk.choices[0].finish_reason) || null;
+          if (!chunkText && !usage && !finishReason) continue;
+          if (finishReason) sawFinish = true;
+          const payload = {
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: modelAlias,
+            choices: [
+              {
+                index: 0,
+                delta: chunkText ? { content: stripThinkingTags(chunkText) } : {},
+                finish_reason: finishReason,
+              },
+            ],
+            ...(usage ? { usage } : {}),
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        }
+        if (!sawFinish) {
+          const tail = {
+            id,
+            object: 'chat.completion.chunk',
+            created,
+            model: modelAlias,
+            choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(tail)}\n\n`));
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      } catch (err) {
-        controller.error(err);
-      } finally {
         controller.close();
+      } catch (err) {
+        try {
+          controller.error(err);
+        } catch {
+          /* 下游已关闭 */
+        }
       }
     },
   });

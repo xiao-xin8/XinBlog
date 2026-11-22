@@ -4,7 +4,7 @@ import { Refresh } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useSiteStore, setCachedSiteConfig, normalizeSiteConfig } from '@/stores/siteStore';
 import { BUILTIN_CHAT_BUBBLE_THEMES } from '@/themes/chatBubble/builtin';
-import { getChatBubbleRenderer } from '@/themes/chatBubble/renderers';
+import { getChatBubbleRenderer, resolveBubbleParams } from '@/themes/chatBubble/renderers';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { ChatBubbleThemeCard } from './ChatBubbleThemeCard';
 import { ChatBubbleParamEditor } from './ChatBubbleParamEditor';
@@ -156,13 +156,20 @@ export function ChatBubbleThemePanel() {
     if (!editingTheme) return null;
     const renderer = getChatBubbleRenderer(editingTheme.config.variant);
     if (!renderer) return null;
-    const params = { ...renderer.defaultParams, ...(editingTheme.config.params || {}) };
+    const mode = muiTheme.palette.mode;
+    // 深色下若该主题没有暗色配色，预览仍按浅色参数渲染，
+    // 好让管理员能看清正在编辑的颜色（前台此时会回退到默认气泡）。
+    const params = resolveBubbleParams(renderer, editingTheme.config.params, mode) ?? {
+      ...renderer.defaultParams,
+      ...(editingTheme.config.params || {}),
+    };
     return renderer.render(params, {
       // 主题色取自项目真实主题色（MUI primary），保证预览与前台一致
       themeColor: muiTheme.palette.primary.main,
       borderRadius: muiTheme.shape.borderRadius ?? 16,
+      mode,
     });
-  }, [editingTheme, muiTheme.palette.primary.main, muiTheme.shape.borderRadius]);
+  }, [editingTheme, muiTheme.palette.mode, muiTheme.palette.primary.main, muiTheme.shape.borderRadius]);
 
   const themeColor = muiTheme.palette.primary.main;
 

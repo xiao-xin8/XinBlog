@@ -25,7 +25,27 @@ export const iosBubbleRenderer: ChatBubbleRenderer<{
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
-  schema: [],
+  // 深色：比 iOS 标准蓝再压一档（#0a84ff 配白字对比度只有 3.6，读起来发虚）
+  darkParams: {
+    mineBg: '#0a6ed1',
+    mineText: '#ffffff',
+    otherBg: '#2c2c2e',
+    otherText: '#e8e8ed',
+  },
+  schema: [
+    { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
+    { key: 'mineText', label: '自己文字颜色', type: 'color' },
+    { key: 'otherBg', label: '对方气泡背景色', type: 'color' },
+    { key: 'otherText', label: '对方文字颜色', type: 'color' },
+    { key: 'radius', label: '气泡圆角', type: 'number', min: 4, max: 28, step: 1 },
+    { key: 'imageRadius', label: '图片圆角', type: 'number', min: 4, max: 28, step: 1 },
+    { key: 'mineSharpCorner', label: '自己气泡尖角', type: 'select', options: [
+      { value: 'top-right', label: '右上' }, { value: 'top-left', label: '左上' },
+      { value: 'bottom-right', label: '右下' }, { value: 'bottom-left', label: '左下' } ] },
+    { key: 'otherSharpCorner', label: '对方气泡尖角', type: 'select', options: [
+      { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
+      { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' } ] },
+  ],
   render: (params, { themeColor, borderRadius }) => {
     const radius = Math.min(28, params.radius || borderRadius || 18);
     const imageRadius = Math.min(28, params.imageRadius || radius - 2);

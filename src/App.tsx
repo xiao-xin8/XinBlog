@@ -63,8 +63,8 @@ function App() {
 
   useEffect(() => {
     const state = useThemeConfigStore.getState();
-    if (state.borderRadius > 16) {
-      useThemeConfigStore.setState({ borderRadius: 16 });
+    if (state.borderRadius > 32) {
+      useThemeConfigStore.setState({ borderRadius: 32 });
     }
     // 从后端加载站点/主题/布局配置（先加载站点配置，再同步主题和布局）
     const init = async () => {

@@ -39,4 +39,4 @@ export function listChatBubbleRenderers(): ChatBubbleRenderer[] {
 }
 
 export type { ChatBubbleRenderer, ChatBubbleRenderContext, ChatBubbleRenderOutput } from './base';
-export { resolveThemeColor, bubbleRadius } from './base';
+export { resolveThemeColor, bubbleRadius, resolveBubbleParams } from './base';

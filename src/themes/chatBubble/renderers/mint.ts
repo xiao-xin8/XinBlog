@@ -27,6 +27,13 @@ export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色：薄荷绿压成深青，对方用暖深灰
+  darkParams: {
+    mineBg: '#1f4d45',
+    mineText: '#a7f3d0',
+    otherBg: '#2b2a24',
+    otherText: '#d9d5c8',
+  },
   schema: [
     { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },
@@ -41,7 +48,8 @@ export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
       { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
       { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' } ] },
   ],
-  render: (params, { borderRadius }) => {
+  render: (params, { borderRadius, mode }) => {
+    const isDark = mode === 'dark';
     const radius = Math.min(28, params.radius || borderRadius || 20);
     const imageRadius = resolveImageRadius(params.imageRadius, radius);
     const mineBg = resolveThemeColor(params.mineBg, '#a3e4dc');
@@ -55,13 +63,13 @@ export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
       mine: {
         backgroundColor: mineBg,
         color: mineText,
-        border: `1px solid rgba(20,83,45,0.25)`,
+        border: isDark ? '1px solid rgba(167,243,208,0.18)' : '1px solid rgba(20,83,45,0.25)',
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
       },
       other: {
         backgroundColor: otherBg,
         color: otherText,
-        border: `1px solid rgba(120,120,120,0.2)`,
+        border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(120,120,120,0.2)',
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,
       },
       mineImage: { borderRadius: `${imageRadius}px` },

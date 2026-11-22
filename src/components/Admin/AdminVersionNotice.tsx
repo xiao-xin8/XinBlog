@@ -69,7 +69,7 @@ export function AdminVersionNotice() {
       severity="info"
       sx={{
         mb: 3,
-        borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4),
+        borderRadius: (t) => `${Math.max(8, t.shape.borderRadius - 4)}px`,
         '& .MuiAlert-icon': { alignItems: 'center' },
       }}
     >

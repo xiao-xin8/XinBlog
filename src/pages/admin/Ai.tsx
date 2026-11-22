@@ -63,7 +63,8 @@ export function Ai() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const { enqueueSnackbar } = useSnackbar();
-  const [tab, setTab] = useState<AiTab>('agent');
+  // 默认落在「基础设置」，而不是 Agent（日常改配置比跟 Agent 对话更常用）
+  const [tab, setTab] = useState<AiTab>('basic');
   const [settings, setSettings] = useState<AiSettings>({
     enabled: false,
     agentEnabled: false,

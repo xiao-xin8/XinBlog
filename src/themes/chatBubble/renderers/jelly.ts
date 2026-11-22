@@ -31,6 +31,15 @@ export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色模式：同样保留果冻的高光渐变，但底色压暗、文字转亮，避免浅底亮字看不清
+  darkParams: {
+    mineA: '#8a4a63',
+    mineB: '#4e2740',
+    mineText: '#ffeaf3',
+    otherA: '#343a48',
+    otherB: '#23262f',
+    otherText: '#e8eaf1',
+  },
   schema: [
     { key: 'mineA', label: '自己渐变高光色', type: 'color' },
     { key: 'mineB', label: '自己渐变深色', type: 'color' },
@@ -47,7 +56,8 @@ export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
       { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
       { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' } ] },
   ],
-  render: (params, { borderRadius }) => {
+  render: (params, { borderRadius, mode }) => {
+    const isDark = mode === 'dark';
     const radius = Math.min(28, params.radius || borderRadius || 22);
     const imageRadius = resolveImageRadius(params.imageRadius, radius);
     const mineA = resolveThemeColor(params.mineA, '#ff9a9e');
@@ -61,14 +71,17 @@ export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
       mine: {
         background: `radial-gradient(ellipse at 20% 0%, ${mineA} 0%, ${mineB} 45%, ${mineB} 100%)`,
         color: params.mineText || '#7a2440',
-        boxShadow: `inset 0 2px 4px rgba(255,255,255,0.5), inset 0 -2px 6px rgba(122,36,64,0.15)`,
+        // 深色气泡上白色高光会很刺眼，改用很淡的亮边
+        boxShadow: isDark
+          ? 'inset 0 1px 2px rgba(255,255,255,0.10)'
+          : `inset 0 2px 4px rgba(255,255,255,0.5), inset 0 -2px 6px rgba(122,36,64,0.15)`,
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
         border: 'none',
       },
       other: {
         background: `radial-gradient(ellipse at 20% 0%, ${otherA} 0%, ${otherB} 60%, ${otherB} 100%)`,
         color: params.otherText || '#444',
-        boxShadow: `inset 0 1px 2px rgba(255,255,255,0.6)`,
+        boxShadow: isDark ? 'inset 0 1px 2px rgba(255,255,255,0.06)' : 'inset 0 1px 2px rgba(255,255,255,0.6)',
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,
         border: 'none',
       },

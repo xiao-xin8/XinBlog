@@ -30,6 +30,13 @@ export const gingkoBubbleRenderer: ChatBubbleRenderer<GinkgoParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色：银杏描边款，边框与文字都提亮
+  darkParams: {
+    mineStroke: '#8b7bd8',
+    mineText: '#c4b5fd',
+    otherStroke: '#d4a72c',
+    otherText: '#fcd34d',
+  },
   schema: [
     { key: 'mineStroke', label: '自己描边色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },
@@ -54,18 +61,15 @@ export const gingkoBubbleRenderer: ChatBubbleRenderer<GinkgoParams> = {
     const mineText = resolveThemeColor(params.mineText, c1);
     const otherText = resolveThemeColor(params.otherText, c2);
 
-    const stroke = (a: string, b: string) =>
-      `linear-gradient(135deg, ${a} 0%, ${b} 100%) border-box`;
-
     return {
       mine: {
+        // 真·透明描边：原先用单层 `background: gradient border-box` + backgroundClip:border-box，
+        // 会把整个气泡填成渐变（想画渐变边框需要 padding-box + border-box 两层），
+        // 深色下浅色文字压在亮渐变上直接看不见。这里改成纯色描边、内部透明。
         backgroundColor: 'transparent',
         color: mineText,
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
-        border: `1.5px solid transparent`,
-        background: stroke(c1, c2),
-        backgroundOrigin: 'border-box',
-        backgroundClip: 'border-box',
+        border: `1.5px solid ${c1}`,
       },
       other: {
         backgroundColor: 'transparent',

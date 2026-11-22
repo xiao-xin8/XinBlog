@@ -52,7 +52,8 @@ export function AdminLogin() {
   const sendCodePendingRef = useRef(false);
   // 标记用户点击了"注册"但尚未通过验证，验证通过后自动提交注册
   const registerPendingRef = useRef(false);
-  // 标记当前 captchaPayload 已被发码接口消费（一次性 token），后续注册需重新验证
+  // 标记当前 captchaPayload 已被发码接口消费（一次性 token）。注册不再重复验证，
+  // 只有「关闭邮箱验证」导致没有发码环节时，才需要重新取一次
   const captchaConsumedRef = useRef(false);
   // 同步持有最新验证负载：验证成功后 setState 是异步的，自动提交注册时需要从 ref 读到刚拿到的新 token
   const captchaPayloadRef = useRef<CaptchaPayload | null>(null);
@@ -125,10 +126,11 @@ export function AdminLogin() {
           setLoading(false);
           return;
         }
-        // 注册需人机验证但尚无有效负载（如刚发完验证码，token 已被消费）：
-        // 先触发一次全新验证，验证通过后自动提交注册，保证注册用的是未消费的 token
+        // 人机验证已经在「发送验证码」时通过（token 一次性，发码即消费，无法复用），
+        // 这里不再重复弹。只有关掉邮箱验证、没有发码环节时，才在注册处补一次校验。
         const activeCaptcha = captchaPayloadRef.current ?? captchaPayload;
-        if (requiresRegister && (!activeCaptcha || captchaConsumedRef.current)) {
+        const needCaptchaHere = registerRequired && captchaMode !== 'none' && !emailVerification;
+        if (needCaptchaHere && (!activeCaptcha || captchaConsumedRef.current)) {
           registerPendingRef.current = true;
           // 极验为弹窗式，用 trigger 重新弹出；其它模式需销毁旧控件重建（拿到新 token）
           if (captchaMode === 'geetest') {
@@ -183,7 +185,7 @@ export function AdminLogin() {
         setError(res.msg || '发送失败');
       } else {
         setSuccess('验证码已发送，请查收邮箱');
-        // 发码接口已消费人机验证 token（turnstile/hcaptcha/geetest 一次性，math 有时效），标记作废，后续注册需重新验证
+        // 发码接口已消费人机验证 token（turnstile/hcaptcha/geetest 一次性，math 有时效），标记作废
         captchaConsumedRef.current = true;
       }
     } finally {

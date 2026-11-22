@@ -19,7 +19,7 @@ import UndoIcon from '@mui/icons-material/Undo';
 import type { ChatMessageEntry } from '@/hooks/useChatRoom';
 import { RECALL_WINDOW_MS } from '@/hooks/useChatRoom';
 import ChatMessageContent from './ChatMessageContent';
-import { getChatBubbleRenderer } from '@/themes/chatBubble/renderers';
+import { getChatBubbleRenderer, resolveBubbleParams } from '@/themes/chatBubble/renderers';
 import { useSiteStore } from '@/stores/siteStore';
 
 function formatTime(ts?: number): string {
@@ -80,13 +80,17 @@ export default function ChatMessageList({
   const bubbleRenderer = getChatBubbleRenderer(bubbleTheme.variant);
   const bubbleStyles = useMemo(() => {
     if (!bubbleRenderer) return null;
-    const params = { ...bubbleRenderer.defaultParams, ...(bubbleTheme.params || {}) };
+    // 深色模式下若主题没提供暗色配色，这里返回 null → 回退到默认气泡（深底浅字），
+    // 否则浅色气泡配亮色文字会完全看不清。
+    const params = resolveBubbleParams(bubbleRenderer, bubbleTheme.params, theme.palette.mode);
+    if (!params) return null;
     return bubbleRenderer.render(params, {
       // 主题色一律取自项目真实主题色（MUI primary），而非站点独立字段
       themeColor: theme.palette.primary.main,
       borderRadius: theme.shape.borderRadius ?? 16,
+      mode: theme.palette.mode,
     });
-  }, [bubbleRenderer, bubbleTheme.params, theme.palette.primary.main, theme.shape.borderRadius]);
+  }, [bubbleRenderer, bubbleTheme.params, theme.palette.mode, theme.palette.primary.main, theme.shape.borderRadius]);
 
   // 每条消息 DOM 的引用表（按时间戳索引），用于点击引用时滚动定位
   const messageRefs = useRef(new Map<number, HTMLDivElement>());
@@ -386,9 +390,11 @@ export default function ChatMessageList({
                             ? alpha(t.palette.primary.main, 0.12)
                             : alpha(t.palette.text.primary, 0.06),
                         border: (t: Theme) => `1px solid ${alpha(t.palette.divider, 0.6)}`,
+                        // 默认气泡跟随页面主题；一旦启用气泡主题，文字色必须由主题自己决定，
+                        // 否则深色模式下 text.primary（白）会盖在浅色气泡上，整段看不清。
+                        color: 'text.primary',
                       }
                     : {}),
-                  color: 'text.primary',
                   fontSize: '0.92rem',
                   lineHeight: 1.55,
                   // 被右键时轻微弹一下，给出触感反馈
