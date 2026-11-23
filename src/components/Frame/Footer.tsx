@@ -66,7 +66,7 @@ export function Footer() {
                 )}
                 {config.policeBeian && (
                   <a
-                    href={`https://beian.gov.cn/portal/registerSystemInfo?recordcode=${policeCode}`}
+                    href={`https://beian.mps.gov.cn/portal/registerSystemInfo?recordcode=${policeCode}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
