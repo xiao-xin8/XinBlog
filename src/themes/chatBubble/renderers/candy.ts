@@ -27,6 +27,13 @@ export const candyBubbleRenderer: ChatBubbleRenderer<CandyParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色：糖果色降饱和度压暗，文字转浅
+  darkParams: {
+    mineBg: '#a8233f',
+    mineText: '#ffe3ea',
+    otherBg: '#7d6000',
+    otherText: '#fff2c2',
+  },
   schema: [
     { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },

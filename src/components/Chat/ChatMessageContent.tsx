@@ -187,6 +187,9 @@ function ChatImage({ src, alt, onOpen, imageSx }: { src: string; alt: string; on
 function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: ChatMessageContentProps) {
   // 被点击放大预览的图片 URL；非空时展示全屏查看器
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  // 主题在这里取一次：markdown 组件是「函数式渲染器」而非组件，
+  // 在里面调 useTheme 会变成条件性 Hook（有没有引用块导致 Hook 数量变化）
+  const theme = useTheme();
 
   const components: Components = {
     // 聊天图片：把 chat-media://{id} 还原成 /api/v1/chat/media/{room}/{id} 再显示，
@@ -201,16 +204,20 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
     // 只放行 http/https/mailto，其余协议不渲染成链接；新窗口打开并携带 noopener。
     // cite:xxx 属于本项目的引用定位协议，文字保持主题色，点击交给外层引用条统一处理。
     a({ href, children }) {
-      const { palette } = useTheme();
       if (typeof href === 'string' && href.startsWith('cite:')) {
-        return <span style={{ color: palette.primary.main }}>{children}</span>;
+        // 引用定位：跟随气泡文字色 + 下划线。原来固定用主色，在彩色气泡上对比不够
+        return (
+          <span style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            {children}
+          </span>
+        );
       }
       const safeHref = href && /^(https?:\/\/|mailto:)/i.test(href);
       if (!safeHref) {
         return <span>{children}</span>;
       }
       return (
-        <Link href={href} target="_blank" rel="nofollow noopener noreferrer" underline="hover">
+        <Link href={href} target="_blank" rel="nofollow noopener noreferrer" color="inherit" underline="always">
           {children}
         </Link>
       );
@@ -218,7 +225,6 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
     // 引用条：左侧主题色竖线 + 淡背景，与正文明显区隔。
     // 若包含 cite 引用，则整条可点击定位到原消息，并在右侧显示一个向上箭头。
     blockquote({ children, node }) {
-      const theme = useTheme();
       const { palette } = theme;
       const r = theme.shape.borderRadius;
       // 双通道解析 cite 时间戳：原始 hAST（稳定）优先，渲染 children（兼容意外情形）兜底。
@@ -229,7 +235,9 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
         borderLeft: `3px solid ${alpha(palette.primary.main, 0.55)}`,
         bgcolor: alpha(palette.primary.main, 0.06),
         borderRadius: `0 ${Math.max(4, r)}px ${Math.max(4, r)}px 0`,
-        color: alpha(palette.text.primary, 0.62),
+        // 文字色跟随气泡（气泡主题可能自带深色文字），只压低透明度做弱化
+        color: 'inherit',
+        opacity: 0.72,
       };
       if (citeTs === null) {
         return (
@@ -260,7 +268,6 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
       );
     },
     code(props) {
-      const { palette } = useTheme();
       const { children } = props;
       // 行内代码标记由 react-markdown 运行时注入（未在公开类型中声明）
       const inline = Boolean((props as unknown as { inline?: boolean }).inline);
@@ -272,8 +279,9 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
               fontSize: '0.85em',
               padding: '0.15em 0.4em',
               borderRadius: 4,
-              backgroundColor: alpha(palette.text.primary, 0.08),
-              color: palette.text.primary,
+              // 中性灰底 + 继承气泡文字色：气泡主题可能是浅色底配深色字
+              backgroundColor: 'rgba(127,127,127,0.18)',
+              color: 'inherit',
             }}
           >
             {children}
@@ -288,7 +296,7 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
             fontSize: '0.85em',
             padding: '0.8em 1em',
             borderRadius: 8,
-            backgroundColor: alpha(palette.text.primary, 0.06),
+            backgroundColor: 'rgba(127,127,127,0.14)',
             whiteSpace: 'pre',
             overflowX: 'auto',
           }}
@@ -308,6 +316,31 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
         '& p': { m: '0.25em 0', fontSize: 'inherit', lineHeight: 'inherit' },
         '& ul, & ol': { m: '0.25em 0', pl: '1.4em' },
         '& li': { m: '0.1em 0' },
+        // 标题按气泡字号缩放，避免 h1 在窄气泡里撑成巨字
+        '& h1, & h2, & h3, & h4, & h5, & h6': {
+          m: '0.5em 0 0.25em',
+          fontSize: '1.05em',
+          fontWeight: 700,
+          lineHeight: 1.35,
+        },
+        '& h1': { fontSize: '1.15em' },
+        // 表格用中性灰描边，深浅气泡上都看得见
+        '& table': {
+          borderCollapse: 'collapse',
+          my: '0.4em',
+          fontSize: '0.9em',
+          display: 'block',
+          overflowX: 'auto',
+          maxWidth: '100%',
+        },
+        '& th, & td': {
+          border: '1px solid rgba(127,127,127,0.35)',
+          px: '0.5em',
+          py: '0.25em',
+          textAlign: 'left',
+        },
+        '& th': { fontWeight: 700, bgcolor: 'rgba(127,127,127,0.12)' },
+        '& hr': { my: '0.6em', border: 0, borderTop: '1px solid rgba(127,127,127,0.35)' },
       }}
     >
       <ReactMarkdown

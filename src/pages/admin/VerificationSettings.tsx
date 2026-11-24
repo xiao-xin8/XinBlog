@@ -203,7 +203,7 @@ export function VerificationSettings() {
                   onChange={(e) => setRegisterVerification(e.target.checked)}
                 />
               }
-              label="注册时启用验证（含发验证码）"
+              label="注册流程启用验证（在发送验证码时拦截）"
             />
             <FormControlLabel
               control={
@@ -212,9 +212,12 @@ export function VerificationSettings() {
                   onChange={(e) => setForgotPasswordVerification(e.target.checked)}
                 />
               }
-              label="忘记密码时启用验证（含发验证码）"
+              label="忘记密码启用验证（在发送验证码时拦截）"
             />
           </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1, mb: 1 }}>
+            两步流程只在「发验证码」时验证一次，注册/重置提交不再重复弹出；若关闭了邮箱验证（没有发码环节），注册会在提交时验证。
+          </Typography>
 
           {mode === 'turnstile' && (
             <Box sx={{ display: 'grid', gap: 2.5 }}>

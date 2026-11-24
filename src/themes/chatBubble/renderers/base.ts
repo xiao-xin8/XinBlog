@@ -8,6 +8,8 @@ import type { ThemeParamSchema } from '@/types';
 export interface ChatBubbleRenderContext {
   themeColor?: string;
   borderRadius?: number;
+  /** 当前界面深浅模式。渲染器可据此返回暗色版配色 */
+  mode?: 'light' | 'dark';
 }
 
 /**
@@ -28,8 +30,32 @@ export interface ChatBubbleRenderer<P extends Record<string, unknown> = Record<s
   description?: string;
   aliases?: string[];
   defaultParams: P;
+  /**
+   * 深色模式下的配色覆盖，只写颜色键即可（圆角、尖角等结构参数沿用浅色版）。
+   * 不提供表示「该主题没做深色适配」——深色下会自动回退到默认气泡，
+   * 避免出现浅色气泡配亮色文字、内容看不清。
+   */
+  darkParams?: Partial<P>;
   schema: ThemeParamSchema[];
   render: (params: P, context: ChatBubbleRenderContext) => ChatBubbleRenderOutput;
+}
+
+/**
+ * 按当前模式合并气泡主题参数。
+ * 优先级：默认参数 ← 深色覆盖 ← 用户自定义（用户在后台显式调过的颜色最终生效）。
+ * 返回 null 表示该主题未适配深色，调用方应回退到默认气泡配色。
+ */
+export function resolveBubbleParams<P extends Record<string, unknown>>(
+  renderer: ChatBubbleRenderer<P>,
+  userParams: Partial<P> | undefined,
+  mode: 'light' | 'dark' | undefined,
+): P | null {
+  if (mode === 'dark' && !renderer.darkParams) return null;
+  return {
+    ...renderer.defaultParams,
+    ...(mode === 'dark' ? renderer.darkParams : {}),
+    ...(userParams || {}),
+  } as P;
 }
 
 /**
@@ -41,6 +67,26 @@ export function resolveThemeColor(value: string | undefined, fallback: string): 
   const empty = ['#000', '#000000', '000000', '000', 'rgb(0,0,0)', 'rgba(0,0,0,0)', 'transparent'];
   if (empty.includes(s)) return fallback;
   return value;
+}
+
+/**
+ * 给颜色加透明度。不能像 `#rrggbb` + `22` 那样直接字符串拼接——
+ * 主题色可能是 `rgb()/rgba()` 或三位短 hex，拼出来就是非法颜色，整块背景会失效。
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const s = (color || '').trim();
+  if (s.startsWith('#')) {
+    const hex = s.slice(1);
+    const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+    if (/^[0-9a-fA-F]{6}$/.test(full)) {
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+  }
+  // 已经是 rgba() 的非 hex 颜色：原样返回（不强行改写，避免猜错格式）
+  return s;
 }
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';

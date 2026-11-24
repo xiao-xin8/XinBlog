@@ -27,6 +27,13 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色：便利贴换成深黄纸/深灰，保留折角
+  darkParams: {
+    mineBg: '#3a3320',
+    mineText: '#f0e6c4',
+    otherBg: '#2a2a2a',
+    otherText: '#d8d8d8',
+  },
   schema: [
     { key: 'mineBg', label: '自己便签底色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },
@@ -41,7 +48,8 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
       { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
       { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' } ] },
   ],
-  render: (params, { borderRadius }) => {
+  render: (params, { borderRadius, mode }) => {
+    const isDark = mode === 'dark';
     const radius = Math.min(20, params.radius || borderRadius || 8);
     const imageRadius = resolveImageRadius(params.imageRadius, Math.max(radius, 6));
     const mineBg = resolveThemeColor(params.mineBg, '#fff9c4');
@@ -56,16 +64,17 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
         backgroundColor: mineBg,
         color: mineText,
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
-        boxShadow: '2px 3px 6px rgba(0,0,0,0.12)',
         border: 'none',
+        // 深色页面上黑色阴影看不见，改用更深的投影保住"翘起"的立体感
+        boxShadow: isDark ? '2px 3px 8px rgba(0,0,0,0.55)' : '2px 3px 6px rgba(0,0,0,0.12)',
         // 右下折角：用渐变切出的三角
-        background: `linear-gradient(135deg, ${mineBg} 0%, ${mineBg} 78%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.06) 92%, transparent 92%), ${mineBg}`,
+        background: `linear-gradient(135deg, ${mineBg} 0%, ${mineBg} 78%, ${isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)'} 78%, ${isDark ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.06)'} 92%, transparent 92%), ${mineBg}`,
       },
       other: {
         backgroundColor: otherBg,
         color: otherText,
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,
-        boxShadow: '1px 2px 4px rgba(0,0,0,0.08)',
+        boxShadow: isDark ? '1px 2px 6px rgba(0,0,0,0.45)' : '1px 2px 4px rgba(0,0,0,0.08)',
         border: 'none',
       },
       mineImage: { borderRadius: `${imageRadius}px` },

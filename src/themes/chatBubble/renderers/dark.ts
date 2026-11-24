@@ -27,6 +27,13 @@ export const darkBubbleRenderer: ChatBubbleRenderer<DarkParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 本身就是暗色主题，深色下再把底色压一点，保证在深色页面上仍有层次
+  darkParams: {
+    mineBg: '#0d0e12',
+    mineText: '#f5f5f5',
+    otherBg: '#20222a',
+    otherText: '#e0e0e0',
+  },
   schema: [
     { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },

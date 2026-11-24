@@ -1,5 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
-import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
+import { resolveThemeColor, bubbleRadius, resolveImageRadius, withAlpha, type BubbleCorners } from './base';
 
 interface NeonParams extends Record<string, unknown> {
   mineBg: string;
@@ -31,6 +31,15 @@ export const neonBubbleRenderer: ChatBubbleRenderer<NeonParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 霓虹本身就是暗底，深色下把底再压一点，保证在深色页面里有层次
+  darkParams: {
+    mineBg: '#0f1018',
+    mineText: '#7cffcb',
+    mineGlow: '#7cffcb',
+    otherBg: '#0f1018',
+    otherText: '#e0e0e0',
+    otherGlow: 'rgba(124,255,203,0.35)',
+  },
   schema: [
     { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
     { key: 'mineText', label: '自己发光文字色', type: 'color' },
@@ -58,14 +67,15 @@ export const neonBubbleRenderer: ChatBubbleRenderer<NeonParams> = {
     const otherGlow = resolveThemeColor(params.otherGlow, 'rgba(124,255,203,0.35)');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
-    const textShadow = (glow: string) => `0 0 8px ${glow}`;
+    // 发光色跟随参数（原来内阴影写死绿色，换发光色后内圈还是绿的）；文字发光收一点，长文不发虚
+    const textShadow = (glow: string) => `0 0 6px ${glow}`;
 
     return {
       mine: {
         backgroundColor: mineBg,
         color: mineText,
         border: `1px solid ${mineGlow}`,
-        boxShadow: `0 0 12px ${mineGlow}, inset 0 0 8px rgba(124,255,203,0.12)`,
+        boxShadow: `0 0 10px ${mineGlow}, inset 0 0 8px ${withAlpha(mineGlow, 0.18)}`,
         textShadow: textShadow(mineGlow),
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
       },

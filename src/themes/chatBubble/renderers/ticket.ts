@@ -27,6 +27,13 @@ export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
     mineSharpCorner: 'top-right',
     otherSharpCorner: 'top-left',
   },
+  // 深色：票据纸感保留，底色换深牛皮纸与深灰
+  darkParams: {
+    mineBg: '#3a2e1c',
+    mineText: '#ffd79a',
+    otherBg: '#2a2c30',
+    otherText: '#d5d8de',
+  },
   schema: [
     { key: 'mineBg', label: '自己气泡背景色', type: 'color' },
     { key: 'mineText', label: '自己文字颜色', type: 'color' },
@@ -41,7 +48,8 @@ export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
       { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
       { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' } ] },
   ],
-  render: (params, { themeColor, borderRadius }) => {
+  render: (params, { themeColor, borderRadius, mode }) => {
+    const isDark = mode === 'dark';
     const radius = Math.min(28, params.radius || borderRadius || 16);
     const imageRadius = resolveImageRadius(params.imageRadius, radius);
     const mineBg = resolveThemeColor(params.mineBg, themeColor || '#5b7cfa');
@@ -56,13 +64,14 @@ export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
         backgroundColor: mineBg,
         color: mineText,
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
-        border: `2px dashed rgba(138,90,30,0.45)`,
+        border: isDark ? '2px dashed rgba(255,215,154,0.35)' : '2px dashed rgba(138,90,30,0.45)',
       },
       other: {
         backgroundColor: otherBg,
         color: otherText || undefined,
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,
-        border: 'none',
+        // 对方也是票据，但虚线更淡，保持两边风格一致
+        border: isDark ? '2px dashed rgba(255,255,255,0.16)' : '2px dashed rgba(0,0,0,0.12)',
       },
       mineImage: { borderRadius: `${imageRadius}px` },
       otherImage: { borderRadius: `${imageRadius}px` },
