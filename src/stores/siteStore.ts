@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { apiGet, apiPatch } from '@/api/client';
 import { themePresets } from '@/types/theme';
 import { defaultCardTheme } from '@/utils/postCardTheme';
-import type { SiteConfig, SiteFontConfig, SiteCursorConfig, Live2dConfig, ClickEffectConfig, MusicPlayerConfig } from '@/types';
+import type { SiteConfig, SiteFontConfig, SiteCursorConfig, Live2dConfig, ClickEffectConfig, MusicPlayerConfig, RewardConfig } from '@/types';
 
 const defaultPreset = themePresets.find((p) => p.id === 'ocean') || themePresets[0];
 
@@ -60,6 +60,15 @@ const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   imageProxy: false,
 };
 
+// ===== 新增：打赏（赞赏）默认配置 =====
+const DEFAULT_REWARD_CONFIG: RewardConfig = {
+  enabled: false,
+  title: '感谢支持',
+  tip: '扫码赞赏作者',
+  alipayQr: '',
+  wechatQr: '',
+};
+
 const defaultConfig: SiteConfig = {
   author: 'Xin',
   siteName: 'XinBlog',
@@ -77,6 +86,8 @@ const defaultConfig: SiteConfig = {
   enableDashboardStats: true,
   paginationMode: 'load-more',
   pageSize: 9,
+  icpBeian: '',
+  policeBeian: '',
   theme: {
     presetId: defaultPreset.id,
     customColors: { ...defaultPreset.colors },
@@ -113,6 +124,7 @@ const defaultConfig: SiteConfig = {
   clickEffect: { ...DEFAULT_CLICK_EFFECT_CONFIG },
   live2d: { ...DEFAULT_LIVE2D_CONFIG },
   music: { ...DEFAULT_MUSIC_CONFIG },
+  reward: { ...DEFAULT_REWARD_CONFIG },
   nav: {
     items: [],
     theme: {
@@ -213,6 +225,18 @@ function normalizeMusicConfig(music: SiteConfig['music']): MusicPlayerConfig {
   };
 }
 
+// ===== 新增：打赏配置归一化 =====
+function normalizeRewardConfig(reward: SiteConfig['reward']): RewardConfig {
+  if (!reward || typeof reward !== 'object') return { ...DEFAULT_REWARD_CONFIG };
+  return {
+    enabled: !!reward.enabled,
+    title: typeof reward.title === 'string' && reward.title.trim() ? reward.title : DEFAULT_REWARD_CONFIG.title,
+    tip: typeof reward.tip === 'string' && reward.tip.trim() ? reward.tip : DEFAULT_REWARD_CONFIG.tip,
+    alipayQr: typeof reward.alipayQr === 'string' ? reward.alipayQr : '',
+    wechatQr: typeof reward.wechatQr === 'string' ? reward.wechatQr : '',
+  };
+}
+
 /**
  * 英雄区配置归一化：
  * - `bento`（已下线的积木方案）统一路由到新的 `fullscreen` 全屏主题，
@@ -235,6 +259,7 @@ export function normalizeSiteConfig(config: SiteConfig): SiteConfig {
     clickEffect: normalizeClickEffectConfig(config.clickEffect),
     live2d: normalizeLive2dConfig(config.live2d),
     music: normalizeMusicConfig(config.music),
+    reward: normalizeRewardConfig(config.reward),
     hero: normalizeHeroConfig(config.hero),
   };
 }
@@ -286,14 +311,14 @@ function applySiteMeta(config: SiteConfig) {
   setMeta('twitter:card', 'summary_large_image');
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const shareImage = config.shareImage || config.logo || `${origin}/logo.png`;
+  const shareImage = config.shareImage || config.logo || `${origin}logo.png`;
   if (shareImage) {
     const absoluteImage = shareImage.startsWith('http') || shareImage.startsWith('data:') ? shareImage : `${origin}${shareImage.startsWith('/') ? '' : '/'}${shareImage}`;
     setMeta('og:image', absoluteImage);
     setMeta('twitter:image', absoluteImage);
   }
 
-  const faviconUrl = config.favicon || '/logo.png';
+  const faviconUrl = config.favicon || 'logo.png';
   let link = document.querySelector('link[rel*="icon"]') as HTMLLinkElement | null;
   if (!link) {
     link = document.createElement('link');

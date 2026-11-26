@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import type { Post } from '@/types';
 import LikeButton from '@/components/Post/LikeButton';
 import ShareButtons from '@/components/Post/ShareButtons';
+import RewardButton from '@/components/Post/RewardButton';
 
 interface PostDetailFooterProps {
   post: Post;
@@ -28,6 +29,7 @@ export function PostDetailFooter({ post, siblings }: PostDetailFooterProps) {
         }}
       >
         <LikeButton slug={post.slug} />
+        <RewardButton />
         <ShareButtons title={post.title} slug={post.slug} />
       </Box>
 

@@ -9,7 +9,21 @@ import { useUIStore } from '@/stores/uiStore';
 import { fetchPosts } from '@/api/posts';
 import { uploadMedia } from '@/api/media';
 import { useSnackbar } from 'notistack';
-import type { HeroConfig, AboutConfig, Post, PaginationMode, UserFont, UserFontFile, UserCursor, NavConfig, NavItemConfig, NavThemeConfig, ClickEffectConfig, SpacingConfig } from '@/types';
+import type {
+  HeroConfig,
+  AboutConfig,
+  Post,
+  PaginationMode,
+  UserFont,
+  UserFontFile,
+  UserCursor,
+  NavConfig,
+  NavItemConfig,
+  NavThemeConfig,
+  ClickEffectConfig,
+  SpacingConfig,
+  RewardConfig,
+} from '@/types';
 import { DEFAULT_SPACING, resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { PostLayoutMode } from '@/stores/uiStore';
 import { toAbsoluteCloudUrl } from '@/config';
@@ -73,10 +87,18 @@ export const layouts: { id: PostLayoutMode; name: string; desc: string; icon: Re
   },
 ];
 
-/**
- * 外观设置页的统一逻辑层：持有所有 state / effect / handler。
- * 子面板组件通过 editor 对象读取所需字段，父组件 AdminAppearance 调用本 hook 后下发。
- */
+/** 从 RewardConfig 原始值安全构造表单所需的完整对象 */
+function buildReward(raw: unknown): RewardConfig {
+  const cfg = (raw && typeof raw === 'object' ? raw : {}) as Partial<RewardConfig>;
+  return {
+    enabled: !!cfg.enabled,
+    title: cfg.title ?? '',
+    tip: cfg.tip ?? '',
+    alipayQr: cfg.alipayQr ?? '',
+    wechatQr: cfg.wechatQr ?? '',
+  };
+}
+
 export function useAppearanceEditor() {
   const site = useSiteStore();
   const themeConfig = useThemeConfigStore();
@@ -151,6 +173,9 @@ export function useAppearanceEditor() {
     clickEffectCfg.intensity || 'medium'
   );
 
+  // ===== 打赏（reward）state =====
+  const [reward, setReward] = useState<RewardConfig>(() => buildReward(site.config.reward));
+
   useEffect(() => {
     const layout = site.config.postLayout || ui.postLayout;
     if (layout && ['grid', 'list', 'magazine'].includes(layout)) {
@@ -180,6 +205,8 @@ export function useAppearanceEditor() {
     setClickEffectTextList((cfg.textList || []).join('\n'));
     setClickEffectIntensity(cfg.intensity || 'medium');
   }, [site.config.clickEffect]);
+
+  // 【已移除】冗余的 rewardConfigKey 同步 Effect，统一由下方 [site.config] 监听器处理
 
   useEffect(() => {
     if (!activeCursor) {
@@ -271,6 +298,8 @@ export function useAppearanceEditor() {
   const [paginationMode, setPaginationMode] = useState<PaginationMode>(site.config.paginationMode || 'load-more');
   const [pageSize, setPageSize] = useState(site.config.pageSize ?? 9);
   const [pwaThemeColor, setPwaThemeColor] = useState(site.config.pwaThemeColor || '#ffffff');
+  const [icpBeian, setIcpBeian] = useState(site.config.icpBeian || '');
+  const [policeBeian, setPoliceBeian] = useState(site.config.policeBeian || '');
 
   // hero
   const hero = site.config.hero || {};
@@ -301,6 +330,7 @@ export function useAppearanceEditor() {
   const [aboutBio, setAboutBio] = useState(about.bio ?? '');
   const [aboutTags, setAboutTags] = useState((about.tags ?? []).join('、'));
 
+  // 统一配置同步入口
   useEffect(() => {
     const c = site.config;
     setSiteName(c.siteName || 'StarBlog');
@@ -316,16 +346,21 @@ export function useAppearanceEditor() {
     setPaginationMode(c.paginationMode || 'load-more');
     setPageSize(c.pageSize ?? 9);
     setPwaThemeColor(c.pwaThemeColor || '#ffffff');
+    setIcpBeian(c.icpBeian || '');
+    setPoliceBeian(c.policeBeian || '');
+
     const heroCfg = c.hero || {};
     setHeroTitle(heroCfg.title ?? '');
     setHeroSubtitle(heroCfg.subtitle ?? '');
     setHeroBadge(heroCfg.badge ?? '');
     setHeroBgImage(heroCfg.backgroundImage ?? '');
     setHeroBgColor(heroCfg.backgroundColor ?? '');
+
     const aboutCfg = c.about || {};
     setAboutSubtitle(aboutCfg.subtitle ?? '');
     setAboutBio(aboutCfg.bio ?? '');
     setAboutTags((aboutCfg.tags ?? []).join('、'));
+
     const navCfg = c.nav || { items: [] };
     setNavItems(navCfg.items || []);
     const nt = navCfg.theme || defaultNavTheme;
@@ -338,6 +373,7 @@ export function useAppearanceEditor() {
     setNavActiveColor(nt.activeColor ?? '');
     setNavLogoText(nt.logoText ?? '');
     setNavHideOnScroll(nt.hideOnScroll ?? true);
+
     const themeCfg = c.theme;
     if (themeCfg) {
       setPresetId(themeCfg.presetId ?? themeConfig.presetId);
@@ -345,7 +381,11 @@ export function useAppearanceEditor() {
       setColors(themeCfg.customColors ?? themeConfig.customColors);
       setBorderRadius(themeCfg.borderRadius ?? themeConfig.borderRadius);
     }
+
     setSpacing(resolveSpacingConfig(c.spacing));
+
+    // Reward 同步
+    setReward(buildReward(c.reward));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [site.config]);
 
@@ -380,6 +420,8 @@ export function useAppearanceEditor() {
     if (paginationMode !== (site.config.paginationMode || 'load-more')) return true;
     if (pageSize !== (site.config.pageSize ?? 9)) return true;
     if (pwaThemeColor !== (site.config.pwaThemeColor || '#ffffff')) return true;
+    if (icpBeian !== (site.config.icpBeian || '')) return true;
+    if (policeBeian !== (site.config.policeBeian || '')) return true;
 
     if (heroTitle !== (currentHero.title ?? '')) return true;
     if (heroSubtitle !== (currentHero.subtitle ?? '')) return true;
@@ -434,6 +476,9 @@ export function useAppearanceEditor() {
     if (clickEffectIntensity !== (currentClickEffect.intensity || 'medium')) return true;
 
     if (JSON.stringify(spacing) !== JSON.stringify(resolveSpacingConfig(site.config.spacing))) return true;
+
+    // ✅ 修复：正确比较当前 reward 状态与原始配置标准化后的值
+    if (JSON.stringify(reward) !== JSON.stringify(buildReward(site.config.reward))) return true;
 
     return false;
   }, [
@@ -496,6 +541,10 @@ export function useAppearanceEditor() {
     pageSize,
     pwaThemeColor,
     site.config.pwaThemeColor,
+    icpBeian,
+    policeBeian,
+    site.config.icpBeian,
+    site.config.policeBeian,
     userFonts,
     activeFontId,
     site.config.font,
@@ -512,6 +561,7 @@ export function useAppearanceEditor() {
     site.config.clickEffect,
     spacing,
     site.config.spacing,
+    reward, // ✅ 依赖当前 reward 状态而非 rewardConfigKey
   ]);
 
   const resetToPreset = (id: string) => {
@@ -616,6 +666,8 @@ export function useAppearanceEditor() {
       paginationMode,
       pageSize,
       pwaThemeColor,
+      icpBeian,
+      policeBeian,
       hero: heroConfig,
       about: aboutConfig,
       theme: {
@@ -648,6 +700,7 @@ export function useAppearanceEditor() {
           .filter(Boolean),
         intensity: clickEffectIntensity,
       },
+      reward,
     };
 
     const siteOk = await site.saveConfig(siteConfig);
@@ -679,16 +732,21 @@ export function useAppearanceEditor() {
       setPaginationMode(sc.paginationMode || 'load-more');
       setPageSize(sc.pageSize ?? 9);
       setPwaThemeColor(sc.pwaThemeColor || '#ffffff');
+      setIcpBeian(sc.icpBeian || '');
+      setPoliceBeian(sc.policeBeian || '');
+
       const savedHero = sc.hero || {};
       setHeroTitle(savedHero.title ?? '');
       setHeroSubtitle(savedHero.subtitle ?? '');
       setHeroBadge(savedHero.badge ?? '');
       setHeroBgImage(savedHero.backgroundImage ?? '');
       setHeroBgColor(savedHero.backgroundColor ?? '');
+
       const savedAbout = sc.about || {};
       setAboutSubtitle(savedAbout.subtitle ?? '');
       setAboutBio(savedAbout.bio ?? '');
       setAboutTags((savedAbout.tags ?? []).join('、'));
+
       const savedNav = sc.nav || { items: [] };
       setNavItems(savedNav.items || []);
       const savedNavTheme = savedNav.theme || defaultNavTheme;
@@ -701,6 +759,7 @@ export function useAppearanceEditor() {
       setNavActiveColor(savedNavTheme.activeColor ?? '');
       setNavLogoText(savedNavTheme.logoText ?? '');
       setNavHideOnScroll(savedNavTheme.hideOnScroll ?? true);
+
       const savedTheme = sc.theme;
       if (savedTheme) {
         setPresetId(savedTheme.presetId ?? tc.presetId);
@@ -708,6 +767,7 @@ export function useAppearanceEditor() {
         setColors(savedTheme.customColors ?? tc.customColors);
         setBorderRadius(savedTheme.borderRadius ?? tc.borderRadius);
       }
+
       setPostLayout(sc.postLayout || ui.postLayout || 'grid');
       setSpacing(resolveSpacingConfig(sc.spacing));
       setUserFonts(sc.font?.fonts || []);
@@ -715,6 +775,7 @@ export function useAppearanceEditor() {
       setUserCursors(sc.cursor?.cursors || []);
       setActiveCursorId(sc.cursor?.activeCursorId || '');
       setCursorSize(sc.cursor?.size || 32);
+
       const savedClickEffect = (sc.clickEffect || {}) as Partial<ClickEffectConfig>;
       setClickEffectEnabled(savedClickEffect.enabled ?? false);
       setClickEffectType(savedClickEffect.type || 'heart');
@@ -722,6 +783,9 @@ export function useAppearanceEditor() {
       setClickEffectCustomColor(savedClickEffect.customColor || '');
       setClickEffectTextList((savedClickEffect.textList || []).join('\n'));
       setClickEffectIntensity(savedClickEffect.intensity || 'medium');
+
+      // 保存后同步 reward
+      setReward(buildReward(sc.reward));
     }
 
     setSaving(false);
@@ -809,7 +873,7 @@ export function useAppearanceEditor() {
       const nextActiveFontId = activeFontId || font.id;
       setUserFonts(nextFonts);
       setActiveFontId(nextActiveFontId);
-      await saveFontConfig(nextFonts, nextActiveFontId, `已添加字体“${font.name}”`);
+      await saveFontConfig(nextFonts, nextActiveFontId, `已添加字体"${font.name}"`);
     } else {
       const nextFonts = userFonts.filter((f) => f.id !== font.id);
       const nextActiveFontId = activeFontId === font.id ? nextFonts[0]?.id || '' : activeFontId;
@@ -829,13 +893,11 @@ export function useAppearanceEditor() {
     setActiveFontId(id);
   };
 
-  // 自定义字体（填地址）：打开弹窗并重置草稿
   const handleOpenCustomFontDialog = () => {
     setCustomFontDraft({ name: '', family: '', url: '', preview: '', format: 'woff2' });
     setCustomFontOpen(true);
   };
 
-  // 校验并生成 UserFont，交由确认弹窗完成添加与保存
   const handleSaveCustomFont = () => {
     const name = customFontDraft.name.trim();
     const fileUrl = customFontDraft.url.trim();
@@ -929,7 +991,7 @@ export function useAppearanceEditor() {
       const nextActiveCursorId = activeCursorId || cursor.id;
       setUserCursors(nextCursors);
       setActiveCursorId(nextActiveCursorId);
-      await saveCursorConfig(nextCursors, nextActiveCursorId, `已添加鼠标“${cursor.name}”`);
+      await saveCursorConfig(nextCursors, nextActiveCursorId, `已添加鼠标"${cursor.name}"`);
     } else {
       const nextCursors = userCursors.filter((c) => c.id !== cursor.id);
       const nextActiveCursorId = activeCursorId === cursor.id ? nextCursors[0]?.id || '' : activeCursorId;
@@ -988,7 +1050,6 @@ export function useAppearanceEditor() {
     handleConfirmFontAction,
     handleResetSystemFont,
     handleActivateFont,
-    // 自定义字体（填地址）
     customFontOpen,
     setCustomFontOpen,
     customFontDraft,
@@ -1069,6 +1130,10 @@ export function useAppearanceEditor() {
     setPageSize,
     pwaThemeColor,
     setPwaThemeColor,
+    icpBeian,
+    setIcpBeian,
+    policeBeian,
+    setPoliceBeian,
     // 间距
     spacing,
     updateSpacing,
@@ -1116,6 +1181,9 @@ export function useAppearanceEditor() {
     setAboutBio,
     aboutTags,
     setAboutTags,
+    // 打赏
+    reward,
+    setReward,
     // 杂项
     isDirty,
     handleImageUpload,
